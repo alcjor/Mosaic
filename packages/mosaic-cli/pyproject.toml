@@ -1,0 +1,23 @@
+[project]
+name = "mosaic-cli"
+version = "0.1.0"
+description = "The `mosaic` command"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+dependencies = [
+    "mosaic-core",
+    "mosaic-extractors",
+    "mosaic-server",
+]
+
+[project.scripts]
+mosaic = "mosaic_cli.main:main"
+
+[tool.uv.sources]
+mosaic-core = { workspace = true }
+mosaic-extractors = { workspace = true }
+mosaic-server = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"

@@ -1,0 +1,35 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  python:
+    strategy:
+      fail-fast: false
+      matrix: {os: [ubuntu-latest, windows-latest]}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked --all-packages
+      - run: uv run scripts/check.py --python
+  viewer:
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: viewer}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: lts/*, cache: npm, cache-dependency-path: viewer/package-lock.json}
+      - run: npm ci
+      - run: npm run check && npm run lint && npm test && npm run licences
+  e2e:
+    needs: [python, viewer]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: {node-version: lts/*}
+      - run: uv sync --locked --all-packages && (cd viewer && npm ci && npx playwright install --with-deps chromium)
+      - run: uv run pytest tests/e2e -m e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: scoring, path: build/scoring.json}

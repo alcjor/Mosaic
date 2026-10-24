@@ -1,0 +1,119 @@
+[project]
+name = "mosaic-workspace"
+version = "0.1.0"
+description = "Mosaic connected manual: workspace root"
+requires-python = ">=3.14"
+dependencies = [
+    "mosaic-core",
+    "mosaic-extractors",
+    "mosaic-server",
+    "mosaic-cli",
+    "mosaic-mock",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+mosaic-core = { workspace = true }
+mosaic-extractors = { workspace = true }
+mosaic-server = { workspace = true }
+mosaic-cli = { workspace = true }
+mosaic-mock = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff==0.17.2",
+    "ty==0.0.91",
+    "pytest>=8",
+    "pytest-cov>=6",
+    "hypothesis>=6",
+    "syrupy>=4",
+    "import-linter>=2",
+    "pre-commit>=4",
+    "pip-licenses>=5",
+    "linkml>=1.12",
+    "pypdf>=5",
+    "httpx>=0.28",
+    "jsonschema>=4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = [
+    "packages/mosaic-core/src/mosaic_core/models.py",
+    "viewer",
+    "examples",
+    "prototype",
+    "design",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PT", "PTH", "N", "C4", "PL", "TID"]
+ignore = [
+    "PLR0913", # many arguments: dataclass-like constructors and CLI handlers
+    "PLR2004", # magic values: the specs name their constants (levels, codes)
+    "PLR0911", # many returns in small dispatch functions
+    "PLR0912", # many branches in parsers that mirror the input format
+    "PLR0915", # many statements in renderers and parsers
+    "PLC0415", # local imports keep optional dependencies optional
+    "N802",    # SRDB column names are upper case on purpose
+    "N815",
+    "N806",
+    "N803",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["PLR2004", "N", "PLC2701"]
+"tests/**" = ["PLR2004", "N", "PLC2701"]
+
+[tool.ty.src]
+exclude = ["viewer", "examples", "prototype", "design", "build"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --import-mode=importlib -m 'not e2e'"
+markers = [
+    "req(id): requirement covered",
+    "e2e: end-to-end",
+    "slow: > 1 s",
+]
+testpaths = ["packages", "tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["mosaic_core", "mosaic_extractors", "mosaic_server", "mosaic_cli", "mosaic_mock"]
+
+[tool.importlinter]
+root_packages = ["mosaic_core", "mosaic_extractors", "mosaic_server", "mosaic_cli", "mosaic_mock"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "layers"
+type = "layers"
+layers = [
+    "mosaic_cli",
+    "mosaic_server | mosaic_extractors",
+    "mosaic_core",
+]
+
+[[tool.importlinter.contracts]]
+name = "mocker imports no Mosaic package (MOCK-01)"
+type = "forbidden"
+source_modules = ["mosaic_mock"]
+forbidden_modules = ["mosaic_core", "mosaic_extractors", "mosaic_server", "mosaic_cli"]
+
+[[tool.importlinter.contracts]]
+name = "no Mosaic package imports the mocker (MOCK-01)"
+type = "forbidden"
+source_modules = ["mosaic_core", "mosaic_extractors", "mosaic_server", "mosaic_cli"]
+forbidden_modules = ["mosaic_mock"]
+
+[[tool.importlinter.contracts]]
+name = "core imports no document or code parser"
+type = "forbidden"
+source_modules = ["mosaic_core"]
+forbidden_modules = ["lxml", "mammoth", "pdfplumber", "tree_sitter", "tree_sitter_c", "docx", "pypdf"]

@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Mosaic Connected Manual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: three-pane tool (navigator · reader · detail panel) under the MOSAIC navy slab; bottom sheet on phones.
+   Tokens follow the MOSAIC design system (blues lead; terracotta = documents, saffron = warnings/AI, majolica = errors). */
+:root {
+  --bg: #F4F7FB; --surface: #FFFFFF; --sunk: #EAF2FB; --line: #C9DCF0;
+  --ink: #1B2A3D; --ink-2: #3B4B5F; --ink-3: #3B4B5F; --heading: #0A2A5C;
+  --brand: #0A2A5C; --brand-2: #163C78; --brand-ink: #FFFFFF; --brand-ink-2: #CFE2F6; --brand-line: #2F6DB5; --brand-field: #0B2E63;
+  --mark-a: #FFFFFF; --mark-b: #9CC3E8; --mark-c: #6FA8DC;
+  --accent: #2F6DB5; --accent-bg: #DCE9F7;
+  --cur: #CFE2F6; --cur-ink: #0A2A5C; --cur-line: #2F6DB5;
+  --doc: #C8622A; --doc-bg: #F8E1D2; --doc-ink: #A44E1C;
+  --warn: #E0A21F; --warn-bg: #FCEFCF; --warn-ink: #7A5A0E;
+  --err: #B3392B; --err-bg: #F6DAD5; --err-ink: #8E2B20;
+  --edge: #9CB3CF; --node-c-bg: #0A2A5C; --node-c-ink: #FFFFFF;
+  --t-kw: #0A2A5C; --t-com: #3B4B5F; --t-pre: #2F6DB5;
+  --font-ui: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0A2A5C; --surface: #0C3168; --sunk: #123A75; --line: #1F5296;
+  --ink: #E6EEF8; --ink-2: #9CC3E8; --ink-3: #9CC3E8; --heading: #FFFFFF;
+  --brand: #061733; --brand-2: #163C78; --brand-ink: #FFFFFF; --brand-ink-2: #CFE2F6; --brand-line: #1F5296; --brand-field: #0C3168;
+  --accent: #6FA8DC; --accent-bg: #163C78;
+  --cur: #2F6DB5; --cur-ink: #FFFFFF; --cur-line: #9CC3E8;
+  --doc: #C8622A; --doc-bg: #6E3412; --doc-ink: #F8E1D2;
+  --warn: #F2B630; --warn-bg: #5C430A; --warn-ink: #FCEFCF;
+  --err: #F6DAD5; --err-bg: #5E1C15; --err-ink: #F6DAD5;
+  --edge: #3D7FC9; --node-c-bg: #CFE2F6; --node-c-ink: #0A2A5C;
+  --t-kw: #FFFFFF; --t-com: #9CC3E8; --t-pre: #6FA8DC;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0A2A5C; --surface: #0C3168; --sunk: #123A75; --line: #1F5296;
+  --ink: #E6EEF8; --ink-2: #9CC3E8; --ink-3: #9CC3E8; --heading: #FFFFFF;
+  --brand: #061733; --brand-2: #163C78; --brand-ink: #FFFFFF; --brand-ink-2: #CFE2F6; --brand-line: #1F5296; --brand-field: #0C3168;
+  --accent: #6FA8DC; --accent-bg: #163C78;
+  --cur: #2F6DB5; --cur-ink: #FFFFFF; --cur-line: #9CC3E8;
+  --doc: #C8622A; --doc-bg: #6E3412; --doc-ink: #F8E1D2;
+  --warn: #F2B630; --warn-bg: #5C430A; --warn-ink: #FCEFCF;
+  --err: #F6DAD5; --err-bg: #5E1C15; --err-ink: #F6DAD5;
+  --edge: #3D7FC9; --node-c-bg: #CFE2F6; --node-c-ink: #0A2A5C;
+  --t-kw: #FFFFFF; --t-com: #9CC3E8; --t-pre: #6FA8DC;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font-ui); display: flex; flex-direction: column; overflow: hidden; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+code, .mono { font-family: var(--font-mono); }
+
+/* Top bar */
+.top { background: var(--brand); color: var(--brand-ink); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top :focus-visible { outline-color: var(--brand-ink); }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand svg { flex: 0 0 auto; }
+.b-name { font-weight: 700; font-size: 17px; letter-spacing: .04em; }
+.b-sep { width: 1px; height: 18px; background: var(--brand-line); }
+.b-proj { font: 600 13px var(--font-mono); }
+.b-view { font-size: 13px; color: var(--brand-ink-2); }
+.tools { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hbtn { background: transparent; border: 1px solid var(--brand-line); color: var(--brand-ink); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.hbtn:hover { background: var(--brand-2); }
+.hbtn[aria-disabled="true"] { color: var(--brand-ink-2); cursor: default; }
+.hbtn[aria-disabled="true"]:hover { background: transparent; }
+.search { display: flex; align-items: center; gap: 6px; background: var(--brand-field); border: 1px solid var(--brand-line); border-radius: 6px; padding: 0 8px; min-width: 0; }
+.search input { background: transparent; border: 0; color: var(--brand-ink); width: 240px; max-width: 100%; padding: 6px 0; font: inherit; outline: none; }
+.search input::placeholder { color: var(--brand-ink-2); }
+.search:focus-within { border-color: var(--brand-ink-2); }
+.search kbd { font: 11px var(--font-mono); color: var(--brand-ink-2); border: 1px solid var(--brand-line); border-radius: 4px; padding: 0 5px; }
+.diagbtn { display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.err { background: #B3392B; box-shadow: 0 0 0 1px var(--brand-ink); } .dot.warn { background: #F2B630; }
+.nav-only { display: none; }
+
+/* Panes */
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: 236px minmax(0, 1fr) 360px; gap: 12px;
+  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.nav, .reader, .panel { min-height: 0; overflow: auto; }
+.reader, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+
+/* Navigator */
+.nav { padding: 2px 2px 16px; display: flex; flex-direction: column; gap: 14px; }
+.ng h2 { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--accent); margin: 0 0 4px 10px; font-weight: 600; }
+.ng.doc h2 { color: var(--doc-ink); }
+.ni { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.ni:hover { background: var(--sunk); }
+.ni[aria-current="true"] { background: var(--accent-bg); color: var(--heading); }
+.ni .l { display: block; font-size: 13.5px; font-weight: 550; }
+.ni .s { display: block; font-size: 12px; color: var(--ink-3); }
+.ni[aria-current="true"] .s { color: var(--ink-2); }
+.ni.child { padding-left: 22px; font-size: 12.5px; }
+.ni.child .l { font-weight: 450; font-size: 12.5px; }
+.note { margin: 4px 10px 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+
+/* Reader */
+.rh { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 1px solid var(--line); padding: 14px 20px 12px; display: flex; flex-direction: column; gap: 2px; }
+.rh .kind { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.rh.doc .kind { color: var(--doc-ink); }
+.rh h1 { font-size: 19px; margin: 0; font-weight: 700; color: var(--heading); text-wrap: balance; }
+.rh .sub { color: var(--ink-2); }
+.rh .file { font: 12px var(--font-mono); color: var(--ink-3); }
+[data-scope], [data-unit], [data-mid] { scroll-margin-top: 96px; }
+
+.code { font: 13px/1.65 var(--font-mono); padding: 8px 0 24px; overflow-x: auto; }
+.code-in { display: inline-block; min-width: 100%; }
+.ln { display: flex; }
+.ln .no { flex: 0 0 3.6em; text-align: right; padding-right: 14px; color: var(--ink-3); user-select: none; }
+.ln code { white-space: pre; font: inherit; padding-right: 20px; }
+.t-kw { color: var(--t-kw); font-weight: 600; } .t-com, .t-doc { color: var(--t-com); font-style: italic; } .t-pre, .t-dec { color: var(--t-pre); }
+.code .xrefs { padding: 10px 20px 4px 3.6em; margin-left: 14px; }
+
+.doc { padding: 6px 24px 40px; max-width: 78ch; }
+.doc section { padding-top: 10px; }
+.doc h2, .doc h3 { margin: 14px 0 6px; text-wrap: balance; }
+.doc h2 { font-size: 17px; font-weight: 700; color: var(--heading); }
+.doc h3 { font-size: 15px; font-weight: 700; color: var(--heading); }
+.secno { font: 600 0.92em var(--font-mono); color: var(--ink-3); margin-right: 6px; }
+.doc p { margin: 6px 0 10px; line-height: 1.6; }
+.tw { overflow-x: auto; margin: 8px 0 14px; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-weight: 600; color: var(--ink-2); background: var(--sunk); padding: 6px 10px; white-space: nowrap; }
+td { padding: 6px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+.doc .xrefs { margin: 2px 0 8px; }
+
+/* Mentions */
+.m { background: none; border: 0; padding: 0 1px; margin: 0 -1px; border-radius: 3px; color: var(--accent); cursor: pointer;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; font: inherit; }
+.m:hover { background: var(--accent-bg); }
+.m.cur { background: var(--cur); color: var(--cur-ink); text-decoration: none; box-shadow: 0 0 0 1px var(--cur-line); font-weight: 600; }
+.m-bad { text-decoration: underline dashed var(--warn); text-decoration-thickness: 1.5px; text-underline-offset: 3px; cursor: help; border-radius: 3px; }
+.m-bad.err { text-decoration-color: var(--err); }
+.m-bad:hover, .m-bad:focus-visible { background: var(--warn-bg); color: var(--warn-ink); }
+.m-bad.err:hover, .m-bad.err:focus-visible { background: var(--err-bg); color: var(--err-ink); }
+.flash { animation: flash 1.8s ease-out; }
+@keyframes flash { from { background: var(--cur); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; background: var(--accent-bg); } }
+
+/* Cross-reference chips */
+.xrefs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: 12px/1.4 var(--font-ui); }
+.xk { color: var(--ink-3); }
+.xk:not(:first-child) { margin-left: 6px; }
+.chip { background: var(--sunk); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; cursor: pointer; color: var(--ink); font-size: 12px; }
+.chip { background: var(--accent-bg); border-color: transparent; color: var(--heading); }
+.chip.doc { background: var(--doc-bg); border: 1px dashed var(--doc); color: var(--doc-ink); }
+.chip:hover { border-color: var(--accent); }
+.chip.doc:hover { border-style: solid; }
+
+/* Detail panel */
+.panel { padding-bottom: 16px; }
+.ph { padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 2px; }
+.ph-top { display: flex; align-items: center; justify-content: space-between; }
+.pill { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--heading); background: var(--accent-bg); border-radius: 4px; padding: 2px 8px; }
+.x { background: none; border: 1px solid transparent; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; color: var(--ink-2); font-size: 18px; line-height: 1; }
+.x:hover { border-color: var(--line); }
+.pk { font: 600 21px var(--font-mono); margin: 6px 0 0; color: var(--heading); }
+.pm { font: 13.5px var(--font-mono); color: var(--ink-2); }
+.pd { margin: 4px 0 0; color: var(--ink-2); }
+.pg { border-top: 1px solid var(--line); padding: 10px 12px 4px; }
+.pg h3 { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--accent); margin: 2px 6px 6px; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.cnt { color: var(--ink-3); font-weight: 500; letter-spacing: 0; }
+.dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; margin: 0 6px 6px; }
+.dl dt { color: var(--ink-2); font-size: 13px; }
+.dl dt code { display: block; font-size: 11px; color: var(--ink-3); }
+.dl dd { margin: 0; font: 13px var(--font-mono); align-self: center; }
+.rel-t { margin: 0 6px 6px; font-size: 13px; color: var(--ink-2); }
+.ri, .mi { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.ri:hover, .mi:hover { background: var(--sunk); }
+.ri-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ri-k { font: 600 13px var(--font-mono); color: var(--accent); }
+.res .mi-snip { padding-left: 0; }
+.ri-m { font: 12.5px var(--font-mono); color: var(--ink-2); }
+.ri-s { font-size: 12px; color: var(--ink-3); }
+.mi-loc { font-size: 13px; color: var(--heading); font-weight: 500; display: flex; gap: 6px; align-items: center; }
+.mi-loc svg { flex: 0 0 auto; color: var(--accent); }
+.mi-loc.doc svg { color: var(--doc); }
+.mi-snip { font: 12px/1.45 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mi-snip mark { background: var(--cur); color: var(--cur-ink); border-radius: 2px; padding: 0 1px; }
+.mi-snip { padding-left: 20px; }
+.mi-n { font-size: 12px; color: var(--ink-3); }
+.empty { padding: 18px; color: var(--ink-2); display: flex; flex-direction: column; gap: 12px; }
+.empty h2 { font-size: 15px; margin: 0; color: var(--ink); }
+.legend { display: grid; gap: 8px; font-size: 13px; }
+.legend div { display: flex; gap: 10px; align-items: baseline; }
+.legend .ex { flex: 0 0 92px; font-family: var(--font-mono); }
+
+/* Tables, search, diagnostics in the main pane */
+.pad { padding: 14px 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.filter { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 6px 10px; font: inherit; width: 260px; max-width: 100%; }
+.sortb { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font-weight: 600; color: var(--ink-2); }
+.sortb small { display: block; font: 10.5px var(--font-mono); color: var(--ink-3); font-weight: 400; }
+tr[data-row-ent] { cursor: pointer; }
+tr[data-row-ent]:hover td { background: var(--sunk); }
+tr[aria-selected="true"] td { background: var(--accent-bg); }
+td.mono { font-family: var(--font-mono); }
+.cell-link { background: none; border: 0; padding: 0; color: var(--accent); font: 600 13px var(--font-mono); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.res h2 { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--accent); margin: 6px 0 4px; font-weight: 600; }
+.res .mi, .res .ri { border: 1px solid var(--line); margin-bottom: 6px; }
+.dg { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.dg[aria-current="true"] { border-color: var(--warn); }
+.sev { font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; align-self: flex-start; }
+.sev.err { color: var(--err-ink); background: var(--err-bg); } .sev.warn { color: var(--warn-ink); background: var(--warn-bg); }
+.dg .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink-3); }
+.muted { color: var(--ink-3); }
+
+/* Connections graph: defined and described on the left, used and mentioned on the right */
+.graph { position: relative; margin: 0 6px 6px; }
+.graph svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ge { stroke: var(--edge); stroke-width: 1.5; fill: none; vector-effect: non-scaling-stroke; }
+.ge.doc { stroke: var(--doc); stroke-dasharray: 4 3; }
+.gh { position: absolute; top: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; }
+.gn { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 0 8px;
+  border-radius: 6px; border: 1px solid var(--accent); background: var(--accent-bg); color: var(--heading); font: 11.5px/1.15 var(--font-ui); text-align: left; cursor: pointer; overflow: hidden; }
+.gn .gl { font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.gn .gs { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gn.ent .gl { font-family: var(--font-mono); font-weight: 600; }
+.gn.doc { border-style: dashed; border-color: var(--doc); background: var(--doc-bg); color: var(--doc-ink); }
+.gn.doc .gs { color: var(--doc-ink); }
+.gn.more { background: var(--surface); border-color: var(--line); color: var(--ink-2); }
+.gn:hover, .gn:focus-visible { box-shadow: 0 0 0 2px var(--cur-line); outline: none; }
+.gn.gc { background: var(--node-c-bg); color: var(--node-c-ink); border: 0; align-items: center; text-align: center; cursor: default; font: 600 12.5px/1.2 var(--font-mono); }
+.gn.gc:hover { box-shadow: none; }
+.big .gn { font-size: 13px; padding: 0 12px; } .big .gn.gc { font-size: 15px; }
+.glegend { display: flex; flex-wrap: wrap; gap: 12px; margin: 2px 6px 8px; font-size: 12px; color: var(--ink-2); align-items: center; }
+.glegend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--accent); background: var(--accent-bg); }
+.glegend i.doc { border: 1px dashed var(--doc); background: var(--doc-bg); }
+.linkbtn { margin-left: auto; background: none; border: 0; color: var(--accent); cursor: pointer; font: 600 12px var(--font-ui); text-decoration: underline; text-underline-offset: 2px; padding: 0; letter-spacing: 0; text-transform: none; }
+.bigwrap { max-width: 900px; }
+/* Entity page */
+body.page-mode .main { grid-template-columns: 236px minmax(0, 1fr); }
+.rh .mono { font-family: var(--font-mono); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--sunk); border-radius: 6px; padding: 4px 10px; font-size: 13px; color: var(--ink-2); }
+.stat b { color: var(--heading); font-weight: 600; margin-left: 4px; }
+.pgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px 24px; align-items: start; }
+.pcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.psec h2 { font-size: 12px; letter-spacing: .13em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; font-weight: 600; display: flex; gap: 6px; }
+.psec .tw { margin: 0; }
+.psec th[scope="row"] { background: transparent; color: var(--ink-2); font-weight: 500; width: 45%; white-space: normal; }
+th small { display: block; font: 400 10.5px var(--font-mono); color: var(--ink-2); }
+.psec .mi { border: 1px solid var(--line); margin-bottom: 6px; }
+.psec .mi-snip { -webkit-line-clamp: 3; }
+.ph-acts { display: flex; align-items: center; gap: 10px; }
+
+@media (max-width: 1199px) and (min-width: 900px) {
+  .main { grid-template-columns: 200px minmax(0, 1fr) 312px; }
+  body.page-mode .main { grid-template-columns: 200px minmax(0, 1fr); }
+}
+@media (max-width: 899px) {
+  .nav-only { display: inline-block; }
+  .tools { margin-left: 0; width: 100%; }
+  .search { flex: 1; }
+  .search input { width: 100%; }
+  .search kbd { display: none; }
+  .main, body.page-mode .main { grid-template-columns: minmax(0, 1fr); }
+  .nav { display: none; }
+  body.nav-open .nav { display: flex; }
+  body.nav-open .reader { display: none; }
+  .panel { position: fixed; left: 0; right: 0; bottom: 0; max-height: 60%; z-index: 20; border-radius: 14px 14px 0 0; border-bottom: 0;
+    box-shadow: 0 -8px 28px rgba(5, 15, 30, .22);
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px)); }
+  .doc { padding-inline: 16px; }
+  .rh { padding-inline: 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="30 30 330 330" role="img" aria-label="MOSAIC">
+      <path d="M45.71 45.71L191.40 45.71L144.34 130.43L45.71 203.60Z" fill="var(--mark-a)"/>
+      <path d="M211.64 45.71L322.93 45.71L322.93 167.31L234.21 203.46L162.20 134.72Z" fill="var(--mark-b)"/>
+      <path d="M45.71 225.64L150.43 147.94L223.96 218.14L240.34 322.93L45.71 322.93Z" fill="var(--mark-a)"/>
+      <path d="M345.05 208.54L345.05 345.05L280.37 345.05L264.18 241.48Z" fill="var(--mark-c)"/>
+    </svg>
+    <span class="b-name" aria-hidden="true">MOSAIC</span>
+    <span class="b-sep"></span>
+    <span class="b-proj">DEMOSAT-1</span>
+    <span class="b-view">Connected manual · Operations view</span>
+  </div>
+  <div class="tools">
+    <button class="hbtn nav-only" id="navtoggle" aria-expanded="false">Sources</button>
+    <button class="hbtn" id="back" aria-label="Back">&#8592;</button>
+    <button class="hbtn" id="fwd" aria-label="Forward">&#8594;</button>
+    <label class="search"><span class="sr">Search</span><input id="q" type="search" placeholder="Search IDs, mnemonics, text" autocomplete="off"><kbd>/</kbd></label>
+    <button class="hbtn diagbtn" id="diagbtn"></button>
+  </div>
+</header>
+
+<div class="main">
+  <nav class="nav" id="nav" aria-label="Sources"></nav>
+  <main class="reader" id="reader" aria-label="Reader"></main>
+  <aside class="panel" id="panel" aria-label="Details"></aside>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Sample data: a slice of the invented DEMOSAT-1 mock mission ---------- */
+const ENT = {
+  PCF: {
+    PWRT0012: { PCF_NAME: "PWRT0012", PCF_DESCR: "BAT_V_MAIN", PCF_UNIT: "V", PCF_PTC: "3", PCF_PFC: "12", PCF_CATEG: "N", PCF_CURTX: "CPWR0012", PCF_PID: "0x0C12", PCF_LDESCR: "Main battery voltage" },
+    PWRT0013: { PCF_NAME: "PWRT0013", PCF_DESCR: "BAT_I_MAIN", PCF_UNIT: "A", PCF_PTC: "3", PCF_PFC: "12", PCF_CATEG: "N", PCF_CURTX: "CPWR0013", PCF_PID: "0x0C13", PCF_LDESCR: "Main battery current" },
+    PWRT0020: { PCF_NAME: "PWRT0020", PCF_DESCR: "BAT_TEMP_1", PCF_UNIT: "degC", PCF_PTC: "4", PCF_PFC: "12", PCF_CATEG: "N", PCF_CURTX: "CPWR0020", PCF_PID: "0x0C20", PCF_LDESCR: "Battery temperature, sensor 1" },
+    PWRT0031: { PCF_NAME: "PWRT0031", PCF_DESCR: "HTR_A_STAT", PCF_UNIT: "", PCF_PTC: "2", PCF_PFC: "8", PCF_CATEG: "S", PCF_CURTX: "TPWR0001", PCF_PID: "0x0C31", PCF_LDESCR: "Battery heater A status" },
+    PWRT0032: { PCF_NAME: "PWRT0032", PCF_DESCR: "HTR_B_STAT", PCF_UNIT: "", PCF_PTC: "2", PCF_PFC: "8", PCF_CATEG: "S", PCF_CURTX: "TPWR0001", PCF_PID: "0x0C32", PCF_LDESCR: "Battery heater B status" },
+    PWRT0040: { PCF_NAME: "PWRT0040", PCF_DESCR: "SA_I_TOTAL", PCF_UNIT: "A", PCF_PTC: "3", PCF_PFC: "12", PCF_CATEG: "N", PCF_CURTX: "CPWR0040", PCF_PID: "0x0C40", PCF_LDESCR: "Solar array total current" }
+  },
+  CCF: {
+    PWRC0101: { CCF_CNAME: "PWRC0101", CCF_DESCR: "PWR_HTR_A_ON", CCF_DESCR2: "Switch battery heater A on", CCF_TYPE: "8", CCF_STYPE: "1", CCF_APID: "0x101", CCF_CRITICAL: "N" },
+    PWRC0102: { CCF_CNAME: "PWRC0102", CCF_DESCR: "PWR_HTR_A_OFF", CCF_DESCR2: "Switch battery heater A off", CCF_TYPE: "8", CCF_STYPE: "1", CCF_APID: "0x101", CCF_CRITICAL: "N" },
+    PWRC0110: { CCF_CNAME: "PWRC0110", CCF_DESCR: "PWR_SET_BAT_EOC", CCF_DESCR2: "Set battery end-of-charge voltage", CCF_TYPE: "8", CCF_STYPE: "1", CCF_APID: "0x101", CCF_CRITICAL: "Y" }
+  },
+  CPC: {
+    PWRP0001: { CPC_PNAME: "PWRP0001", CPC_DESCR: "HTR_MODE", CPC_PTC: "3", CPC_PFC: "4", CPC_UNIT: "", CPC_LDESCR: "Heater control mode: 1 thermostat, 2 forced on" },
+    PWRP0010: { CPC_PNAME: "PWRP0010", CPC_DESCR: "EOC_V", CPC_PTC: "5", CPC_PFC: "1", CPC_UNIT: "V", CPC_LDESCR: "End-of-charge voltage, 30.0 to 33.6 V" }
+  },
+  PID: {
+    "1001": { PID_SPID: "1001", TPCF_NAME: "PWR_HK", PID_TYPE: "3", PID_STYPE: "25", PID_APID: "0x101", PID_DESCR: "PWR housekeeping, every 8 s" }
+  }
+};
+const CAL = {
+  CPWR0012: "Numerical CPWR0012, linear: 0 \u2192 0.00 V, 4095 \u2192 40.95 V",
+  CPWR0013: "Numerical CPWR0013, linear: 0 \u2192 \u221210.0 A, 4095 \u2192 10.0 A",
+  CPWR0020: "Numerical CPWR0020, 5 points: \u221240 to +85 degC",
+  CPWR0040: "Numerical CPWR0040, linear: 0 \u2192 0.0 A, 4095 \u2192 12.0 A",
+  TPWR0001: "Textual TPWR0001: 0 OFF, 1 ON"
+};
+const OCF = {
+  PWRT0012: "Soft 26.0 to 33.0 V \u00b7 hard 24.0 to 34.0 V",
+  PWRT0020: "Soft \u22125 to 40 degC \u00b7 hard \u221210 to 45 degC",
+  PWRT0040: "Soft 0.5 to 11.0 A"
+};
+const CDF = [["PWRC0101", "0", "PWRP0001"], ["PWRC0110", "0", "PWRP0010"]];
+const PLF = [["PWRT0012", "1001", "16", "0"], ["PWRT0013", "1001", "18", "0"], ["PWRT0020", "1001", "20", "0"],
+             ["PWRT0031", "1001", "22", "0"], ["PWRT0032", "1001", "22", "1"], ["PWRT0040", "1001", "24", "0"]];
+
+const TYPES = {
+  PCF: { label: "Parameter", plural: "Parameters", file: "pcf.dat", id: "PCF_NAME", mn: "PCF_DESCR", desc: "PCF_LDESCR",
+         cols: ["PCF_NAME", "PCF_DESCR", "PCF_UNIT", "PCF_PTC", "PCF_PFC", "PCF_LDESCR"], defs: ["PCF_UNIT", "PCF_PTC", "PCF_PFC", "PCF_CATEG", "PCF_PID"] },
+  CCF: { label: "Telecommand", plural: "Telecommands", file: "ccf.dat", id: "CCF_CNAME", mn: "CCF_DESCR", desc: "CCF_DESCR2",
+         cols: ["CCF_CNAME", "CCF_DESCR", "CCF_TYPE", "CCF_STYPE", "CCF_APID", "CCF_DESCR2"], defs: ["CCF_TYPE", "CCF_STYPE", "CCF_APID", "CCF_CRITICAL"] },
+  CPC: { label: "TC argument", plural: "TC arguments", file: "cpc.dat", id: "CPC_PNAME", mn: "CPC_DESCR", desc: "CPC_LDESCR",
+         cols: ["CPC_PNAME", "CPC_DESCR", "CPC_PTC", "CPC_PFC", "CPC_UNIT", "CPC_LDESCR"], defs: ["CPC_PTC", "CPC_PFC", "CPC_UNIT"] },
+  PID: { label: "Packet", plural: "Packets", file: "pid.dat", id: "PID_SPID", mn: "TPCF_NAME", desc: "PID_DESCR",
+         cols: ["PID_SPID", "TPCF_NAME", "PID_TYPE", "PID_STYPE", "PID_APID", "PID_DESCR"], defs: ["PID_TYPE", "PID_STYPE", "PID_APID"] }
+};
+const COL = {
+  PCF_NAME: "Name", PCF_DESCR: "Mnemonic", PCF_UNIT: "Unit", PCF_PTC: "Type code", PCF_PFC: "Format code", PCF_CATEG: "Category", PCF_PID: "On-board ID", PCF_LDESCR: "Description",
+  CCF_CNAME: "Name", CCF_DESCR: "Mnemonic", CCF_TYPE: "Service", CCF_STYPE: "Subservice", CCF_APID: "APID", CCF_DESCR2: "Description", CCF_CRITICAL: "Critical",
+  CPC_PNAME: "Name", CPC_DESCR: "Mnemonic", CPC_PTC: "Type code", CPC_PFC: "Format code", CPC_UNIT: "Unit", CPC_LDESCR: "Description",
+  PID_SPID: "SPID", TPCF_NAME: "Name", PID_TYPE: "Service", PID_STYPE: "Subservice", PID_APID: "APID", PID_DESCR: "Description",
+  PLF_NAME: "Parameter", PLF_SPID: "Packet SPID", PLF_OFFBY: "Byte offset", PLF_OFFBI: "Bit offset"
+};
+
+const SRC = [
+  { id: "fop1", group: "fops", kind: "py", title: "FOP-PWR-001", sub: "Battery heater activation", file: "fops/fop_pwr_001.py", text:
+`"""FOP-PWR-001 Battery heater activation
+
+Purpose: switch on battery heater A when the battery is cold.
+Preconditions: BAT_V_MAIN (PWRT0012) above 26 V.
+"""
+from demoproc import step, send_tc, verify_tm, get_tm, wait
+
+
+@step(1, "Check battery voltage")
+def step_1():
+    verify_tm("PWRT0012", ">", 26.0)      # BAT_V_MAIN
+
+
+@step(2, "Switch heater A on")
+def step_2():
+    send_tc("PWRC0101", PWRP0001=1)       # PWR_HTR_A_ON, thermostat mode
+    wait(5)
+    verify_tm("PWRT0031", "==", "ON")     # HTR_A_STAT
+
+
+@step(3, "Confirm heater current")
+def step_3():
+    current = get_tm("PWRT0013")          # BAT_I_MAIN
+    verify_tm("PWRT0020", ">", -5.0)      # BAT_TEMP_1 rising` },
+  { id: "fop2", group: "fops", kind: "py", title: "FOP-PWR-002", sub: "End-of-charge voltage update", file: "fops/fop_pwr_002.py", text:
+`"""FOP-PWR-002 Battery end-of-charge voltage update
+
+Purpose: lower the end-of-charge voltage to slow battery ageing.
+Preconditions: in sunlight, PWRT0040 above 2 A.
+"""
+from demoproc import step, send_tc, verify_tm, get_tm
+
+
+@step(1, "Record battery voltage")
+def step_1():
+    v_before = get_tm("PWRT0012")         # BAT_V_MAIN
+
+
+@step(2, "Command new end-of-charge voltage")
+def step_2():
+    send_tc("PWRC0110", PWRP0010=32.8)    # PWR_SET_BAT_EOC
+    verify_tm("PWRT0012", "<=", 32.8)
+
+
+@step(3, "Reset charge regulator")
+def step_3():
+    send_tc("PWRC0105")                   # PWR_CHG_RESET` },
+  { id: "sum", group: "sum", kind: "doc", title: "SW user manual", sub: "DEMOSAT-1-SCSW-SUM issue 1.2, chapter 4", file: "sum/sum.docx", sections: [
+    { num: "4", title: "Power application (PWR)", level: 1, blocks: [] },
+    { num: "4.1", title: "Overview", level: 2, blocks: [
+      { p: "The power application conditions the main bus, charges the battery and controls the two battery heaters. It reports its state every 8 s in the PWR_HK packet." },
+      { p: "The main battery voltage BAT_V_MAIN (PWRT0012) and the battery current BAT_I_MAIN are sampled at 1 Hz. When PWRT0O12 falls below 26 V, the application raises a low-voltage event and sheds non-essential loads." },
+      { p: "Battery heater A is commanded with PWRC0101 and PWRC0102. Heater states are reported in HTR_A_STAT and HTR_B_STAT." } ] },
+    { num: "4.2", title: "Telecommands", level: 2, blocks: [
+      { table: { head: ["TC", "Mnemonic", "Description", "Arguments"], rows: [
+        ["PWRC0101", "PWR_HTR_A_ON", "Switch battery heater A on", "PWRP0001 (HTR_MODE)"],
+        ["PWRC0102", "PWR_HTR_A_OFF", "Switch battery heater A off", "None"],
+        ["PWRC0110", "PWR_SET_BAT_EOC", "Set the battery end-of-charge voltage", "PWRP0010 (EOC_V)"] ] } } ] },
+    { num: "4.3", title: "Housekeeping", level: 2, blocks: [
+      { p: "The PWR_HK packet, PUS (3,25), carries the parameters below." },
+      { table: { head: ["Parameter", "Mnemonic", "Unit", "Description"], rows: [
+        ["PWRT0012", "BAT_V_MAIN", "V", "Main battery voltage"],
+        ["PWRT0013", "BAT_I_MAIN", "A", "Main battery current"],
+        ["PWRT0020", "BAT_TEMP_1", "degC", "Battery temperature, sensor 1"],
+        ["PWRT0031", "HTR_A_STAT", "", "Battery heater A status"],
+        ["PWRT0032", "HTR_B_STAT", "", "Battery heater B status"],
+        ["PWRT0040", "SA_I_TOTAL", "A", "Solar array total current"] ] } } ] },
+    { num: "4.4", title: "Operations notes", level: 2, blocks: [
+      { p: "Before switching a heater on, check that BAT_V_MAIN is above 26 V. In forced mode (PWRP0001 = 2) the heater stays on until PWRC0102 is sent." },
+      { p: "Lowering the end-of-charge voltage with PWR_SET_BAT_EOC slows battery ageing. The new limit shows in PWRT0012 at the end of the next charge cycle." } ] }
+  ] },
+  { id: "icd", group: "icd", kind: "doc", title: "SW ICD", sub: "DEMOSAT-1-SCSW-ICD issue 2.0, PWR extract", file: "icd/scsw_icd.html", sections: [
+    { num: "3", title: "TM packets", level: 1, blocks: [] },
+    { num: "3.1", title: "PWR_HK, SPID 1001, APID 0x101, PUS (3,25)", level: 2, blocks: [
+      { table: { head: ["Offset", "Parameter", "Mnemonic", "PTC/PFC", "Description"], rows: [
+        ["16", "PWRT0012", "BAT_V_MAIN", "3/12", "Main battery voltage, raw counts"],
+        ["18", "PWRT0013", "BAT_I_MAIN", "3/12", "Main battery current, raw counts"],
+        ["20", "PWRT0020", "BAT_TEMP_1", "4/12", "Battery temperature 1"],
+        ["22.0", "PWRT0031", "HTR_A_STAT", "2/8", "Heater A state"],
+        ["22.1", "PWRT0032", "HTR_B_STAT", "2/8", "Heater B state"],
+        ["24", "PWRT0040", "SA_I_TOTAL", "3/12", "Solar array current"] ] } } ] },
+    { num: "4", title: "Telecommands", level: 1, blocks: [] },
+    { num: "4.1", title: "PWRC0101 PWR_HTR_A_ON", level: 2, blocks: [
+      { p: "PUS (8,1), APID 0x101. Switches battery heater A on." },
+      { table: { head: ["Position", "Argument", "Type", "Range", "Description"], rows: [["1", "PWRP0001", "3/4", "1 to 2", "Heater control mode"]] } } ] },
+    { num: "4.2", title: "PWRC0102 PWR_HTR_A_OFF", level: 2, blocks: [ { p: "PUS (8,1), APID 0x101. No arguments." } ] },
+    { num: "4.3", title: "PWRC0110 PWR_SET_BAT_EOC", level: 2, blocks: [
+      { p: "PUS (8,1), APID 0x101. Critical command: needs arm and fire." },
+      { table: { head: ["Position", "Argument", "Type", "Range", "Description"], rows: [["1", "PWRP0010", "5/1", "30.0 to 33.6 V", "End-of-charge voltage"]] } } ] }
+  ] },
+  { id: "hdr", group: "code", kind: "c", title: "demosat_ids.h", sub: "On-board identifiers", file: "scsw/include/demosat_ids.h", text:
+`/* demosat_ids.h - on-board identifiers, generated from the SRDB */
+#ifndef DEMOSAT_IDS_H
+#define DEMOSAT_IDS_H
+
+/* Housekeeping parameters, PWR application */
+#define PARAM_PWRT0012 (0x0C12u) /* BAT_V_MAIN */
+#define PARAM_PWRT0013 (0x0C13u) /* BAT_I_MAIN */
+#define PARAM_PWRT0020 (0x0C20u) /* BAT_TEMP_1 */
+#define PARAM_PWRT0031 (0x0C31u) /* HTR_A_STAT */
+#define PARAM_PWRT0032 (0x0C32u) /* HTR_B_STAT */
+#define PARAM_PWRT0040 (0x0C40u) /* SA_I_TOTAL */
+
+typedef enum {
+    TC_PWRC0101 = 0x0101u,  /* PWR_HTR_A_ON */
+    TC_PWRC0102 = 0x0102u,  /* PWR_HTR_A_OFF */
+    TC_PWRC0110 = 0x0110u   /* PWR_SET_BAT_EOC */
+} tc_id_t;
+
+#endif` },
+  { id: "app", group: "code", kind: "c", title: "pwr_app.c", sub: "Power application", file: "scsw/src/pwr_app.c", text:
+`/* pwr_app.c - power application: telecommands and housekeeping */
+#include "demosat_ids.h"
+#include "pwr_app.h"
+
+/* Heater control. Mode 1 = thermostat, 2 = forced on (PWRP0001). */
+static int pwr_heater_set(heater_t h, uint8_t mode)
+{
+    if (mode < 1u || mode > 2u) {
+        return PWR_ERR_RANGE;
+    }
+    return htr_drv_set(h, mode);
+}
+
+/* Dispatch PUS (8,1) function-management TCs addressed to PWR. */
+int pwr_tc_dispatch(tc_id_t tc_id, const tc_args_t *args)
+{
+    switch (tc_id) {
+    case TC_PWRC0101:   /* PWR_HTR_A_ON */
+        return pwr_heater_set(HEATER_A, args->u8[0]);
+    case TC_PWRC0102:   /* PWR_HTR_A_OFF */
+        return htr_drv_off(HEATER_A);
+    case TC_PWRC0110:   /* PWR_SET_BAT_EOC, volts in PWRP0010 */
+        return bcr_set_eoc(args->f32[0]);
+    default:
+        return PWR_ERR_UNKNOWN_TC;
+    }
+}
+
+/* Fill the PWR_HK packet, PUS (3,25). */
+void pwr_hk_fill(hk_buf_t *buf)
+{
+    hk_put_u16(buf, PARAM_PWRT0012, adc_read(ADC_BAT_V));
+    hk_put_u16(buf, PARAM_PWRT0013, adc_read(ADC_BAT_I));
+    hk_put_u16(buf, PARAM_PWRT0020, adc_read(ADC_BAT_T1));
+    hk_put_bit(buf, PARAM_PWRT0031, htr_drv_state(HEATER_A));
+    hk_put_bit(buf, PARAM_PWRT0032, htr_drv_state(HEATER_B));
+    hk_put_u16(buf, PARAM_PWRT0040, adc_read(ADC_SA_I));
+}` }
+];
+const SRC_BY = Object.fromEntries(SRC.map(s => [s.id, s]));
+const SHORT = { sum: "SUM", icd: "ICD" };
+const DESCRIBE_HEADERS = new Set(["TC", "Parameter", "Argument", "Mnemonic", "Name", "ID"]);
+const ROLE = { sends: "sends", reads: "reads", sets: "sets", describes: "describes", defines_id: "defines ID", handles: "handles", uses: "uses", mentions: "mentions" };
+const GROUPS = [["describes", "Described in"], ["sends", "Sent by"], ["reads", "Read by"], ["sets", "Set by"],
+                ["handles", "Handled by"], ["defines_id", "Defined in code"], ["uses", "Used in code"], ["mentions", "Other mentions"]];
+const XLABEL = { described_in: "Described in", defined_in: "Defined in", handled_by: "Handled by" };
+const PYKW = new Set("def from import return if else elif for in while None True False and or not pass with as".split(" "));
+const CKW = new Set("static int void return if else switch case default break typedef enum const struct unsigned uint8_t uint16_t".split(" "));
+
+/* ---------- Build step: what `mosaic build` would compute, done in the page ---------- */
+const SURF = new Map();
+for (const t of ["PCF", "CCF", "CPC", "PID"]) for (const [k, a] of Object.entries(ENT[t])) {
+  if (t !== "PID") SURF.set(k, { type: t, key: k });
+  SURF.set(a[TYPES[t].mn], { type: t, key: k });
+}
+const IDPAT = /^[A-Z]{3}[TCP][0-9O]{4}$/;
+const M = [], BYUNIT = new Map(), UT = new Map(), UNITS = [], SCOPES = new Map(), XR = [];
+
+function addScope(id, src, label, kind, short) {
+  SCOPES.set(id, { id, src: src.id, label, kind, short, full: `${src.title} \u00b7 ${label}` });
+}
+function addUnit(unit, src, scope, text) { UT.set(unit, text); UNITS.push({ unit, src: src.id, scope, text }); }
+function cand(ref, start, end, role, ctx) {
+  const hit = SURF.get(ref);
+  if (!hit && !IDPAT.test(ref)) return;
+  const m = { ...ctx, start, end, surface: ref, role, type: hit ? hit.type : null, key: hit ? hit.key : null, status: hit ? "ok" : "unresolved", id: M.length };
+  M.push(m);
+  if (!BYUNIT.has(m.unit)) BYUNIT.set(m.unit, []);
+  BYUNIT.get(m.unit).push(m);
+}
+function scanText(text, role, ctx, offset = 0) {
+  const re = /[A-Za-z][A-Za-z0-9_]*/g; let m;
+  while ((m = re.exec(text))) cand(m[0], offset + m.index, offset + m.index + m[0].length, role, ctx);
+}
+function pyCommentStart(line) {
+  let q = null;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === q) q = null; } else if (c === '"' || c === "'") q = c; else if (c === "#") return i;
+  }
+  return -1;
+}
+function cCommentStart(line) {
+  const a = line.indexOf("/*"), b = line.indexOf("//");
+  if (a < 0) return b; if (b < 0) return a; return Math.min(a, b);
+}
+
+function indexCode(src) {
+  const L = src.lines = src.text.split("\n");
+  src.info = []; src.scopeStart = {};
+  let scope = `${src.id}#file`, inDoc = false, inEnum = false, inFn = false;
+  addScope(scope, src, src.kind === "py" ? "header" : "file scope", "file", src.title);
+  if (src.kind === "py") { scope = `${src.id}#hdr`; addScope(scope, src, "header", "file", src.title); }
+  for (let i = 0; i < L.length; i++) {
+    const line = L[i];
+    if (src.kind === "py") {
+      const st = line.match(/^@step\((\d+),\s*"([^"]+)"\)/);
+      if (st) { scope = `${src.id}#s${st[1]}`; addScope(scope, src, `step ${st[1]} \u00b7 ${st[2]}`, "step", `${src.title} step ${st[1]}`); src.scopeStart[i] = scope; }
+    } else {
+      const fn = line.match(/^(?:static\s+)?[A-Za-z_][\w\s*]*?\b([a-z_][a-z0-9_]*)\s*\([^;{}]*\)\s*$/);
+      if (fn && L[i + 1] === "{") { scope = `${src.id}#f:${fn[1]}`; addScope(scope, src, `${fn[1]}()`, "function", `${fn[1]}()`); src.scopeStart[i] = scope; inFn = true; }
+    }
+    const unit = `${src.id}|L${i}`, ctx = { src: src.id, unit, scope, line: i };
+    addUnit(unit, src, scope, line);
+    if (src.kind === "py") {
+      const n = (line.match(/"""/g) || []).length, isDoc = inDoc || n > 0;
+      if (n % 2 === 1) inDoc = !inDoc;
+      if (isDoc) { src.info[i] = { doc: true, cstart: -1 }; scanText(line, "mentions", ctx); continue; }
+      const cs = pyCommentStart(line), code = cs >= 0 ? line.slice(0, cs) : line;
+      src.info[i] = { doc: false, cstart: cs };
+      const re = /"([^"\\]*)"|[A-Za-z_][A-Za-z0-9_]*/g; let m;
+      while ((m = re.exec(code))) {
+        if (m[1] !== undefined) {
+          const call = code.slice(0, m.index).match(/(send_tc|verify_tm|get_tm)\(\s*$/);
+          if (call) cand(m[1], m.index + 1, m.index + 1 + m[1].length, call[1] === "send_tc" ? "sends" : "reads", ctx);
+        } else if (/send_tc\(/.test(code) && /^\s*=(?!=)/.test(code.slice(m.index + m[0].length))) {
+          cand(m[0], m.index, m.index + m[0].length, "sets", ctx);
+        }
+      }
+      if (cs >= 0) scanText(line.slice(cs), "mentions", ctx, cs);
+    } else {
+      if (/typedef\s+enum\s*\{/.test(line)) inEnum = true;
+      else if (inEnum && /^\s*\}/.test(line)) inEnum = false;
+      const cs = cCommentStart(line), code = cs >= 0 ? line.slice(0, cs) : line;
+      src.info[i] = { doc: false, cstart: cs };
+      const re = /[A-Za-z_][A-Za-z0-9_]*/g; let m;
+      while ((m = re.exec(code))) {
+        const p = m[0].match(/^(PARAM|TC)_([A-Z0-9]+)$/); if (!p) continue;
+        const s = m.index + p[1].length + 1;
+        let role = "uses";
+        const def = code.match(/^\s*#define\s+(\w+)/), en = code.match(/^\s*(\w+)\s*=/), cs2 = code.match(/^\s*case\s+(\w+)\s*:/);
+        if (def && def[1] === m[0]) role = "defines_id";
+        else if (inEnum && en && en[1] === m[0]) role = "defines_id";
+        else if (cs2 && cs2[1] === m[0]) role = "handles";
+        cand(p[2], s, s + p[2].length, role, ctx);
+      }
+      if (cs >= 0) scanText(line.slice(cs), "mentions", ctx, cs);
+      if (inFn && line === "}") { inFn = false; scope = `${src.id}#file`; }
+    }
+  }
+}
+function indexDoc(src) {
+  for (const s of src.sections) {
+    const scope = `${src.id}#${s.num}`;
+    addScope(scope, src, `${s.num} ${s.title}`, "section", `${SHORT[src.group]} ${s.num}`);
+    const hu = `${src.id}|${s.num}|h`;
+    addUnit(hu, src, scope, s.title);
+    scanText(s.title, "describes", { src: src.id, unit: hu, scope });
+    (s.blocks || []).forEach((b, i) => {
+      if (b.p) { const u = `${src.id}|${s.num}|p${i}`; addUnit(u, src, scope, b.p); scanText(b.p, "mentions", { src: src.id, unit: u, scope }); return; }
+      b.table.rows.forEach((r, ri) => r.forEach((c, ci) => {
+        const u = `${src.id}|${s.num}|t${i}r${ri}c${ci}`; addUnit(u, src, scope, c);
+        scanText(c, DESCRIBE_HEADERS.has(b.table.head[ci]) ? "describes" : "mentions", { src: src.id, unit: u, scope });
+      }));
+    });
+  }
+}
+for (const s of SRC) (s.kind === "doc" ? indexDoc : indexCode)(s);
+
+function addXR(from, to, type, key) {
+  let x = XR.find(x => x.from === from && x.to === to && x.type === type);
+  if (!x) { x = { from, to, type, via: new Set() }; XR.push(x); }
+  x.via.add(key);
+}
+const OK = M.filter(m => m.status === "ok");
+for (const a of OK) {
+  if (SRC_BY[a.src].group !== "fops" || !["sends", "reads"].includes(a.role) || SCOPES.get(a.scope).kind !== "step") continue;
+  for (const b of OK) {
+    if (b.type !== a.type || b.key !== a.key) continue;
+    const g = SRC_BY[b.src].group;
+    if (b.role === "describes" && g === "sum") addXR(a.scope, b.scope, "described_in", a.key);
+    if (b.role === "describes" && g === "icd") addXR(a.scope, b.scope, "defined_in", a.key);
+    if (b.role === "handles" && a.role === "sends") addXR(a.scope, b.scope, "handled_by", a.key);
+  }
+}
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+const ALLKEYS = ["PCF", "CCF", "CPC"].flatMap(t => Object.keys(ENT[t]).map(k => ({ type: t, key: k })));
+const DIAG = M.filter(m => m.status === "unresolved").map(m => ({
+  m, sev: m.role === "sends" ? "err" : "warn",
+  sugg: ALLKEYS.map(e => ({ ...e, d: lev(m.surface, e.key) })).filter(e => e.d <= 2).sort((x, y) => x.d - y.d || x.key.localeCompare(y.key)).slice(0, 3)
+}));
+const DIAG_BY_MID = new Map(DIAG.map(d => [d.m.id, d]));
+
+/* ---------- Rendering ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const narrowMq = window.matchMedia("(max-width: 899px)");
+
+let state = null; const hist = [], fut = [];
+let lastMainKey = null;
+
+function entLabel(type, key) { const T = TYPES[type], a = ENT[type][key]; return `${T.label} ${a[T.id]} \u00b7 ${a[T.mn] || ""}`; }
+function mentionHTML(m, text) {
+  if (m.status === "ok") {
+    const a = ENT[m.type][m.key], T = TYPES[m.type];
+    const tip = `${entLabel(m.type, m.key)}${a[T.desc] ? " \u00b7 " + a[T.desc] : ""} (${ROLE[m.role]})`;
+    return `<button class="m${state && state.cur === m.id ? " cur" : ""}" data-mid="${m.id}" title="${esc(tip)}">${esc(text)}</button>`;
+  }
+  const d = DIAG_BY_MID.get(m.id);
+  const tip = `Unresolved reference: no SRDB entry named ${m.surface}.` + (d.sugg.length ? ` Did you mean ${d.sugg.map(s => s.key).join(", ")}?` : "");
+  return `<span class="m-bad${d.sev === "err" ? " err" : ""}" tabindex="0" role="button" data-bad="${m.id}" title="${esc(tip)}">${esc(text)}</span>`;
+}
+function renderLine(line, cls, mentions) {
+  const ms = (mentions || []).slice().sort((a, b) => a.start - b.start);
+  let out = "", i = 0, k = 0;
+  while (i < line.length) {
+    while (k < ms.length && ms[k].start < i) k++;
+    if (k < ms.length && ms[k].start === i) { const m = ms[k++]; out += mentionHTML(m, line.slice(m.start, m.end)); i = m.end; continue; }
+    const stop = k < ms.length ? ms[k].start : line.length;
+    const c = cls[i]; let j = i;
+    while (j < stop && cls[j] === c) j++;
+    const t = esc(line.slice(i, j));
+    out += c ? `<span class="t-${c}">${t}</span>` : t;
+    i = j;
+  }
+  return out;
+}
+function syntax(line, kind, info) {
+  const cls = new Array(line.length).fill("");
+  const paint = (s, e, c) => { for (let i = s; i < e; i++) if (!cls[i]) cls[i] = c; };
+  if (info.doc) { paint(0, line.length, "doc"); return cls; }
+  if (info.cstart >= 0) paint(info.cstart, line.length, "com");
+  const code = info.cstart >= 0 ? line.slice(0, info.cstart) : line;
+  const re = /"[^"]*"|\b\d[\dxXa-fA-FuU.]*\b|[A-Za-z_@#][A-Za-z0-9_]*/g; let m;
+  while ((m = re.exec(code))) {
+    const t = m[0]; let c = "";
+    if (t[0] === '"') c = "str"; else if (/^\d/.test(t)) c = "num"; else if (t[0] === "@") c = "dec"; else if (t[0] === "#") c = "pre";
+    else if ((kind === "py" ? PYKW : CKW).has(t)) c = "kw";
+    if (c) paint(m.index, m.index + t.length, c);
+  }
+  return cls;
+}
+const ICON = {
+  doc: '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="6,3 14,3 19,8 19,21 6,21"/><polyline points="14,3 14,8 19,8"/></g></svg>',
+  fops: '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,6 5,7.5 7.5,4.5"/><line x1="11" y1="6" x2="20" y2="6"/><polyline points="3.5,12 5,13.5 7.5,10.5"/><line x1="11" y1="12" x2="20" y2="12"/><polyline points="3.5,18 5,19.5 7.5,16.5"/><line x1="11" y1="18" x2="20" y2="18"/></g></svg>',
+  code: '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,6 3,12 8,18"/><polyline points="16,6 21,12 16,18"/></g></svg>'
+};
+function isDocScope(sc) { const g = SRC_BY[SCOPES.get(sc).src].group; return g === "sum" || g === "icd"; }
+function scopeIcon(sc) { const g = SRC_BY[SCOPES.get(sc).src].group; return ICON[g === "sum" || g === "icd" ? "doc" : g]; }
+
+/* Connections graph: an item-level summary of the same links, "it appears here", without the exact spot */
+const RANK = { describes: 0, sends: 1, reads: 2, sets: 3, handles: 4, defines_id: 5, uses: 6, mentions: 7 };
+function graphData(type, key) {
+  const left = [], right = [];
+  const ent = (t, k, rel) => ({ kind: "ent", t, k, label: t === "PID" ? ENT.PID[k].TPCF_NAME : k, rel, cat: "ref", full: entLabel(t, k) });
+  if (type === "PCF") PLF.filter(r => r[0] === key).forEach(r => left.push(ent("PID", r[1], `in packet, byte ${r[2]}`)));
+  if (type === "CCF") CDF.filter(r => r[0] === key).forEach(r => left.push(ent("CPC", r[2], "argument")));
+  if (type === "CPC") CDF.filter(r => r[2] === key).forEach(r => left.push(ent("CCF", r[0], "argument of")));
+  if (type === "PID") PLF.filter(r => r[1] === key).forEach(r => left.push(ent("PCF", r[0], `field, byte ${r[2]}`)));
+  const best = new Map();
+  for (const m of OK) {
+    if (m.type !== type || m.key !== key) continue;
+    const b = best.get(m.scope);
+    if (!b) best.set(m.scope, { role: m.role, n: 1 });
+    else { b.n++; if (RANK[m.role] < RANK[b.role]) b.role = m.role; }
+  }
+  const scopes = [...best].map(([sc, b]) => ({ kind: "scope", sc, label: SCOPES.get(sc).short, full: SCOPES.get(sc).full,
+    rel: ROLE[b.role] + (b.n > 1 ? ` \u00b7 ${b.n} mentions` : ""), role: b.role, cat: isDocScope(sc) ? "doc" : "ref" }));
+  scopes.sort((a, b) => RANK[a.role] - RANK[b.role] || a.label.localeCompare(b.label, undefined, { numeric: true }));
+  for (const n of scopes) (n.role === "describes" ? left : right).push(n);
+  return { left, right };
+}
+function graphHTML(type, key, big) {
+  const g = graphData(type, key), cap = big ? 999 : 6;
+  const trim = arr => arr.length > cap ? [...arr.slice(0, cap - 1), { kind: "more", label: `${arr.length - cap + 1} more`, cat: "more" }] : arr;
+  const L = trim(g.left), R = trim(g.right);
+  const nodeH = big ? 46 : 34, rowH = big ? 56 : 42, top = 22;
+  const rows = Math.max(L.length, R.length, 1), H = top + rows * rowH;
+  const cy = top + (rows * rowH - (rowH - nodeH)) / 2;
+  let edges = "", nodes = "";
+  const colX = { L: 0, R: 69 }, edgeX = { L: 31, R: 69 }, cX = { L: 35, R: 65 };
+  const node = (n, side, i, len) => {
+    const y = top + (rows - len) * rowH / 2 + i * rowH, ny = y + nodeH / 2;
+    edges += `<line class="ge${n.cat === "doc" ? " doc" : ""}" x1="${cX[side]}" y1="${cy}" x2="${edgeX[side]}" y2="${ny}"/>`;
+    const attr = n.kind === "ent" ? `data-ent="${n.t}|${n.k}"` : n.kind === "scope" ? `data-scope-go="${esc(n.sc)}"` : `data-graph="1"`;
+    const tip = n.kind === "more" ? "Show every connection" : `${n.full}${n.rel ? " \u00b7 " + n.rel : ""}`;
+    nodes += `<button class="gn ${n.cat}${n.kind === "ent" ? " ent" : ""}" style="top:${y}px;left:${colX[side]}%;width:31%;height:${nodeH}px" ${attr} title="${esc(tip)}"><span class="gl">${esc(n.label)}</span>${big && n.rel ? `<span class="gs">${esc(n.rel)}</span>` : ""}</button>`;
+  };
+  L.forEach((n, i) => node(n, "L", i, L.length));
+  R.forEach((n, i) => node(n, "R", i, R.length));
+  const T = TYPES[type], a = ENT[type][key];
+  const center = `<div class="gn gc" style="top:${cy - nodeH / 2 - (big ? 6 : 4)}px;left:35%;width:30%;height:${nodeH + (big ? 12 : 8)}px"><span>${esc(type === "PID" ? a.TPCF_NAME : key)}</span>${big ? `<span class="gs" style="color:inherit">${esc(a[T.mn] || "")}</span>` : ""}</div>`;
+  const cats = new Set([...L, ...R].map(n => n.cat));
+  const legend = `<div class="glegend"><span><i></i>Reference data</span>${cats.has("doc") ? `<span><i class="doc"></i>Documents</span>` : ""}</div>`;
+  return `<div class="graph${big ? " big" : ""}" style="height:${H}px"><span class="gh" style="left:0">Defined and described</span><span class="gh" style="right:0">Used and mentioned</span>
+    <svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true">${edges}</svg>${nodes}${center}</div>${legend}`;
+}
+function renderGraphMain(type, key) {
+  const T = TYPES[type], a = ENT[type][key];
+  return `<div class="rh"><span class="kind">Connections</span><h1>${esc(a[T.id])} \u00b7 ${esc(a[T.mn] || "")}</h1><span class="sub">${T.label}. Every source it appears in, one box per section, step or function.</span></div>
+    <div class="pad bigwrap">${graphHTML(type, key, true)}<p class="muted">Boxes open the section, step or function. To jump to the exact line, use the lists in the panel.</p></div>`;
+}
+
+function chipsFor(sc) {
+  const out = XR.filter(x => x.from === sc), inc = XR.filter(x => x.to === sc);
+  if (!out.length && !inc.length) return "";
+  let h = "";
+  for (const type of Object.keys(XLABEL)) {
+    const xs = out.filter(x => x.type === type); if (!xs.length) continue;
+    h += `<span class="xk">${XLABEL[type]}</span>` + xs.map(x => `<button class="chip${isDocScope(x.to) ? " doc" : ""}" data-scope-go="${esc(x.to)}" title="Via ${esc([...x.via].join(", "))}">${esc(SCOPES.get(x.to).short)}</button>`).join("");
+  }
+  if (inc.length) {
+    const seen = new Map(); for (const x of inc) { if (!seen.has(x.from)) seen.set(x.from, new Set()); x.via.forEach(v => seen.get(x.from).add(v)); }
+    h += `<span class="xk">Used by</span>` + [...seen].map(([f, v]) => `<button class="chip" data-scope-go="${esc(f)}" title="Via ${esc([...v].join(", "))}">${esc(SCOPES.get(f).short)}</button>`).join("");
+  }
+  return `<div class="xrefs">${h}</div>`;
+}
+const KIND = { py: "Procedure \u00b7 Python", c: "SCSW code \u00b7 C", doc: "Document" };
+function readerHead(src) {
+  const kind = src.kind === "doc" ? (src.file.endsWith(".html") ? "Document \u00b7 HTML page" : "Document \u00b7 Word") : KIND[src.kind];
+  return `<div class="rh${src.kind === "doc" ? " doc" : ""}"><span class="kind">${kind}</span><h1>${esc(src.title)}</h1><span class="sub">${esc(src.sub)}</span><span class="file">${esc(src.file)}</span></div>`;
+}
+function renderCode(src) {
+  let h = readerHead(src) + `<div class="code"><div class="code-in">`;
+  src.lines.forEach((line, i) => {
+    const sc = src.scopeStart[i];
+    if (sc) h += chipsFor(sc);
+    h += `<div class="ln" data-unit="${src.id}|L${i}"${sc ? ` data-scope="${esc(sc)}"` : ""}><span class="no">${i + 1}</span><code>${renderLine(line, syntax(line, src.kind, src.info[i]), BYUNIT.get(`${src.id}|L${i}`)) || " "}</code></div>`;
+  });
+  return h + `</div></div>`;
+}
+function renderDoc(src) {
+  let h = readerHead(src) + `<div class="doc">`;
+  for (const s of src.sections) {
+    const sc = `${src.id}#${s.num}`, tag = s.level === 1 ? "h2" : "h3", hu = `${src.id}|${s.num}|h`;
+    h += `<section data-scope="${esc(sc)}"><${tag} data-unit="${esc(hu)}"><span class="secno">${s.num}</span>${renderLine(s.title, [], BYUNIT.get(hu))}</${tag}>${chipsFor(sc)}`;
+    (s.blocks || []).forEach((b, i) => {
+      if (b.p) { const u = `${src.id}|${s.num}|p${i}`; h += `<p data-unit="${esc(u)}">${renderLine(b.p, [], BYUNIT.get(u))}</p>`; return; }
+      h += `<div class="tw"><table><thead><tr>${b.table.head.map(x => `<th scope="col">${esc(x)}</th>`).join("")}</tr></thead><tbody>` +
+        b.table.rows.map((r, ri) => `<tr>${r.map((c, ci) => { const u = `${src.id}|${s.num}|t${i}r${ri}c${ci}`; return `<td data-unit="${esc(u)}">${renderLine(c, [], BYUNIT.get(u))}</td>`; }).join("")}</tr>`).join("") +
+        `</tbody></table></div>`;
+    });
+    h += `</section>`;
+  }
+  return h + `</div>`;
+}
+function tableRows(type) {
+  if (type === "PLF") return PLF.map(r => ({ PLF_NAME: r[0], PLF_SPID: r[1], PLF_OFFBY: r[2], PLF_OFFBI: r[3], _ent: `PCF|${r[0]}` }));
+  return Object.entries(ENT[type]).map(([k, a]) => ({ ...a, _ent: `${type}|${k}` }));
+}
+function tableConf(type) {
+  return type === "PLF" ? { plural: "Packet fields", file: "plf.dat", cols: ["PLF_NAME", "PLF_SPID", "PLF_OFFBY", "PLF_OFFBI"] } : TYPES[type];
+}
+let tableSort = { col: null, dir: 1 };
+function tbodyHTML(type) {
+  const conf = tableConf(type);
+  let rows = tableRows(type);
+  if (tableSort.col) rows = rows.slice().sort((a, b) => String(a[tableSort.col]).localeCompare(String(b[tableSort.col]), undefined, { numeric: true }) * tableSort.dir);
+  const cur = state.ent ? `${state.ent.type}|${state.ent.key}` : null;
+  return rows.map(r => `<tr data-row-ent="${r._ent}"${r._ent === cur && type !== "PLF" ? ' aria-selected="true"' : ""}>${conf.cols.map((c, i) =>
+    i === 0 ? `<td><button class="cell-link" data-ent="${r._ent}">${esc(r[c])}</button></td>` : `<td class="${/DESCR2?$|LDESCR/.test(c) ? "" : "mono"}">${esc(r[c] || "")}</td>`).join("")}</tr>`).join("");
+}
+function renderTable(type) {
+  const conf = tableConf(type);
+  return `<div class="rh"><span class="kind">SRDB table</span><h1>${conf.plural}</h1><span class="sub">${tableRows(type).length} rows</span><span class="file">srdb/${conf.file}</span></div>
+  <div class="pad"><label><span class="sr">Filter rows</span><input class="filter" id="tfilter" type="search" placeholder="Filter rows" autocomplete="off"></label>
+  <div class="tw"><table><thead><tr>${conf.cols.map(c => `<th scope="col"><button class="sortb" data-sort="${c}">${COL[c]}<small>${c}</small></button></th>`).join("")}</tr></thead><tbody id="tbody">${tbodyHTML(type)}</tbody></table></div></div>`;
+}
+function snippet(m) {
+  const text = UT.get(m.unit) || "";
+  const a = Math.max(0, m.start - 44), b = Math.min(text.length, m.end + 44);
+  const pre = text.slice(a, m.start).trimStart(), post = text.slice(m.end, b).trimEnd();
+  return `${a > 0 ? "\u2026" : ""}${esc(pre)}<mark>${esc(text.slice(m.start, m.end))}</mark>${esc(post)}${b < text.length ? "\u2026" : ""}`;
+}
+function renderSearch(q) {
+  const s = q.trim().toLowerCase();
+  let h = `<div class="rh"><span class="kind">Search</span><h1>${s ? `Results for \u201c${esc(q.trim())}\u201d` : "Search"}</h1><span class="sub">IDs, mnemonics, descriptions and the text of every source</span></div><div class="pad res">`;
+  if (!s) return h + `<p class="muted">Type in the search box to look across the SRDB, the manual, the ICD, the code and the procedures.</p></div>`;
+  const ents = [];
+  for (const t of ["PCF", "CCF", "CPC", "PID"]) for (const [k, a] of Object.entries(ENT[t])) {
+    const T = TYPES[t];
+    if ([a[T.id], a[T.mn], a[T.desc]].some(v => v && v.toLowerCase().includes(s))) ents.push({ t, k, a, T });
+  }
+  const texts = UNITS.filter(u => u.text.toLowerCase().includes(s)).slice(0, 40);
+  h += `<h2>SRDB items \u00b7 ${ents.length}</h2>` + (ents.length ? ents.map(e => `<button class="ri" data-ent="${e.t}|${e.k}"><span class="ri-row"><span class="ri-k">${esc(e.a[e.T.id])}</span><span class="ri-m">${esc(e.a[e.T.mn] || "")}</span><span class="ri-s">${e.T.label}</span></span><span class="ri-s">${esc(e.a[e.T.desc] || "")}</span></button>`).join("") : `<p class="muted">No SRDB items match.</p>`);
+  h += `<h2>In sources \u00b7 ${texts.length}</h2>` + (texts.length ? texts.map(u => {
+    const i = u.text.toLowerCase().indexOf(s), a = Math.max(0, i - 40), b = Math.min(u.text.length, i + s.length + 40);
+    return `<button class="mi" data-go-unit="${esc(u.unit)}"><span class="mi-loc">${esc(SCOPES.get(u.scope).full)}</span><span class="mi-snip">${a > 0 ? "\u2026" : ""}${esc(u.text.slice(a, i).trimStart())}<mark>${esc(u.text.slice(i, i + s.length))}</mark>${esc(u.text.slice(i + s.length, b))}${b < u.text.length ? "\u2026" : ""}</span></button>`;
+  }).join("") : `<p class="muted">No text matches.</p>`);
+  return h + `</div>`;
+}
+function renderDiag(focus) {
+  const nErr = DIAG.filter(d => d.sev === "err").length, nWarn = DIAG.length - nErr;
+  let h = `<div class="rh"><span class="kind">Build diagnostics</span><h1>${DIAG.length} issues</h1><span class="sub">${nErr} error, ${nWarn} warning. References that look like SRDB IDs but match nothing.</span></div><div class="pad">`;
+  for (const d of DIAG) {
+    const m = d.m, sc = SCOPES.get(m.scope);
+    const msg = d.sev === "err" ? `${sc.full} sends ${m.surface}, which is not in the SRDB.` : `${m.surface} in ${sc.full} matches no SRDB entry.`;
+    h += `<div class="dg"${focus === m.id ? ' aria-current="true"' : ""}><span class="sev ${d.sev}">${d.sev === "err" ? "Error" : "Warning"} \u00b7 unresolved reference</span><span>${esc(msg)}</span><span class="mi-snip">${snippet(m)}</span>
+      <span class="acts"><button class="chip" data-go-mid="${m.id}">Open location</button>${d.sugg.length ? `<span>Did you mean</span>` + d.sugg.map(s => `<button class="chip" data-ent="${s.type}|${s.key}">${s.key}</button>`).join("") : ""}</span></div>`;
+  }
+  return h + `</div>`;
+}
+function navHTML() {
+  const mm = state.main;
+  const item = (go, label, sub, child) => {
+    const cur = go.kind === mm.kind && (go.kind === "table" ? go.type === mm.type : go.id === mm.id) && (child ? mm.scope === go.scope : true);
+    return `<button class="ni${child ? " child" : ""}" data-nav='${esc(JSON.stringify(go))}'${cur && !(child === false && mm.scope) ? ' aria-current="true"' : ""}><span class="l">${esc(label)}</span>${sub ? `<span class="s">${esc(sub)}</span>` : ""}</button>`;
+  };
+  const docGroup = (title, id) => {
+    const s = SRC_BY[id];
+    return `<div class="ng doc"><h2>${title}</h2>${item({ kind: "src", id }, s.file.split("/").pop(), s.sub, false)}${s.sections.filter(x => x.level === 2).map(x => item({ kind: "src", id, scope: `${id}#${x.num}` }, `${x.num} ${x.title}`, "", true)).join("")}</div>`;
+  };
+  return `<div class="ng"><h2>Procedures</h2>${["fop1", "fop2"].map(id => item({ kind: "src", id }, SRC_BY[id].title, SRC_BY[id].sub)).join("")}</div>` +
+    docGroup("SW user manual", "sum") + docGroup("SW ICD", "icd") +
+    `<div class="ng"><h2>SRDB</h2>${["PCF", "CCF", "CPC", "PID", "PLF"].map(t => { const c = tableConf(t); return item({ kind: "table", type: t }, c.plural, `${c.file} \u00b7 ${tableRows(t).length} rows`); }).join("")}</div>` +
+    `<div class="ng"><h2>SCSW code</h2>${["hdr", "app"].map(id => item({ kind: "src", id }, SRC_BY[id].title, SRC_BY[id].file.replace(/[^/]+$/, ""))).join("")}</div>` +
+    `<p class="note">Prototype with invented sample data from the DEMOSAT-1 mock mission. Two seeded defects: a typo in the manual and a TC that is no longer in the SRDB.</p>`;
+}
+function group(title, body, count) {
+  return `<section class="pg"><h3>${title}${count != null ? `<span class="cnt">${count}</span>` : ""}</h3>${body}</section>`;
+}
+function entBtn(type, key, sub) {
+  const T = TYPES[type], a = ENT[type][key];
+  return `<button class="ri" data-ent="${type}|${key}"><span class="ri-row"><span class="ri-k">${esc(a[T.id])}</span><span class="ri-m">${esc(a[T.mn] || "")}</span></span>${sub ? `<span class="ri-s">${esc(sub)}</span>` : ""}</button>`;
+}
+function emptyPanel() {
+  return `<div class="empty"><h2>Pick an item</h2><p>Select a highlighted ID or mnemonic to see its SRDB definition and every place it appears.</p>
+  <div class="legend"><div><span class="ex"><span class="m">PWRC0101</span></span><span>Linked to the SRDB</span></div>
+  <div><span class="ex"><span class="m-bad">PWRT0O12</span></span><span>Looks like an ID, matches nothing</span></div>
+  <div><span class="ex"><span class="chip doc">SUM 4.2</span></span><span>Cross-reference to another source</span></div></div></div>`;
+}
+function renderPanel() {
+  const p = $("#panel");
+  if (state.main.kind === "entity") { p.hidden = true; return; }
+  if (!state.ent) { p.innerHTML = emptyPanel(); p.hidden = narrowMq.matches; return; }
+  p.hidden = false;
+  const { type, key } = state.ent, T = TYPES[type], a = ENT[type][key];
+  let h = `<div class="ph"><div class="ph-top"><span class="pill">${T.label}</span><span class="ph-acts"><button class="linkbtn" data-page="1">Open page</button><button class="x" id="pclose" aria-label="Close details">\u00d7</button></span></div>
+    <h2 class="pk">${esc(a[T.id])}</h2><div class="pm">${esc(a[T.mn] || "")}</div><p class="pd">${esc(a[T.desc] || "")}</p></div>`;
+  h += group(`Connections<button class="linkbtn" data-graph="1">Expand</button>`, graphHTML(type, key, false));
+  h += group("Definition", `<dl class="dl">${T.defs.map(c => `<dt>${COL[c]}<code>${c}</code></dt><dd>${esc(a[c] || "\u2014")}</dd>`).join("")}</dl>`);
+  if (type === "PCF") {
+    h += group("Calibration", `<div class="rel-t">${esc(CAL[a.PCF_CURTX] || "None")}</div>`);
+    const pl = PLF.filter(r => r[0] === key);
+    h += group("In packets", pl.map(r => entBtn("PID", r[1], `byte ${r[2]}, bit ${r[3]}`)).join("") || `<div class="rel-t">None</div>`, pl.length);
+    if (OCF[key]) h += group("Limit checks", `<div class="rel-t">${esc(OCF[key])}</div>`);
+  } else if (type === "CCF") {
+    const ar = CDF.filter(r => r[0] === key);
+    h += group("Arguments", ar.map(r => entBtn("CPC", r[2], ENT.CPC[r[2]].CPC_LDESCR)).join("") || `<div class="rel-t">None</div>`, ar.length);
+  } else if (type === "CPC") {
+    const us = CDF.filter(r => r[2] === key);
+    h += group("Used by telecommands", us.map(r => entBtn("CCF", r[0], ENT.CCF[r[0]].CCF_DESCR2)).join(""), us.length);
+  } else if (type === "PID") {
+    const fl = PLF.filter(r => r[1] === key);
+    h += group("Fields", fl.map(r => entBtn("PCF", r[0], `byte ${r[2]}, bit ${r[3]}`)).join(""), fl.length);
+  }
+  const ms = OK.filter(m => m.type === type && m.key === key);
+  for (const [role, title] of GROUPS) {
+    const list = ms.filter(m => m.role === role); if (!list.length) continue;
+    const by = new Map(); for (const m of list) { if (!by.has(m.scope)) by.set(m.scope, []); by.get(m.scope).push(m); }
+    h += group(title, [...by].map(([sc, arr]) => `<button class="mi" data-go-mid="${arr[0].id}"><span class="mi-loc${isDocScope(sc) ? " doc" : ""}">${scopeIcon(sc)}${esc(SCOPES.get(sc).full)}</span><span class="mi-snip">${snippet(arr[0])}</span>${arr.length > 1 ? `<span class="mi-n">${arr.length} places in this ${SCOPES.get(sc).kind === "section" ? "section" : SCOPES.get(sc).kind}</span>` : ""}</button>`).join(""), list.length);
+  }
+  p.innerHTML = h;
+}
+function sec(title, body, count) {
+  return `<section class="psec"><h2>${title}${count != null ? `<span class="cnt">${count}</span>` : ""}</h2>${body}</section>`;
+}
+function tbl(head, rows) {
+  return `<div class="tw"><table><thead><tr>${head.map(h => `<th scope="col">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+}
+const link = (t, k, text) => `<button class="cell-link" data-ent="${t}|${k}">${esc(text || k)}</button>`;
+function renderEntityPage(type, key) {
+  const T = TYPES[type], a = ENT[type][key];
+  const ms = OK.filter(m => m.type === type && m.key === key);
+  let left = sec("Definition", `<div class="tw"><table><tbody>${[...new Set([...T.cols, ...T.defs])].map(c =>
+    `<tr><th scope="row">${COL[c]}<small>${c}</small></th><td class="mono">${esc(a[c] || "\u2014")}</td></tr>`).join("")}</tbody></table></div>`);
+  if (type === "PCF") {
+    const pl = PLF.filter(r => r[0] === key);
+    left += sec("In packets", pl.length ? tbl(["Packet", "SPID", "Byte", "Bit"], pl.map(r => `<tr><td>${link("PID", r[1], ENT.PID[r[1]].TPCF_NAME)}</td><td class="mono">${r[1]}</td><td class="mono">${r[2]}</td><td class="mono">${r[3]}</td></tr>`)) : `<p class="muted">In no packet.</p>`, pl.length);
+    left += sec("Calibration", `<p>${esc(CAL[a.PCF_CURTX] || "None")}</p>`);
+    if (OCF[key]) left += sec("Limit checks", `<p>${esc(OCF[key])}</p>`);
+  } else if (type === "CCF") {
+    const ar = CDF.filter(r => r[0] === key);
+    left += sec("Arguments", ar.length ? tbl(["Bit", "Argument", "Mnemonic", "PTC/PFC", "Unit", "Description"], ar.map(r => { const c = ENT.CPC[r[2]];
+      return `<tr><td class="mono">${r[1]}</td><td>${link("CPC", r[2])}</td><td class="mono">${esc(c.CPC_DESCR)}</td><td class="mono">${c.CPC_PTC}/${c.CPC_PFC}</td><td class="mono">${esc(c.CPC_UNIT || "")}</td><td>${esc(c.CPC_LDESCR)}</td></tr>`; })) : `<p class="muted">No arguments.</p>`, ar.length);
+  } else if (type === "CPC") {
+    const us = CDF.filter(r => r[2] === key);
+    left += sec("Used by telecommands", tbl(["TC", "Mnemonic", "Description"], us.map(r => { const c = ENT.CCF[r[0]];
+      return `<tr><td>${link("CCF", r[0])}</td><td class="mono">${esc(c.CCF_DESCR)}</td><td>${esc(c.CCF_DESCR2)}</td></tr>`; })), us.length);
+  } else if (type === "PID") {
+    const fl = PLF.filter(r => r[1] === key).slice().sort((x, y) => (+x[2] - +y[2]) || (+x[3] - +y[3]));
+    left += sec("Packet layout", tbl(["Byte", "Bit", "Parameter", "Mnemonic", "Unit", "Description"], fl.map(r => { const c = ENT.PCF[r[0]];
+      return `<tr><td class="mono">${r[2]}</td><td class="mono">${r[3]}</td><td>${link("PCF", r[0])}</td><td class="mono">${esc(c.PCF_DESCR)}</td><td class="mono">${esc(c.PCF_UNIT)}</td><td>${esc(c.PCF_LDESCR)}</td></tr>`; })), fl.length);
+  }
+  let right = "";
+  for (const [role, title] of GROUPS) {
+    const list = ms.filter(m => m.role === role); if (!list.length) continue;
+    const by = new Map(); for (const m of list) { if (!by.has(m.scope)) by.set(m.scope, []); by.get(m.scope).push(m); }
+    right += sec(title, [...by].map(([sc, arr]) => `<button class="mi" data-go-mid="${arr[0].id}"><span class="mi-loc${isDocScope(sc) ? " doc" : ""}">${scopeIcon(sc)}${esc(SCOPES.get(sc).full)}</span><span class="mi-snip">${snippet(arr[0])}</span>${arr.length > 1 ? `<span class="mi-n">${arr.length} mentions here</span>` : ""}</button>`).join(""), list.length);
+  }
+  const counts = GROUPS.map(([r, t]) => [t, ms.filter(m => m.role === r).length]).filter(x => x[1]);
+  return `<div class="rh"><span class="kind">${T.label} \u00b7 srdb/${T.file}</span><h1 class="mono">${esc(a[T.id])}</h1><span class="sub mono">${esc(a[T.mn] || "")}</span><span class="sub">${esc(a[T.desc] || "")}</span></div>
+    <div class="pad"><div class="stats">${counts.map(([t, n]) => `<span class="stat">${t}<b>${n}</b></span>`).join("")}</div>
+    <div class="pgrid"><div class="pcol">${left}</div><div class="pcol">${right || `<p class="muted">Not mentioned in any source.</p>`}</div></div></div>`;
+}
+function renderMain() {
+  const mm = state.main, r = $("#reader");
+  if (mm.kind === "src") { const s = SRC_BY[mm.id]; r.innerHTML = s.kind === "doc" ? renderDoc(s) : renderCode(s); }
+  else if (mm.kind === "table") { tableSort = { col: null, dir: 1 }; r.innerHTML = renderTable(mm.type); }
+  else if (mm.kind === "search") r.innerHTML = renderSearch(mm.q || "");
+  else if (mm.kind === "diag") r.innerHTML = renderDiag(mm.focus);
+  else if (mm.kind === "graph") r.innerHTML = renderGraphMain(mm.type, mm.key);
+  else if (mm.kind === "entity") r.innerHTML = renderEntityPage(mm.type, mm.key);
+  r.scrollTop = 0;
+  let el = null;
+  if (mm.mid != null) el = r.querySelector(`[data-mid="${mm.mid}"]`) || r.querySelector(`[data-bad="${mm.mid}"]`);
+  else if (mm.unit) el = r.querySelector(`[data-unit="${CSS.escape(mm.unit)}"]`);
+  else if (mm.scope) el = r.querySelector(`[data-scope="${CSS.escape(mm.scope)}"]`);
+  if (el) {
+    el.scrollIntoView({ block: mm.mid != null ? "center" : "start" });
+    const t = mm.mid != null ? el : (el.matches(".ln, p, td, h2, h3") ? el : el.querySelector("h2, h3") || el);
+    t.classList.add("flash"); setTimeout(() => t.classList.remove("flash"), 1900);
+  }
+}
+function updateCur() {
+  document.querySelectorAll("#reader .m.cur").forEach(e => e.classList.remove("cur"));
+  if (state.cur != null) { const e = document.querySelector(`#reader [data-mid="${state.cur}"]`); if (e) e.classList.add("cur"); }
+  if (state.main.kind === "table") { const tb = $("#tbody"); if (tb) tb.innerHTML = tbodyHTML(state.main.type); applyFilter(); }
+}
+function render() {
+  document.body.classList.toggle("page-mode", state.main.kind === "entity");
+  const key = JSON.stringify(state.main);
+  if (key !== lastMainKey) { $("#nav").innerHTML = navHTML(); renderMain(); lastMainKey = key; }
+  else updateCur();
+  renderPanel();
+  $("#back").setAttribute("aria-disabled", String(!hist.length));
+  $("#fwd").setAttribute("aria-disabled", String(!fut.length));
+  if (state.main.kind !== "search" && document.activeElement !== $("#q")) $("#q").value = "";
+}
+function go(next, push = true) {
+  if (push) { hist.push(state); fut.length = 0; }
+  state = next; render();
+}
+function closeNav() { document.body.classList.remove("nav-open"); $("#navtoggle").setAttribute("aria-expanded", "false"); }
+function applyFilter() {
+  const f = $("#tfilter"); if (!f) return; const q = f.value.trim().toLowerCase();
+  document.querySelectorAll("#tbody tr").forEach(tr => { tr.hidden = !!q && !tr.textContent.toLowerCase().includes(q); });
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, [data-bad], tr[data-row-ent]");
+  if (!t) return;
+  if (t.id === "back") { if (hist.length) { fut.push(state); state = hist.pop(); render(); } return; }
+  if (t.id === "fwd") { if (fut.length) { hist.push(state); state = fut.pop(); render(); } return; }
+  if (t.id === "pclose") { go({ ...state, ent: null, cur: null }); return; }
+  if (t.id === "diagbtn") { go({ ...state, main: { kind: "diag" } }); return; }
+  if (t.id === "navtoggle") { const open = document.body.classList.toggle("nav-open"); t.setAttribute("aria-expanded", String(open)); return; }
+  if (t.dataset.mid != null && t.closest("#reader")) { const m = M[+t.dataset.mid]; go({ ...state, ent: { type: m.type, key: m.key }, cur: m.id }); return; }
+  if (t.dataset.bad != null) { go({ ...state, main: { kind: "diag", focus: +t.dataset.bad } }); return; }
+  if (t.dataset.goMid != null) { const m = M[+t.dataset.goMid]; go({ ...state, main: { kind: "src", id: m.src, mid: m.id }, cur: m.id }); return; }
+  if (t.dataset.goUnit) { const u = UNITS.find(x => x.unit === t.dataset.goUnit); go({ ...state, main: { kind: "src", id: u.src, unit: u.unit } }); return; }
+  if (t.dataset.scopeGo) { const s = SCOPES.get(t.dataset.scopeGo); go({ ...state, main: { kind: "src", id: s.src, scope: s.id } }); return; }
+  if (t.dataset.page) { if (state.ent) go({ ...state, main: { kind: "entity", type: state.ent.type, key: state.ent.key } }); return; }
+  if (t.dataset.graph) { if (state.ent) go({ ...state, main: { kind: "graph", type: state.ent.type, key: state.ent.key } }); return; }
+  if (t.dataset.ent) {
+    const [type, key] = t.dataset.ent.split("|");
+    const k = state.main.kind, keepKind = (k === "graph" || k === "entity") && t.closest("#reader");
+    go({ ...state, ent: { type, key }, cur: null, main: keepKind ? { kind: k, type, key } : state.main }); return;
+  }
+  if (t.dataset.rowEnt) { const [type, key] = t.dataset.rowEnt.split("|"); go({ ...state, ent: { type, key }, cur: null }); return; }
+  if (t.dataset.nav) { closeNav(); go({ ...state, main: JSON.parse(t.dataset.nav) }); return; }
+  if (t.dataset.sort) {
+    tableSort = { col: t.dataset.sort, dir: tableSort.col === t.dataset.sort ? -tableSort.dir : 1 };
+    $("#tbody").innerHTML = tbodyHTML(state.main.type); applyFilter(); return;
+  }
+});
+document.addEventListener("keydown", e => {
+  const inField = e.target.matches("input, textarea");
+  if (e.key === "/" && !inField) { e.preventDefault(); $("#q").focus(); return; }
+  if (e.key === "Escape" && state.ent && !inField) { go({ ...state, ent: null, cur: null }); return; }
+  if (e.altKey && e.key === "ArrowLeft") { $("#back").click(); return; }
+  if (e.altKey && e.key === "ArrowRight") { $("#fwd").click(); return; }
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-bad]")) { e.preventDefault(); e.target.click(); }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "tfilter") { applyFilter(); return; }
+  if (e.target.id === "q") {
+    const q = e.target.value;
+    go({ ...state, main: { kind: "search", q } }, state.main.kind !== "search");
+  }
+});
+narrowMq.addEventListener("change", () => renderPanel());
+
+/* ---------- Start in a realistic working state ---------- */
+const nErr = DIAG.filter(d => d.sev === "err").length;
+$("#diagbtn").innerHTML = `${nErr ? '<span class="dot err" aria-hidden="true"></span>' : ""}${DIAG.length > nErr ? '<span class="dot warn" aria-hidden="true"></span>' : ""}<span>${DIAG.length} issues</span>`;
+const start = M.find(m => m.src === "fop1" && m.role === "sends" && m.key === "PWRC0101");
+state = { main: { kind: "src", id: "fop1", mid: start.id }, ent: { type: "CCF", key: "PWRC0101" }, cur: start.id };
+render();
+})();
+</script>
+</body>
+</html>

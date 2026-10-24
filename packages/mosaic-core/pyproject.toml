@@ -1,0 +1,25 @@
+[project]
+name = "mosaic-core"
+version = "0.1.0"
+description = "Mosaic core: schema, config, pipeline, matching, store and read API (domain-neutral)"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+dependencies = [
+    "linkml-runtime>=1.12",
+    "pydantic>=2.11",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+pandas = ["pandas>=2"]
+
+[project.entry-points."mosaic.matchers"]
+exact = "mosaic_core.matching:ExactMatcher"
+
+[project.entry-points."mosaic.derivers"]
+relation_rules = "mosaic_core.derive:promote_relations"
+xref_rules = "mosaic_core.derive:derive_xrefs"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"

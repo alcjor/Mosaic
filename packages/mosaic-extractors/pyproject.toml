@@ -1,0 +1,29 @@
+[project]
+name = "mosaic-extractors"
+version = "0.1.0"
+description = "Mosaic generic extractors: delimited, html, docx, pdf, c, python"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+dependencies = [
+    "mosaic-core",
+    "lxml>=5",
+    "mammoth>=1.8",
+    "pdfplumber>=0.11",
+    "tree-sitter>=0.25",
+    "tree-sitter-c>=0.24",
+]
+
+[project.entry-points."mosaic.extractors"]
+delimited = "mosaic_extractors.delimited:DelimitedExtractor"
+html = "mosaic_extractors.html:HtmlExtractor"
+docx = "mosaic_extractors.docx:DocxExtractor"
+pdf = "mosaic_extractors.pdf:PdfExtractor"
+c = "mosaic_extractors.c:CExtractor"
+python = "mosaic_extractors.python:PythonExtractor"
+
+[tool.uv.sources]
+mosaic-core = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"

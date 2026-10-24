@@ -1,0 +1,22 @@
+[project]
+name = "mosaic-server"
+version = "0.1.0"
+description = "Mosaic live server and static exporter; ships the built viewer"
+requires-python = ">=3.14"
+license = "Apache-2.0"
+dependencies = [
+    "mosaic-core",
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "watchfiles>=1",
+]
+
+[project.entry-points."mosaic.exporters"]
+static-viewer = "mosaic_server.export:StaticViewerExporter"
+
+[tool.uv.sources]
+mosaic-core = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"

@@ -1,0 +1,66 @@
+<!-- @dsCard height=300 -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .cover { position: relative; width: 960px; height: 300px; background: var(--surface); overflow: hidden; font-family: var(--font-sans); }
+  .cover svg { position: absolute; left: 0; top: 0; }
+  .slab { fill: var(--slab); }
+  .accent-block { fill: var(--accent); }
+  .tcs-block { fill: var(--shard-tcs); }
+  .slab-shard { fill: var(--ground-shard); }
+  .s-eps { fill: var(--shard-eps); }
+  .s-tcs { fill: var(--shard-tcs); }
+  .s-aocs { fill: var(--shard-aocs); }
+  .s-comms { fill: var(--shard-comms); }
+  .block { rx: var(--radius-none); }
+  .cover-text { position: absolute; left: 40px; bottom: 36px; width: 440px; }
+  .cover-name { margin: 0; font-size: 112px; line-height: 0.92; font-weight: 700; letter-spacing: 0.04em; color: var(--heading); }
+  .cover-tagline { margin: 12px 0 0 0; font-size: 14px; line-height: 1.4; color: var(--ink-muted); }
+</style>
+<div class="cover">
+  <svg width="960" height="300" viewBox="0 0 960 300" aria-hidden="true">
+    <!--
+      blocks: slab (brand field) 360x300 bleeding top/right/bottom; accent 88x112 bleeding bottom; shard-tcs 64x72. Sides are space-4 multiples, corners radius-none.
+      arrangement: one tall slab with two satellites to its left, all right of x=480, a space-4 (16px) channel between satellites and slab.
+      pattern: literal motif, trencadís shards (34 Voronoi cells, inset by grout-print x2) over the slab in ground-shard and the shard-* subsystem tokens; chosen because the README names the irregular shard as the core of the identity.
+      scales: space-4 channel, grout-print gaps, radius-none on every block and shard.
+    -->
+    <rect class="slab block" x="600" y="0" width="360" height="300"></rect>
+    <rect class="accent-block block" x="496" y="188" width="88" height="112"></rect>
+    <rect class="tcs-block block" x="520" y="104" width="64" height="72"></rect>
+    <polygon class="s-eps" points="695,275 723,231 673,213 652,229 646,245 649,248"></polygon>
+    <polygon class="slab-shard" points="646,94 600,101 600,121 607,161 654,154"></polygon>
+    <polygon class="s-comms" points="759,201 776,181 778,176 769,121 756,111 716,134 707,155 754,202"></polygon>
+    <polygon class="slab-shard" points="765,206 813,251 839,250 839,251 834,212 782,187"></polygon>
+    <polygon class="s-eps" points="750,206 738,222 726,226 677,208 681,167 704,160"></polygon>
+    <polygon class="s-comms" points="738,34 752,0 600,0 653,0"></polygon>
+    <polygon class="s-tcs" points="713,127 671,83 670,80 743,55 747,59 753,105"></polygon>
+    <polygon class="s-eps" points="785,176 849,142 847,130 824,115 774,119"></polygon>
+    <polygon class="s-eps" points="643,228 637,244 600,300 600,157 600,123 604,167"></polygon>
+    <polygon class="slab-shard" points="858,248 846,241 842,210 874,174 889,179 897,241"></polygon>
+    <polygon class="slab-shard" points="876,166 858,143 857,131 880,106 936,106 939,107 903,167 892,171"></polygon>
+    <polygon class="s-tcs" points="960,0 883,38 927,59 960,0"></polygon>
+    <polygon class="slab-shard" points="874,99 853,126 834,110 830,93 832,54 863,56"></polygon>
+    <polygon class="slab-shard" points="600,300 644,256 696,281 737,300 724,300"></polygon>
+    <polygon class="s-aocs" points="726,300 779,300 934,300 883,300 842,257 814,261 773,300 751,300 734,300"></polygon>
+    <polygon class="s-eps" points="659,81 661,82 649,19 600,72 600,95 648,90"></polygon>
+    <polygon class="slab-shard" points="763,208 810,255 774,296 744,227 756,211"></polygon>
+    <polygon class="s-eps" points="960,0 810,31 830,45 867,47 881,37"></polygon>
+    <polygon class="s-eps" points="738,300 769,300 739,231 729,234 703,280"></polygon>
+    <polygon class="s-tcs" points="883,46 869,54 883,98 935,99 923,65"></polygon>
+    <polygon class="s-tcs" points="739,50 734,39 657,6 657,17 669,78"></polygon>
+    <polygon class="slab-shard" points="844,258 897,248 899,252 884,300 844,257"></polygon>
+    <polygon class="slab-shard" points="759,104 755,59 789,46 814,45 827,54 822,107 772,114"></polygon>
+    <polygon class="s-eps" points="656,158 613,170 634,201 656,218 669,207 676,167"></polygon>
+    <polygon class="s-aocs" points="960,199 908,172 944,105 960,158"></polygon>
+    <polygon class="slab-shard" points="902,241 894,181 905,176 960,203 923,244 911,243 905,243"></polygon>
+    <polygon class="slab-shard" points="887,300 935,300 960,300 925,252 905,251"></polygon>
+    <polygon class="s-tcs" points="960,154 946,104 944,101 930,63 960,0 960,150"></polygon>
+    <polygon class="slab-shard" points="745,45 739,34 754,0 780,0 960,0 808,29 752,52"></polygon>
+    <polygon class="slab-shard" points="784,182 838,205 871,171 852,148 786,179"></polygon>
+    <polygon class="slab-shard" points="708,131 668,87 653,97 662,151 679,159 699,152"></polygon>
+  </svg>
+  <div class="cover-text">
+    <h1 class="cover-name">MOSAIC</h1>
+    <p class="cover-tagline">Reverse MBSE platform. No rebuild, no re-entry.</p>
+  </div>
+</div>

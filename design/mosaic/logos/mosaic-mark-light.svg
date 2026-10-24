@@ -1,0 +1,32 @@
+<?xml version="1.0"?><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="368.64pt" height="368.64pt" viewBox="0 0 368.64 368.64" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  
+ </metadata>
+ <defs>
+  
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 368.64  L 368.64 368.64  L 368.64 0  L 0 0  L 0 368.64  z " style="fill: none; opacity: 0"></path>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 45.71136 45.71136  L 191.402184 45.71136  L 144.336302 130.429948  L 45.71136 203.603292  z " clip-path="url(#p99bee80000)" style="fill: #0a2a5c"></path>
+   </g>
+   <g id="patch_3">
+    <path d="M 211.644216 45.71136  L 322.92864 45.71136  L 322.92864 167.311848  L 234.209176 203.456815  L 162.19643 134.717376  z " clip-path="url(#p99bee80000)" style="fill: #163c78"></path>
+   </g>
+   <g id="patch_4">
+    <path d="M 45.71136 225.636368  L 150.42653 147.944467  L 223.964894 218.140178  L 240.338091 322.92864  L 45.71136 322.92864  z " clip-path="url(#p99bee80000)" style="fill: #0a2a5c"></path>
+   </g>
+   <g id="patch_5">
+    <path d="M 345.04704 208.537112  L 345.04704 345.04704  L 280.365909 345.04704  L 264.183778 241.481403  z " clip-path="url(#p99bee80000)" style="fill: #2f6db5"></path>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p99bee80000">
+   <rect x="0" y="0" width="368.64" height="368.64"></rect>
+  </clipPath>
+ </defs>
+</svg>
