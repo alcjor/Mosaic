@@ -1,0 +1,8 @@
+3	25	257	1		1001	Power housekeeping, every 8 s		-1	10	N		Y	0	N	
+3	25	258	2		1002	Thermal control housekeeping, every 16 s		-1	10	N		Y	0	N	
+3	25	259	3		1003	Attitude and orbit control housekeeping, every 4 s		-1	10	N		Y	0	N	
+3	25	260	4		1004	On-board computer housekeeping, every 8 s		-1	10	N		Y	0	N	
+3	25	261	5		1005	Communications housekeeping, every 8 s		-1	10	N		Y	0	N	
+3	25	262	6		1006	Payload housekeeping, every 16 s		-1	10	N		Y	0	N	
+5	1	260	1		2001	Informative event report		-1	10	N		Y	0	N	
+5	4	260	4		2002	High-severity event report		-1	10	N		Y	0	N	

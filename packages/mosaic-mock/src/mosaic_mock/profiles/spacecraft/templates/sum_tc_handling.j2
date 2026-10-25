@@ -1,0 +1,3 @@
+When a telecommand arrives, the SCSW checks it, sends the acceptance report and passes it to the dispatcher of the application that owns its APID. The dispatcher calls one handler per telecommand; for example {{ id(example) }} ({{ mn(example) }}) is handled by the {{ example.sub.spec.adj }} application.
+
+{% if critical %}Critical telecommands such as {{ mn(critical) }} need an arm and fire sequence before they execute.{% else %}No telecommand of this mission needs an arm and fire sequence.{% endif %}

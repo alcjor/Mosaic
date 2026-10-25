@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DEMOSAT-1 SCSW interface control document</title>
+<style>body{font-family:sans-serif;max-width:60em}td,th{border:1px solid #999;padding:2px 6px}table{border-collapse:collapse}</style>
+<script>function printPage(){window.print();}</script>
+</head>
+<body>
+<h1 onclick="printPage()">DEMOSAT-1 SCSW interface control document</h1>
+<p>Document DEMOSAT-1-SCSW-ICD, issue 2.0.</p>
+<h2>1 TM packets</h2>
+<p>Each housekeeping and event packet is listed below with its parameters and their byte offsets in the packet data field. Offsets with a decimal part give the bit within the byte.</p>
+<h3>1.1 PWR_HK, SPID 1001, APID 0x101, PUS (3,25)</h3>
+<p>Power housekeeping, every 8 s.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>PWRT0012</td><td>BAT_V_MAIN</td><td>3/12</td><td>Main battery voltage</td></tr>
+<tr><td>18</td><td>PWRT0281</td><td>BAT_I_MAIN</td><td>4/12</td><td>Main battery current</td></tr>
+<tr><td>20</td><td>PWRT0020</td><td>BAT_TEMP_1</td><td>4/12</td><td>Battery temperature, sensor 1</td></tr>
+<tr><td>22</td><td>PWRT0324</td><td>BAT_TEMP_2</td><td>4/12</td><td>Battery temperature, sensor 2</td></tr>
+<tr><td>24</td><td>PWRT0031</td><td>HTR_A_STAT</td><td>2/8</td><td>Battery heater A status</td></tr>
+<tr><td>25</td><td>PWRT8596</td><td>HTR_B_STAT</td><td>2/8</td><td>Battery heater B status</td></tr>
+<tr><td>26</td><td>PWRT9647</td><td>HTR_A_MODE</td><td>2/8</td><td>Battery heater A control mode</td></tr>
+<tr><td>27</td><td>PWRT0045</td><td>SA_I_TOTAL</td><td>3/12</td><td>Solar array total current</td></tr>
+<tr><td>29</td><td>PWRT0694</td><td>SA_V_OUT</td><td>3/12</td><td>Solar array output voltage</td></tr>
+<tr><td>31</td><td>PWRT1392</td><td>BUS_V_MAIN</td><td>3/12</td><td>Main bus voltage</td></tr>
+<tr><td>33</td><td>PWRT5284</td><td>BCR_MODE</td><td>2/8</td><td>Battery charge regulator mode</td></tr>
+<tr><td>34</td><td>PWRT9077</td><td>BAT_EOC_V</td><td>3/12</td><td>Battery end-of-charge voltage limit</td></tr>
+<tr><td>36</td><td>PWRT8638</td><td>LCL_TRIP_CNT</td><td>3/12</td><td>Latching current limiter trip count</td></tr>
+<tr><td>38</td><td>PWRT2959</td><td>BAT_V</td><td>3/12</td><td>Battery voltage</td></tr>
+</tbody></table>
+<h3>1.2 TCS_HK, SPID 1002, APID 0x102, PUS (3,25)</h3>
+<p>Thermal control housekeeping, every 16 s.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>TCST6132</td><td>HL1_STAT</td><td>2/8</td><td>Heater line 1 status</td></tr>
+<tr><td>17</td><td>TCST4051</td><td>HL2_STAT</td><td>2/8</td><td>Heater line 2 status</td></tr>
+<tr><td>18</td><td>TCST1019</td><td>HL3_STAT</td><td>2/8</td><td>Heater line 3 status</td></tr>
+<tr><td>19</td><td>TCST7244</td><td>HL1_MODE</td><td>2/8</td><td>Heater line 1 control mode</td></tr>
+<tr><td>20</td><td>TCST9481</td><td>HL1_SETP</td><td>4/12</td><td>Heater line 1 set point</td></tr>
+<tr><td>22</td><td>TCST0779</td><td>RAD_TEMP_1</td><td>4/12</td><td>Radiator temperature, panel 1</td></tr>
+<tr><td>24</td><td>TCST0971</td><td>RAD_TEMP_2</td><td>4/12</td><td>Radiator temperature, panel 2</td></tr>
+<tr><td>26</td><td>TCST1795</td><td>TANK_TEMP</td><td>4/12</td><td>Propellant tank temperature</td></tr>
+<tr><td>28</td><td>TCST3723</td><td>OBC_BRD_TEMP</td><td>4/12</td><td>On-board computer board temperature</td></tr>
+<tr><td>30</td><td>TCST7158</td><td>PLD_IF_TEMP</td><td>4/12</td><td>Payload interface temperature</td></tr>
+<tr><td>32</td><td>TCST3307</td><td>TCS_MODE</td><td>2/8</td><td>Thermal control mode</td></tr>
+<tr><td>33</td><td>TCST7930</td><td>HL_I_TOTAL</td><td>3/12</td><td>Heater lines total current</td></tr>
+<tr><td>35</td><td>TCST2520</td><td>TH_FAIL_CNT</td><td>3/12</td><td>Thermistor failure count</td></tr>
+<tr><td>37</td><td>TCST8951</td><td>HL_V</td><td>3/12</td><td>Heater line voltage</td></tr>
+</tbody></table>
+<h3>1.3 AOC_HK, SPID 1003, APID 0x103, PUS (3,25)</h3>
+<p>Attitude and orbit control housekeeping, every 4 s.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>AOCT2478</td><td>AOC_MODE</td><td>2/8</td><td>Attitude control mode</td></tr>
+<tr><td>17</td><td>AOCT2611</td><td>GYR_RATE_X</td><td>4/12</td><td>Gyro rate, X axis</td></tr>
+<tr><td>19</td><td>AOCT6114</td><td>GYR_RATE_Y</td><td>4/12</td><td>Gyro rate, Y axis</td></tr>
+<tr><td>21</td><td>AOCT5392</td><td>GYR_RATE_Z</td><td>4/12</td><td>Gyro rate, Z axis</td></tr>
+<tr><td>23</td><td>AOCT0240</td><td>SUN_ANGLE</td><td>3/12</td><td>Sun sensor angle</td></tr>
+<tr><td>25</td><td>AOCT8321</td><td>RW1_SPEED</td><td>4/12</td><td>Reaction wheel 1 speed</td></tr>
+<tr><td>27</td><td>AOCT4403</td><td>RW2_SPEED</td><td>4/12</td><td>Reaction wheel 2 speed</td></tr>
+<tr><td>29</td><td>AOCT9618</td><td>RW3_SPEED</td><td>4/12</td><td>Reaction wheel 3 speed</td></tr>
+<tr><td>31</td><td>AOCT2376</td><td>MTQ_X_DIPOLE</td><td>4/12</td><td>Magnetorquer X dipole</td></tr>
+<tr><td>33</td><td>AOCT8208</td><td>STR_STAT</td><td>2/8</td><td>Star tracker status</td></tr>
+<tr><td>34</td><td>AOCT3539</td><td>STR_LOCK</td><td>2/8</td><td>Star tracker lock</td></tr>
+<tr><td>35</td><td>AOCT0932</td><td>ATT_ERR</td><td>3/12</td><td>Attitude error</td></tr>
+<tr><td>37</td><td>AOCT8473</td><td>RW1_TEMP</td><td>4/12</td><td>Reaction wheel 1 temperature</td></tr>
+</tbody></table>
+<h3>1.4 OBC_HK, SPID 1004, APID 0x104, PUS (3,25)</h3>
+<p>On-board computer housekeeping, every 8 s.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>OBCT3700</td><td>CPU_LOAD</td><td>3/12</td><td>Processor load</td></tr>
+<tr><td>18</td><td>OBCT9283</td><td>MEM_FREE</td><td>3/12</td><td>Free memory</td></tr>
+<tr><td>20</td><td>OBCT4639</td><td>WDG_STAT</td><td>2/8</td><td>Watchdog status</td></tr>
+<tr><td>21</td><td>OBCT0518</td><td>RESET_CNT</td><td>3/12</td><td>Reset count</td></tr>
+<tr><td>23</td><td>OBCT4211</td><td>EDAC_ERR_CNT</td><td>3/12</td><td>Memory error count</td></tr>
+<tr><td>25</td><td>OBCT2880</td><td>OBT_DRIFT</td><td>4/12</td><td>On-board time drift</td></tr>
+<tr><td>27</td><td>OBCT6792</td><td>SW_MODE</td><td>2/8</td><td>Software mode</td></tr>
+<tr><td>28</td><td>OBCT5611</td><td>TC_ACC_CNT</td><td>3/12</td><td>Accepted telecommand count</td></tr>
+<tr><td>30</td><td>OBCT9701</td><td>TC_REJ_CNT</td><td>3/12</td><td>Rejected telecommand count</td></tr>
+<tr><td>32</td><td>OBCT4459</td><td>EVT_LAST_ID</td><td>3/12</td><td>Last event identifier</td></tr>
+<tr><td>34</td><td>OBCT8109</td><td>EVT_CNT</td><td>3/12</td><td>Event count</td></tr>
+<tr><td>36</td><td>OBCT1310</td><td>RAIL_V_5V</td><td>3/12</td><td>5 V rail voltage</td></tr>
+<tr><td>38</td><td>OBCT9444</td><td>HK_ENA_CNT</td><td>3/12</td><td>Enabled housekeeping report count</td></tr>
+</tbody></table>
+<h3>1.5 COM_HK, SPID 1005, APID 0x105, PUS (3,25)</h3>
+<p>Communications housekeeping, every 8 s.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>COMT5338</td><td>RX_LOCK</td><td>2/8</td><td>Receiver lock</td></tr>
+<tr><td>17</td><td>COMT7144</td><td>RX_AGC</td><td>4/12</td><td>Receiver signal level</td></tr>
+<tr><td>19</td><td>COMT9701</td><td>RX_SNR</td><td>3/12</td><td>Receiver signal-to-noise ratio</td></tr>
+<tr><td>21</td><td>COMT4549</td><td>TX_STAT</td><td>2/8</td><td>Transmitter status</td></tr>
+<tr><td>22</td><td>COMT9236</td><td>TX_PWR</td><td>3/12</td><td>Transmitter output power</td></tr>
+<tr><td>24</td><td>COMT7650</td><td>TX_TEMP</td><td>4/12</td><td>Transmitter temperature</td></tr>
+<tr><td>26</td><td>COMT6242</td><td>TX_RATE</td><td>3/12</td><td>Downlink rate</td></tr>
+<tr><td>28</td><td>COMT1448</td><td>XPD_MODE</td><td>2/8</td><td>Transponder mode</td></tr>
+<tr><td>29</td><td>COMT7974</td><td>RX_FREQ_ERR</td><td>4/12</td><td>Receiver frequency offset</td></tr>
+<tr><td>31</td><td>COMT3984</td><td>ANT_SEL</td><td>2/8</td><td>Antenna selection</td></tr>
+<tr><td>32</td><td>COMT4629</td><td>TX_I</td><td>3/12</td><td>Transmitter current</td></tr>
+<tr><td>34</td><td>COMT9823</td><td>RX_TEMP</td><td>4/12</td><td>Receiver temperature</td></tr>
+<tr><td>36</td><td>COMT8772</td><td>FRAME_CNT</td><td>3/12</td><td>Transmitted frame count</td></tr>
+</tbody></table>
+<h3>1.6 PLD_HK, SPID 1006, APID 0x106, PUS (3,25)</h3>
+<p>Payload housekeeping, every 16 s.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>PLDT8785</td><td>CAM_STAT</td><td>2/8</td><td>Camera status</td></tr>
+<tr><td>17</td><td>PLDT3063</td><td>CAM_MODE</td><td>2/8</td><td>Camera mode</td></tr>
+<tr><td>18</td><td>PLDT0056</td><td>FPA_TEMP</td><td>4/12</td><td>Focal plane temperature</td></tr>
+<tr><td>20</td><td>PLDT2237</td><td>CAM_I</td><td>3/12</td><td>Camera current</td></tr>
+<tr><td>22</td><td>PLDT7193</td><td>CAM_V</td><td>3/12</td><td>Camera supply voltage</td></tr>
+<tr><td>24</td><td>PLDT8768</td><td>IMG_CNT</td><td>3/12</td><td>Image count</td></tr>
+<tr><td>26</td><td>PLDT8949</td><td>EXP_TIME</td><td>3/12</td><td>Exposure time</td></tr>
+<tr><td>28</td><td>PLDT7797</td><td>COOLER_STAT</td><td>2/8</td><td>Cooler status</td></tr>
+<tr><td>29</td><td>PLDT1679</td><td>COOLER_PWR</td><td>3/12</td><td>Cooler power</td></tr>
+<tr><td>31</td><td>PLDT6795</td><td>STORE_FILL</td><td>3/12</td><td>Image store fill level</td></tr>
+<tr><td>33</td><td>PLDT7871</td><td>OPT_TEMP</td><td>4/12</td><td>Optics temperature</td></tr>
+<tr><td>35</td><td>PLDT7699</td><td>SHUTTER_STAT</td><td>2/8</td><td>Shutter status</td></tr>
+<tr><td>36</td><td>PLDT9158</td><td>CMP_RATIO</td><td>3/12</td><td>Compression ratio</td></tr>
+</tbody></table>
+<h3>1.7 EVT_INFO, SPID 2001, APID 0x104, PUS (5,1)</h3>
+<p>Informative event report.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>OBCT4459</td><td>EVT_LAST_ID</td><td>3/12</td><td>Last event identifier</td></tr>
+<tr><td>18</td><td>OBCT8109</td><td>EVT_CNT</td><td>3/12</td><td>Event count</td></tr>
+</tbody></table>
+<h3>1.8 EVT_ALARM, SPID 2002, APID 0x104, PUS (5,4)</h3>
+<p>High-severity event report.</p>
+<table>
+<thead><tr><th>Offset</th><th>Parameter</th><th>Mnemonic</th><th>PTC/PFC</th><th>Description</th></tr></thead><tbody>
+<tr><td>16</td><td>OBCT4459</td><td>EVT_LAST_ID</td><td>3/12</td><td>Last event identifier</td></tr>
+<tr><td>18</td><td>OBCT8109</td><td>EVT_CNT</td><td>3/12</td><td>Event count</td></tr>
+</tbody></table>
+<h2>2 Telecommands</h2>
+<p>Each telecommand is listed below with its service, its APID and its arguments. Positions count from the start of the application data field.</p>
+<h3>2.1 PWRC0101 PWR_HTR_A_ON</h3>
+<p>PUS (8,1), APID 0x101. Switch battery heater A on.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>PWRP0001</td><td>3/4</td><td>1 to 2</td><td>Heater control mode: 1 thermostat, 2 forced on</td></tr>
+</tbody></table>
+<h3>2.2 PWRC0112 PWR_HTR_A_OFF</h3>
+<p>PUS (8,1), APID 0x101. Switch battery heater A off.</p>
+<p>No arguments.</p>
+<h3>2.3 PWRC0123 PWR_SET_BAT_EOC</h3>
+<p>PUS (8,1), APID 0x101. Set the battery end-of-charge voltage.</p>
+<p><b>Critical command:</b> it needs an arm and fire sequence.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>PWRP0010</td><td>5/1</td><td>30.0 to 33.6 V</td><td>End-of-charge voltage, 30.0 to 33.6 V</td></tr>
+</tbody></table>
+<h3>2.4 PWRC2476 PWR_HTR_B_ON</h3>
+<p>PUS (8,1), APID 0x101. Switch battery heater B on.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>PWRP0001</td><td>3/4</td><td>1 to 2</td><td>Heater control mode: 1 thermostat, 2 forced on</td></tr>
+</tbody></table>
+<h3>2.5 PWRC5141 PWR_LCL_RESET</h3>
+<p>PUS (8,1), APID 0x101. Reset a tripped latching current limiter.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>PWRP9190</td><td>3/4</td><td>1 to 16</td><td>Current limiter number, 1 to 16</td></tr>
+</tbody></table>
+<h3>2.6 TCSC9695 TCS_HL1_ON</h3>
+<p>PUS (8,1), APID 0x102. Switch heater line 1 on.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>TCSP6912</td><td>3/4</td><td>1 to 2</td><td>Heater line mode: 1 thermostat, 2 forced on</td></tr>
+</tbody></table>
+<h3>2.7 TCSC1330 TCS_HL1_OFF</h3>
+<p>PUS (8,1), APID 0x102. Switch heater line 1 off.</p>
+<p>No arguments.</p>
+<h3>2.8 TCSC1076 TCS_SET_HL1_SETP</h3>
+<p>PUS (8,1), APID 0x102. Set the heater line 1 set point.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>TCSP9614</td><td>5/1</td><td>-20.0 to 40.0 degC</td><td>Set point, -20 to 40 degC</td></tr>
+</tbody></table>
+<h3>2.9 TCSC1484 TCS_MODE_SET</h3>
+<p>PUS (8,1), APID 0x102. Change the thermal control mode.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>TCSP2480</td><td>3/4</td><td>1 to 2</td><td>Requested thermal mode: 1 safe, 2 nominal</td></tr>
+</tbody></table>
+<h3>2.10 TCSC0408 TCS_HL2_ON</h3>
+<p>PUS (8,1), APID 0x102. Switch heater line 2 on.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>TCSP6912</td><td>3/4</td><td>1 to 2</td><td>Heater line mode: 1 thermostat, 2 forced on</td></tr>
+</tbody></table>
+<h3>2.11 AOCC1067 AOC_MODE_SET</h3>
+<p>PUS (8,1), APID 0x103. Change the attitude control mode.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>AOCP9017</td><td>3/4</td><td>1 to 4</td><td>Requested attitude mode: 1 safe, 2 sun, 3 nadir, 4 fine</td></tr>
+</tbody></table>
+<h3>2.12 AOCC6804 AOC_STR_ON</h3>
+<p>PUS (8,1), APID 0x103. Switch the star tracker on.</p>
+<p>No arguments.</p>
+<h3>2.13 AOCC9208 AOC_STR_OFF</h3>
+<p>PUS (8,1), APID 0x103. Switch the star tracker off.</p>
+<p>No arguments.</p>
+<h3>2.14 AOCC7889 AOC_RW_SPEED_SET</h3>
+<p>PUS (8,1), APID 0x103. Set a reaction wheel speed.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>AOCP7625</td><td>3/4</td><td>1 to 3</td><td>Reaction wheel number, 1 to 3</td></tr>
+<tr><td>2</td><td>AOCP5945</td><td>4/12</td><td>-5000 to 5000 rpm</td><td>Requested wheel speed, -5000 to 5000 rpm</td></tr>
+</tbody></table>
+<h3>2.15 AOCC6352 AOC_GYR_RESET</h3>
+<p>PUS (8,1), APID 0x103. Reset the gyro bias estimate.</p>
+<p>No arguments.</p>
+<h3>2.16 OBCC2858 OBC_HK_ENABLE</h3>
+<p>PUS (3,5), APID 0x104. Enable a housekeeping report.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>OBCP4382</td><td>3/4</td><td>1 to 32</td><td>Housekeeping structure identifier, 1 to 32</td></tr>
+</tbody></table>
+<h3>2.17 OBCC8719 OBC_HK_DISABLE</h3>
+<p>PUS (3,6), APID 0x104. Disable a housekeeping report.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>OBCP4382</td><td>3/4</td><td>1 to 32</td><td>Housekeeping structure identifier, 1 to 32</td></tr>
+</tbody></table>
+<h3>2.18 OBCC9182 OBC_CONN_TEST</h3>
+<p>PUS (17,1), APID 0x104. Perform a connection test.</p>
+<p>No arguments.</p>
+<h3>2.19 OBCC2725 OBC_PAR_REPORT</h3>
+<p>PUS (20,1), APID 0x104. Report on-board parameter values.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>OBCP6968</td><td>3/14</td><td>0 to 16777215</td><td>On-board parameter identifier</td></tr>
+</tbody></table>
+<h3>2.20 OBCC1080 OBC_PAR_SET</h3>
+<p>PUS (20,3), APID 0x104. Set an on-board parameter value.</p>
+<p><b>Critical command:</b> it needs an arm and fire sequence.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>OBCP6968</td><td>3/14</td><td>0 to 16777215</td><td>On-board parameter identifier</td></tr>
+<tr><td>2</td><td>OBCP8975</td><td>5/1</td><td>-1e9 to 1e9</td><td>Parameter value</td></tr>
+</tbody></table>
+<h3>2.21 COMC3469 COM_TX_ON</h3>
+<p>PUS (8,1), APID 0x105. Switch the transmitter on.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>COMP9910</td><td>3/4</td><td>1 to 2</td><td>Downlink rate: 1 low, 2 high</td></tr>
+</tbody></table>
+<h3>2.22 COMC0655 COM_TX_OFF</h3>
+<p>PUS (8,1), APID 0x105. Switch the transmitter off.</p>
+<p>No arguments.</p>
+<h3>2.23 COMC1263 COM_XPD_MODE_SET</h3>
+<p>PUS (8,1), APID 0x105. Change the transponder mode.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>COMP1462</td><td>3/4</td><td>1 to 3</td><td>Requested transponder mode: 1 standby, 2 ranging, 3 data</td></tr>
+</tbody></table>
+<h3>2.24 COMC5525 COM_ANT_SELECT</h3>
+<p>PUS (8,1), APID 0x105. Select the active antenna.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>COMP9173</td><td>3/4</td><td>1 to 2</td><td>Antenna: 1 fore, 2 aft</td></tr>
+</tbody></table>
+<h3>2.25 COMC0709 COM_RX_RESET</h3>
+<p>PUS (8,1), APID 0x105. Reset the receiver.</p>
+<p>No arguments.</p>
+<h3>2.26 PLDC1133 PLD_CAM_ON</h3>
+<p>PUS (8,1), APID 0x106. Switch the camera on.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>PLDP3324</td><td>3/4</td><td>1 to 3</td><td>Requested camera mode: 1 standby, 2 imaging, 3 calibration</td></tr>
+</tbody></table>
+<h3>2.27 PLDC4748 PLD_CAM_OFF</h3>
+<p>PUS (8,1), APID 0x106. Switch the camera off.</p>
+<p>No arguments.</p>
+<h3>2.28 PLDC9313 PLD_IMG_TAKE</h3>
+<p>PUS (8,1), APID 0x106. Take a series of images.</p>
+<table>
+<thead><tr><th>Position</th><th>Argument</th><th>Type</th><th>Range</th><th>Description</th></tr></thead><tbody>
+<tr><td>1</td><td>PLDP3136</td><td>3/12</td><td>1 to 1000 ms</td><td>Exposure time, 1 to 1000 ms</td></tr>
+<tr><td>2</td><td>PLDP7412</td><td>3/4</td><td>1 to 100</td><td>Number of images, 1 to 100</td></tr>
+</tbody></table>
+<h3>2.29 PLDC8017 PLD_COOLER_ON</h3>
+<p>PUS (8,1), APID 0x106. Switch the focal plane cooler on.</p>
+<p>No arguments.</p>
+<h3>2.30 PLDC2062 PLD_STORE_CLEAR</h3>
+<p>PUS (8,1), APID 0x106. Clear the image store.</p>
+<p><b>Critical command:</b> it needs an arm and fire sequence.</p>
+<p>No arguments.</p>
+</body>
+</html>

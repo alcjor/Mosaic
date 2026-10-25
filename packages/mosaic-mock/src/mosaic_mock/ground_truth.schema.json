@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/mosaic/mock/ground_truth.schema.json",
+  "title": "Mosaic mocker ground truth",
+  "type": "object",
+  "required": ["profile", "size", "seed", "mocker_version", "defect_set", "items", "edges", "mentions", "xrefs", "defects", "files"],
+  "additionalProperties": false,
+  "properties": {
+    "profile": {"type": "string"},
+    "size": {"type": "string"},
+    "scale": {"type": "number"},
+    "seed": {"type": "integer"},
+    "mocker_version": {"type": "string"},
+    "defect_set": {"type": "string"},
+    "llm": {"type": ["string", "null"]},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "key", "attrs"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {"type": "string"},
+          "key": {"type": "string"},
+          "attrs": {"type": "object", "additionalProperties": {"type": "string"}}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {"type": "string"},
+          "from": {"type": "string", "pattern": "^[^/]+/.+$"},
+          "to": {"type": "string", "pattern": "^[^/]+/.+$"}
+        }
+      }
+    },
+    "mentions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "loc", "surface", "item", "role", "match"],
+        "additionalProperties": false,
+        "properties": {
+          "file": {"type": "string"},
+          "loc": {"type": "string", "pattern": "^(line=\\d+|section=.+|table=[A-Za-z0-9_]+,row=\\d+)$"},
+          "surface": {"type": "string", "minLength": 1},
+          "item": {"type": "string", "pattern": "^[^/]+/.+$"},
+          "role": {"type": "string"},
+          "match": {"enum": ["exact", "fuzzy_only"]}
+        }
+      }
+    },
+    "xrefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {"type": "string"},
+          "from": {"$ref": "#/$defs/scope"},
+          "to": {"$ref": "#/$defs/scope"}
+        }
+      }
+    },
+    "defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "file", "loc", "original", "mutated", "expected_detection"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^D\\d{2}-\\d{4}$"},
+          "kind": {"type": "string"},
+          "file": {"type": "string"},
+          "loc": {"type": "string"},
+          "original": {"type": "string"},
+          "mutated": {"type": "string"},
+          "expected_detection": {"type": "string", "pattern": "^(v1:[a-z_]+|future)$"},
+          "severity": {"enum": ["error", "warning"]}
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "required": ["file", "scope"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {"type": "string"},
+        "scope": {"type": "string", "pattern": "^(file|step=\\d+|section=.+|function=[A-Za-z_][A-Za-z0-9_]*)$"}
+      }
+    }
+  }
+}

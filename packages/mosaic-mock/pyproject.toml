@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-llm = ["anthropic>=0.60"]
+llm = ["anthropic>=2"]
 
 [project.scripts]
 mosaic-mock = "mosaic_mock.cli:main"

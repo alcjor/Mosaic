@@ -1,0 +1,5 @@
+The {{ sub.spec.adj }} application ({{ sub.code }}) {{ sub.spec.purpose }}. It reports its state every {{ sub.spec.period }} s in the {{ hk_list }} {{ "packets" if many_hk else "packet" }}.
+
+{% if a1 %}The {{ ldl(a1) }} {{ mn(a1) }} ({{ id(a1) }}){% if a2 %} and the {{ ldl(a2) }} {{ mn(a2) }}{% endif %} {{ "are" if a2 else "is" }} sampled at 1 Hz and averaged over each reporting period.{% if limited %} When {{ id(limited) }} leaves its soft limits, the application raises an event in the {{ mn(event) }} packet.{% endif %}{% endif %}
+
+{% if t1 %}The application is commanded with {{ id(t1) }} to {{ ldl(t1) }}{% if t2 %} and with {{ id(t2) }} to {{ ldl(t2) }}{% endif %}.{% if s1 %} The result shows in {{ mn(s1) }}.{% endif %}{% endif %}

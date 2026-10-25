@@ -1408,7 +1408,7 @@ llm = [
 
 [package.metadata]
 requires-dist = [
-    { name = "anthropic", marker = "extra == 'llm'", specifier = ">=0.60" },
+    { name = "anthropic", marker = "extra == 'llm'", specifier = ">=2" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "python-docx", specifier = ">=1.1" },
     { name = "pyyaml", specifier = ">=6" },

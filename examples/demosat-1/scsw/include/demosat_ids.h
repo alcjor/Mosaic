@@ -1,0 +1,97 @@
+/* demosat_ids.h - on-board parameter identifiers, generated from the SRDB */
+#ifndef DEMOSAT_IDS_H
+#define DEMOSAT_IDS_H
+
+/* Power application (PWR) */
+#define PARAM_PWRT0012 (0x0C0012u) /* BAT_V_MAIN */
+#define PARAM_PWRT0281 (0x0C0281u) /* BAT_I_MAIN */
+#define PARAM_PWRT0020 (0x0C0020u) /* BAT_TEMP_1 */
+#define PARAM_PWRT0324 (0x0C0324u) /* BAT_TEMP_2 */
+#define PARAM_PWRT0031 (0x0C0031u) /* HTR_A_STAT */
+#define PARAM_PWRT8596 (0x0C8596u) /* HTR_B_STAT */
+#define PARAM_PWRT9647 (0x0C9647u) /* HTR_A_MODE */
+#define PARAM_PWRT0045 (0x0C0045u) /* SA_I_TOTAL */
+#define PARAM_PWRT0694 (0x0C0694u) /* SA_V_OUT */
+#define PARAM_PWRT1392 (0x0C1392u) /* BUS_V_MAIN */
+#define PARAM_PWRT5284 (0x0C5284u) /* BCR_MODE */
+#define PARAM_PWRT9077 (0x0C9077u) /* BAT_EOC_V */
+#define PARAM_PWRT8638 (0x0C8638u) /* LCL_TRIP_CNT */
+#define PARAM_PWRT2959 (0x0C2959u) /* BAT_V */
+
+/* Thermal control application (TCS) */
+#define PARAM_TCST6132 (0x0D6132u) /* HL1_STAT */
+#define PARAM_TCST4051 (0x0D4051u) /* HL2_STAT */
+#define PARAM_TCST1019 (0x0D1019u) /* HL3_STAT */
+#define PARAM_TCST7244 (0x0D7244u) /* HL1_MODE */
+#define PARAM_TCST9481 (0x0D9481u) /* HL1_SETP */
+#define PARAM_TCST0779 (0x0D0779u) /* RAD_TEMP_1 */
+#define PARAM_TCST0971 (0x0D0971u) /* RAD_TEMP_2 */
+#define PARAM_TCST1795 (0x0D1795u) /* TANK_TEMP */
+#define PARAM_TCST3723 (0x0D3723u) /* OBC_BRD_TEMP */
+#define PARAM_TCST7158 (0x0D7158u) /* PLD_IF_TEMP */
+#define PARAM_TCST3307 (0x0D3307u) /* TCS_MODE */
+#define PARAM_TCST7930 (0x0D7930u) /* HL_I_TOTAL */
+#define PARAM_TCST2520 (0x0D2520u) /* TH_FAIL_CNT */
+#define PARAM_TCST8951 (0x0D8951u) /* HL_V */
+
+/* Attitude and orbit control application (AOC) */
+#define PARAM_AOCT2478 (0x0E2478u) /* AOC_MODE */
+#define PARAM_AOCT2611 (0x0E2611u) /* GYR_RATE_X */
+#define PARAM_AOCT6114 (0x0E6114u) /* GYR_RATE_Y */
+#define PARAM_AOCT5392 (0x0E5392u) /* GYR_RATE_Z */
+#define PARAM_AOCT0240 (0x0E0240u) /* SUN_ANGLE */
+#define PARAM_AOCT8321 (0x0E8321u) /* RW1_SPEED */
+#define PARAM_AOCT4403 (0x0E4403u) /* RW2_SPEED */
+#define PARAM_AOCT9618 (0x0E9618u) /* RW3_SPEED */
+#define PARAM_AOCT2376 (0x0E2376u) /* MTQ_X_DIPOLE */
+#define PARAM_AOCT8208 (0x0E8208u) /* STR_STAT */
+#define PARAM_AOCT3539 (0x0E3539u) /* STR_LOCK */
+#define PARAM_AOCT0932 (0x0E0932u) /* ATT_ERR */
+#define PARAM_AOCT8473 (0x0E8473u) /* RW1_TEMP */
+
+/* On-board computer application (OBC) */
+#define PARAM_OBCT3700 (0x0F3700u) /* CPU_LOAD */
+#define PARAM_OBCT9283 (0x0F9283u) /* MEM_FREE */
+#define PARAM_OBCT4639 (0x0F4639u) /* WDG_STAT */
+#define PARAM_OBCT0518 (0x0F0518u) /* RESET_CNT */
+#define PARAM_OBCT4211 (0x0F4211u) /* EDAC_ERR_CNT */
+#define PARAM_OBCT2880 (0x0F2880u) /* OBT_DRIFT */
+#define PARAM_OBCT6792 (0x0F6792u) /* SW_MODE */
+#define PARAM_OBCT5611 (0x0F5611u) /* TC_ACC_CNT */
+#define PARAM_OBCT9701 (0x0F9701u) /* TC_REJ_CNT */
+#define PARAM_OBCT4459 (0x0F4459u) /* EVT_LAST_ID */
+#define PARAM_OBCT8109 (0x0F8109u) /* EVT_CNT */
+#define PARAM_OBCT1310 (0x0F1310u) /* RAIL_V_5V */
+#define PARAM_OBCT9444 (0x0F9444u) /* HK_ENA_CNT */
+
+/* Communications application (COM) */
+#define PARAM_COMT5338 (0x105338u) /* RX_LOCK */
+#define PARAM_COMT7144 (0x107144u) /* RX_AGC */
+#define PARAM_COMT9701 (0x109701u) /* RX_SNR */
+#define PARAM_COMT4549 (0x104549u) /* TX_STAT */
+#define PARAM_COMT9236 (0x109236u) /* TX_PWR */
+#define PARAM_COMT7650 (0x107650u) /* TX_TEMP */
+#define PARAM_COMT6242 (0x106242u) /* TX_RATE */
+#define PARAM_COMT1448 (0x101448u) /* XPD_MODE */
+#define PARAM_COMT7974 (0x107974u) /* RX_FREQ_ERR */
+#define PARAM_COMT3984 (0x103984u) /* ANT_SEL */
+#define PARAM_COMT4629 (0x104629u) /* TX_I */
+#define PARAM_COMT9823 (0x109823u) /* RX_TEMP */
+#define PARAM_COMT8772 (0x108772u) /* FRAME_CNT */
+
+/* Payload application (PLD) */
+#define PARAM_PLDT8785 (0x118785u) /* CAM_STAT */
+#define PARAM_PLDT3063 (0x113063u) /* CAM_MODE */
+#define PARAM_PLDT0056 (0x110056u) /* FPA_TEMP */
+#define PARAM_PLDT2237 (0x112237u) /* CAM_I */
+#define PARAM_PLDT7193 (0x117193u) /* CAM_V */
+#define PARAM_PLDT8768 (0x118768u) /* IMG_CNT */
+#define PARAM_PLDT8949 (0x118949u) /* EXP_TIME */
+#define PARAM_PLDT7797 (0x117797u) /* COOLER_STAT */
+#define PARAM_PLDT1679 (0x111679u) /* COOLER_PWR */
+#define PARAM_PLDT6795 (0x116795u) /* STORE_FILL */
+#define PARAM_PLDT7871 (0x117871u) /* OPT_TEMP */
+#define PARAM_PLDT7699 (0x117699u) /* SHUTTER_STAT */
+#define PARAM_PLDT9158 (0x119158u) /* CMP_RATIO */
+
+#endif /* DEMOSAT_IDS_H */

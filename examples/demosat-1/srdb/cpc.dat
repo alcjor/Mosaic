@@ -1,0 +1,18 @@
+PWRP0001	HTR_MODE	3	4	U	D		N				R	1	Y		Heater control mode: 1 thermostat, 2 forced on	B
+PWRP0010	EOC_V	5	1	R	D	V	N				R	32.8	Y		End-of-charge voltage, 30.0 to 33.6 V	B
+PWRP9190	LCL_ID	3	4	U	D		N				R	3	Y		Current limiter number, 1 to 16	B
+TCSP6912	HL_MODE	3	4	U	D		N				R	1	Y		Heater line mode: 1 thermostat, 2 forced on	B
+TCSP9614	SETP_DEGC	5	1	R	D	degC	N				R	12.0	Y		Set point, -20 to 40 degC	B
+TCSP2480	TCS_MODE_REQ	3	4	U	D		N				R	2	Y		Requested thermal mode: 1 safe, 2 nominal	B
+AOCP9017	AOC_MODE_REQ	3	4	U	D		N				R	3	Y		Requested attitude mode: 1 safe, 2 sun, 3 nadir, 4 fine	B
+AOCP7625	RW_ID	3	4	U	D		N				R	1	Y		Reaction wheel number, 1 to 3	B
+AOCP5945	RW_SPEED_REQ	4	12	U	D	rpm	N				R	1500	Y		Requested wheel speed, -5000 to 5000 rpm	B
+OBCP4382	SID	3	4	U	D		N				R	1	Y		Housekeeping structure identifier, 1 to 32	B
+OBCP6968	PAR_ID	3	14	U	D		N				R	3090	Y		On-board parameter identifier	B
+OBCP8975	PAR_VAL	5	1	R	D		N				R	1.0	Y		Parameter value	B
+COMP9910	TX_RATE_SEL	3	4	U	D		N				R	2	Y		Downlink rate: 1 low, 2 high	B
+COMP1462	XPD_MODE_REQ	3	4	U	D		N				R	3	Y		Requested transponder mode: 1 standby, 2 ranging, 3 data	B
+COMP9173	ANT_ID	3	4	U	D		N				R	1	Y		Antenna: 1 fore, 2 aft	B
+PLDP3324	CAM_MODE_REQ	3	4	U	D		N				R	2	Y		Requested camera mode: 1 standby, 2 imaging, 3 calibration	B
+PLDP3136	EXP_MS	3	12	U	D	ms	N				R	20	Y		Exposure time, 1 to 1000 ms	B
+PLDP7412	IMG_N	3	4	U	D		N				R	10	Y		Number of images, 1 to 100	B

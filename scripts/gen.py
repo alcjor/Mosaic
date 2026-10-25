@@ -13,8 +13,27 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+
+
+def examples() -> dict[Path, bytes]:
+    """examples/demosat-1: the small clean mission, seed 42 (MOCK-17)."""
+    from mosaic_mock import profiles
+    from mosaic_mock.engine import truth
+    from mosaic_mock.engine.generate import generate
+
+    out = ROOT / "examples" / "demosat-1"
+    gen = generate(profiles.get("spacecraft"), size="small", seed=42)
+    files = {out / rel: data for rel, data in gen.files.items()}
+    files[out / "ground_truth.json"] = truth.dumps(gen.truth)
+    return files
+
+
 # Each generator returns {path: content} for the files it owns.
-GENERATORS: dict[str, Callable[[], dict[Path, bytes]]] = {}
+GENERATORS: dict[str, Callable[[], dict[Path, bytes]]] = {
+    "examples": examples,
+}
+# Folders wholly owned by a generator: any other file there is stale (build/ is ignored).
+OWNED = {"examples": ROOT / "examples" / "demosat-1"}
 
 
 def main() -> int:
@@ -28,7 +47,17 @@ def main() -> int:
     for name, gen in GENERATORS.items():
         if args.only and name not in args.only:
             continue
-        for path, content in gen().items():
+        produced = gen()
+        owned = OWNED.get(name)
+        if owned and owned.exists():
+            for f in owned.rglob("*"):
+                if f.is_file() and "build" not in f.relative_to(owned).parts and f not in produced:
+                    if args.check:
+                        stale.append(f"{name}: {f.relative_to(ROOT).as_posix()} (not generated)")
+                    else:
+                        f.unlink()
+                        print(f"removed {f.relative_to(ROOT).as_posix()}")
+        for path, content in produced.items():
             current = path.read_bytes() if path.exists() else None
             if current == content:
                 continue

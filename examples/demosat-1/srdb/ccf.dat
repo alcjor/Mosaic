@@ -1,0 +1,30 @@
+PWRC0101	PWR_HTR_A_ON	Switch battery heater A on		N	TCHDR	8	1	257	1	N	Y	N	C	1	N				15	
+PWRC0112	PWR_HTR_A_OFF	Switch battery heater A off		N	TCHDR	8	1	257	0	N	Y	N	C	1	N				15	
+PWRC0123	PWR_SET_BAT_EOC	Set the battery end-of-charge voltage		Y	TCHDR	8	1	257	1	N	Y	N	C	1	N				15	
+PWRC2476	PWR_HTR_B_ON	Switch battery heater B on		N	TCHDR	8	1	257	1	N	Y	N	C	1	N				15	
+PWRC5141	PWR_LCL_RESET	Reset a tripped latching current limiter		N	TCHDR	8	1	257	1	N	Y	N	C	1	N				15	
+TCSC9695	TCS_HL1_ON	Switch heater line 1 on		N	TCHDR	8	1	258	1	N	Y	N	C	2	N				15	
+TCSC1330	TCS_HL1_OFF	Switch heater line 1 off		N	TCHDR	8	1	258	0	N	Y	N	C	2	N				15	
+TCSC1076	TCS_SET_HL1_SETP	Set the heater line 1 set point		N	TCHDR	8	1	258	1	N	Y	N	C	2	N				15	
+TCSC1484	TCS_MODE_SET	Change the thermal control mode		N	TCHDR	8	1	258	1	N	Y	N	C	2	N				15	
+TCSC0408	TCS_HL2_ON	Switch heater line 2 on		N	TCHDR	8	1	258	1	N	Y	N	C	2	N				15	
+AOCC1067	AOC_MODE_SET	Change the attitude control mode		N	TCHDR	8	1	259	1	N	Y	N	C	3	N				15	
+AOCC6804	AOC_STR_ON	Switch the star tracker on		N	TCHDR	8	1	259	0	N	Y	N	C	3	N				15	
+AOCC9208	AOC_STR_OFF	Switch the star tracker off		N	TCHDR	8	1	259	0	N	Y	N	C	3	N				15	
+AOCC7889	AOC_RW_SPEED_SET	Set a reaction wheel speed		N	TCHDR	8	1	259	2	N	Y	N	C	3	N				15	
+AOCC6352	AOC_GYR_RESET	Reset the gyro bias estimate		N	TCHDR	8	1	259	0	N	Y	N	C	3	N				15	
+OBCC2858	OBC_HK_ENABLE	Enable a housekeeping report		N	TCHDR	3	5	260	1	N	Y	N	C	4	N				15	
+OBCC8719	OBC_HK_DISABLE	Disable a housekeeping report		N	TCHDR	3	6	260	1	N	Y	N	C	4	N				15	
+OBCC9182	OBC_CONN_TEST	Perform a connection test		N	TCHDR	17	1	260	0	N	Y	N	C	4	N				15	
+OBCC2725	OBC_PAR_REPORT	Report on-board parameter values		N	TCHDR	20	1	260	1	N	Y	N	C	4	N				15	
+OBCC1080	OBC_PAR_SET	Set an on-board parameter value		Y	TCHDR	20	3	260	2	N	Y	N	C	4	N				15	
+COMC3469	COM_TX_ON	Switch the transmitter on		N	TCHDR	8	1	261	1	N	Y	N	C	5	N				15	
+COMC0655	COM_TX_OFF	Switch the transmitter off		N	TCHDR	8	1	261	0	N	Y	N	C	5	N				15	
+COMC1263	COM_XPD_MODE_SET	Change the transponder mode		N	TCHDR	8	1	261	1	N	Y	N	C	5	N				15	
+COMC5525	COM_ANT_SELECT	Select the active antenna		N	TCHDR	8	1	261	1	N	Y	N	C	5	N				15	
+COMC0709	COM_RX_RESET	Reset the receiver		N	TCHDR	8	1	261	0	N	Y	N	C	5	N				15	
+PLDC1133	PLD_CAM_ON	Switch the camera on		N	TCHDR	8	1	262	1	N	Y	N	C	6	N				15	
+PLDC4748	PLD_CAM_OFF	Switch the camera off		N	TCHDR	8	1	262	0	N	Y	N	C	6	N				15	
+PLDC9313	PLD_IMG_TAKE	Take a series of images		N	TCHDR	8	1	262	2	N	Y	N	C	6	N				15	
+PLDC8017	PLD_COOLER_ON	Switch the focal plane cooler on		N	TCHDR	8	1	262	0	N	Y	N	C	6	N				15	
+PLDC2062	PLD_STORE_CLEAR	Clear the image store		Y	TCHDR	8	1	262	0	N	Y	N	C	6	N				15	

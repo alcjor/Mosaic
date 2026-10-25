@@ -1,0 +1,80 @@
+PWRT0012	BAT_V_MAIN	786450	V	3	12				N	R	CPWR0012		N	2		PWR			Y		0	B		Main battery voltage
+PWRT0281	BAT_I_MAIN	787073	A	4	12				N	R	CPWR0281		N	2		PWR			Y		0	B		Main battery current
+PWRT0020	BAT_TEMP_1	786464	degC	4	12				N	R	MPWR0020		N	2		PWR			Y		0	B		Battery temperature, sensor 1
+PWRT0324	BAT_TEMP_2	787236	degC	4	12				N	R	MPWR0324		N	2		PWR			Y		0	B		Battery temperature, sensor 2
+PWRT0031	HTR_A_STAT	786481		2	8				S	R	TPWR0001		N			PWR			Y		0	B		Battery heater A status
+PWRT8596	HTR_B_STAT	820630		2	8				S	R	TPWR0001		N			PWR			Y		0	B		Battery heater B status
+PWRT9647	HTR_A_MODE	824903		2	8				S	R	TPWR0002		N			PWR			Y		0	B		Battery heater A control mode
+PWRT0045	SA_I_TOTAL	786501	A	3	12				N	R	CPWR0045		N	2		PWR			Y		0	B		Solar array total current
+PWRT0694	SA_V_OUT	788116	V	3	12				N	R	CPWR0694		N	2		PWR			Y		0	B		Solar array output voltage
+PWRT1392	BUS_V_MAIN	791442	V	3	12				N	R	CPWR1392		N	2		PWR			Y		0	B		Main bus voltage
+PWRT5284	BCR_MODE	807556		2	8				S	R	TPWR0003		N			PWR			Y		0	B		Battery charge regulator mode
+PWRT9077	BAT_EOC_V	823415	V	3	12				N	R	CPWR9077		N	2		PWR			Y		0	B		Battery end-of-charge voltage limit
+PWRT8638	LCL_TRIP_CNT	820792		3	12				N	R			N			PWR			Y		0	B		Latching current limiter trip count
+PWRT2959	BAT_V	797017	V	3	12				N	R	CPWR2959		N	2		PWR			Y		0	B		Battery voltage
+TCST6132	HL1_STAT	876850		2	8				S	R	TTCS0001		N			TCS			Y		0	B		Heater line 1 status
+TCST4051	HL2_STAT	868433		2	8				S	R	TTCS0001		N			TCS			Y		0	B		Heater line 2 status
+TCST1019	HL3_STAT	856089		2	8				S	R	TTCS0001		N			TCS			Y		0	B		Heater line 3 status
+TCST7244	HL1_MODE	881220		2	8				S	R	TTCS0002		N			TCS			Y		0	B		Heater line 1 control mode
+TCST9481	HL1_SETP	889985	degC	4	12				N	R	CTCS9481		N	2		TCS			Y		0	B		Heater line 1 set point
+TCST0779	RAD_TEMP_1	853881	degC	4	12				N	R	MTCS0779		N	2		TCS			Y		0	B		Radiator temperature, panel 1
+TCST0971	RAD_TEMP_2	854385	degC	4	12				N	R	MTCS0971		N	2		TCS			Y		0	B		Radiator temperature, panel 2
+TCST1795	TANK_TEMP	858005	degC	4	12				N	R	MTCS1795		N	2		TCS			Y		0	B		Propellant tank temperature
+TCST3723	OBC_BRD_TEMP	866083	degC	4	12				N	R	MTCS3723		N	2		TCS			Y		0	B		On-board computer board temperature
+TCST7158	PLD_IF_TEMP	880984	degC	4	12				N	R	MTCS7158		N	2		TCS			Y		0	B		Payload interface temperature
+TCST3307	TCS_MODE	865031		2	8				S	R	TTCS0003		N			TCS			Y		0	B		Thermal control mode
+TCST7930	HL_I_TOTAL	882992	A	3	12				N	R	CTCS7930		N	2		TCS			Y		0	B		Heater lines total current
+TCST2520	TH_FAIL_CNT	861472		3	12				N	R			N			TCS			Y		0	B		Thermistor failure count
+TCST8951	HL_V	887121	V	3	12				N	R	CTCS8951		N	2		TCS			Y		0	B		Heater line voltage
+AOCT2478	AOC_MODE	926840		2	8				S	R	TAOC0001		N			AOC			Y		0	B		Attitude control mode
+AOCT2611	GYR_RATE_X	927249	deg/s	4	12				N	R	CAOC2611		N	2		AOC			Y		0	B		Gyro rate, X axis
+AOCT6114	GYR_RATE_Y	942356	deg/s	4	12				N	R	CAOC6114		N	2		AOC			Y		0	B		Gyro rate, Y axis
+AOCT5392	GYR_RATE_Z	938898	deg/s	4	12				N	R	CAOC5392		N	2		AOC			Y		0	B		Gyro rate, Z axis
+AOCT0240	SUN_ANGLE	918080	deg	3	12				N	R	CAOC0240		N	2		AOC			Y		0	B		Sun sensor angle
+AOCT8321	RW1_SPEED	951073	rpm	4	12				N	R	CAOC8321		N	2		AOC			Y		0	B		Reaction wheel 1 speed
+AOCT4403	RW2_SPEED	934915	rpm	4	12				N	R	CAOC4403		N	2		AOC			Y		0	B		Reaction wheel 2 speed
+AOCT9618	RW3_SPEED	955928	rpm	4	12				N	R	CAOC9618		N	2		AOC			Y		0	B		Reaction wheel 3 speed
+AOCT2376	MTQ_X_DIPOLE	926582	Am2	4	12				N	R	CAOC2376		N	2		AOC			Y		0	B		Magnetorquer X dipole
+AOCT8208	STR_STAT	950792		2	8				S	R	TAOC0002		N			AOC			Y		0	B		Star tracker status
+AOCT3539	STR_LOCK	931129		2	8				S	R	TAOC0003		N			AOC			Y		0	B		Star tracker lock
+AOCT0932	ATT_ERR	919858	deg	3	12				N	R	LAOC0932		N	2		AOC			Y		0	B		Attitude error
+AOCT8473	RW1_TEMP	951411	degC	4	12				N	R	MAOC8473		N	2		AOC			Y		0	B		Reaction wheel 1 temperature
+OBCT3700	CPU_LOAD	997120	%	3	12				N	R	COBC3700		N	2		OBC			Y		0	B		Processor load
+OBCT9283	MEM_FREE	1020547	kB	3	12				N	R	COBC9283		N	2		OBC			Y		0	B		Free memory
+OBCT4639	WDG_STAT	1001017		2	8				S	R	TOBC0001		N			OBC			Y		0	B		Watchdog status
+OBCT0518	RESET_CNT	984344		3	12				N	R			N			OBC			Y		0	B		Reset count
+OBCT4211	EDAC_ERR_CNT	999953		3	12				N	R			N			OBC			Y		0	B		Memory error count
+OBCT2880	OBT_DRIFT	993408	ms	4	12				N	R	COBC2880		N	2		OBC			Y		0	B		On-board time drift
+OBCT6792	SW_MODE	1009554		2	8				S	R	TOBC0002		N			OBC			Y		0	B		Software mode
+OBCT5611	TC_ACC_CNT	1005073		3	12				N	R			N			OBC			Y		0	B		Accepted telecommand count
+OBCT9701	TC_REJ_CNT	1021697		3	12				N	R			N			OBC			Y		0	B		Rejected telecommand count
+OBCT4459	EVT_LAST_ID	1000537		3	12				N	R			N			OBC			Y		0	B		Last event identifier
+OBCT8109	EVT_CNT	1016073		3	12				N	R			N			OBC			Y		0	B		Event count
+OBCT1310	RAIL_V_5V	987920	V	3	12				N	R	COBC1310		N	2		OBC			Y		0	B		5 V rail voltage
+OBCT9444	HK_ENA_CNT	1020996		3	12				N	R			N			OBC			Y		0	B		Enabled housekeeping report count
+COMT5338	RX_LOCK	1069880		2	8				S	R	TCOM0001		N			COM			Y		0	B		Receiver lock
+COMT7144	RX_AGC	1077572	dBm	4	12				N	R	LCOM7144		N	2		COM			Y		0	B		Receiver signal level
+COMT9701	RX_SNR	1087233	dB	3	12				N	R	CCOM9701		N	2		COM			Y		0	B		Receiver signal-to-noise ratio
+COMT4549	TX_STAT	1066313		2	8				S	R	TCOM0002		N			COM			Y		0	B		Transmitter status
+COMT9236	TX_PWR	1086006	W	3	12				N	R	CCOM9236		N	2		COM			Y		0	B		Transmitter output power
+COMT7650	TX_TEMP	1078864	degC	4	12				N	R	MCOM7650		N	2		COM			Y		0	B		Transmitter temperature
+COMT6242	TX_RATE	1073730	kbps	3	12				N	R	CCOM6242		N	2		COM			Y		0	B		Downlink rate
+COMT1448	XPD_MODE	1053768		2	8				S	R	TCOM0003		N			COM			Y		0	B		Transponder mode
+COMT7974	RX_FREQ_ERR	1079668	Hz	4	12				N	R	CCOM7974		N	2		COM			Y		0	B		Receiver frequency offset
+COMT3984	ANT_SEL	1063300		2	8				S	R	TCOM0004		N			COM			Y		0	B		Antenna selection
+COMT4629	TX_I	1066537	A	3	12				N	R	CCOM4629		N	2		COM			Y		0	B		Transmitter current
+COMT9823	RX_TEMP	1087523	degC	4	12				N	R	MCOM9823		N	2		COM			Y		0	B		Receiver temperature
+COMT8772	FRAME_CNT	1083250		3	12				N	R			N			COM			Y		0	B		Transmitted frame count
+PLDT8785	CAM_STAT	1148805		2	8				S	R	TPLD0001		N			PLD			Y		0	B		Camera status
+PLDT3063	CAM_MODE	1126499		2	8				S	R	TPLD0002		N			PLD			Y		0	B		Camera mode
+PLDT0056	FPA_TEMP	1114198	degC	4	12				N	R	MPLD0056		N	2		PLD			Y		0	B		Focal plane temperature
+PLDT2237	CAM_I	1122871	A	3	12				N	R	CPLD2237		N	2		PLD			Y		0	B		Camera current
+PLDT7193	CAM_V	1143187	V	3	12				N	R	CPLD7193		N	2		PLD			Y		0	B		Camera supply voltage
+PLDT8768	IMG_CNT	1148776		3	12				N	R			N			PLD			Y		0	B		Image count
+PLDT8949	EXP_TIME	1149257	ms	3	12				N	R	CPLD8949		N	2		PLD			Y		0	B		Exposure time
+PLDT7797	COOLER_STAT	1144727		2	8				S	R	TPLD0001		N			PLD			Y		0	B		Cooler status
+PLDT1679	COOLER_PWR	1119865	W	3	12				N	R	CPLD1679		N	2		PLD			Y		0	B		Cooler power
+PLDT6795	STORE_FILL	1140629	%	3	12				N	R	CPLD6795		N	2		PLD			Y		0	B		Image store fill level
+PLDT7871	OPT_TEMP	1144945	degC	4	12				N	R	MPLD7871		N	2		PLD			Y		0	B		Optics temperature
+PLDT7699	SHUTTER_STAT	1144473		2	8				S	R	TPLD0003		N			PLD			Y		0	B		Shutter status
+PLDT9158	CMP_RATIO	1151320		3	12				N	R	CPLD9158		N	2		PLD			Y		0	B		Compression ratio
