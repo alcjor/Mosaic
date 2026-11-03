@@ -45,6 +45,16 @@ touches anything a slow test covers (fixtures, hashes, vectors, budgets). Never 
 find out whether CI passes. A hook runs the fast gate before any `git push` and blocks
 the push on failure; a Stop hook runs it again before you finish.
 
+## Branches (always)
+
+- Short-lived branches only: cut each from the latest `origin/main`, one issue or
+  change per branch, named `issue-<n>-<slug>` (or a short `<topic>` slug for non-issue work).
+- Keep history linear: update with `git rebase origin/main`, never merge `main` into a
+  branch; force-push your own branch with `--force-with-lease` only.
+- PRs are squash-merged. Once a PR is merged, its branch is finished: never push to it
+  again. Follow-up work starts a new branch from `main`.
+- Never push to `main` directly. Delete the branch after merge.
+
 ## Rules for every change
 
 - **One issue, one PR.** Branch `issue-<n>-<slug>`, PR body says `Closes #<n>` and
