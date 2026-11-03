@@ -9,7 +9,7 @@ command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 uv python install 3.14
 
-# Node 22+ is expected on the image; install workspace dependencies
+# Node 26+ is expected on the image; install workspace dependencies
 if [ -d mosaic ]; then cd mosaic; fi
 uv sync --locked
 npm ci

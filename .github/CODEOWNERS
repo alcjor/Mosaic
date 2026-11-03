@@ -1,5 +1,4 @@
-# The maintainer reviews the contract, never the implementation.
-# Pull requests touching these paths cannot merge on green CI alone.
+# Pull requests touching these paths need a code owner's approval to merge.
 /spec/                              @alcjor
 /docs/                              @alcjor
 /conformance/**/expected*           @alcjor
