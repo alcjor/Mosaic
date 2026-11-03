@@ -1,0 +1,41 @@
+{
+  "comment": "Fixture sources, pinned by SHA-256 and downloaded by scripts/fetch_fixtures.py. Never commit the files themselves. Changing a url or hash here needs the maintainer's review (CODEOWNERS).",
+  "fixtures": [
+    {
+      "name": "netflix-titles",
+      "file": "netflix_titles.csv",
+      "url": null,
+      "sha256": null,
+      "licence": "to be confirmed",
+      "licence_confirmed": false,
+      "milestone": "M1"
+    },
+    {
+      "name": "chinook",
+      "file": "Chinook_Sqlite.sqlite",
+      "url": null,
+      "sha256": null,
+      "licence": "to be confirmed",
+      "licence_confirmed": false,
+      "milestone": "M3"
+    },
+    {
+      "name": "openflights",
+      "file": "openflights.zip",
+      "url": null,
+      "sha256": null,
+      "licence": "ODbL (notice carried)",
+      "licence_confirmed": false,
+      "milestone": "M4"
+    },
+    {
+      "name": "px4",
+      "file": "px4-v1.17.0.tar.gz",
+      "url": null,
+      "sha256": null,
+      "licence": "BSD-3-Clause code, CC BY 4.0 docs, MIT MAVLink XML",
+      "licence_confirmed": false,
+      "milestone": "M5"
+    }
+  ]
+}

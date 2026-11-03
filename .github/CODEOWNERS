@@ -1,0 +1,12 @@
+# The maintainer reviews the contract, never the implementation.
+# Pull requests touching these paths cannot merge on green CI alone.
+/spec/                              @alcjor
+/docs/                              @alcjor
+/conformance/**/expected*           @alcjor
+/conformance/fixtures/manifest.json @alcjor
+/.github/                           @alcjor
+/.claude/                           @alcjor
+/CLAUDE.md                          @alcjor
+/scripts/check-fast.sh              @alcjor
+/pyproject.toml                     @alcjor
+/LICENSE                            @alcjor

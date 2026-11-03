@@ -1,0 +1,21 @@
+{
+  "name": "@mosaic/kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The mosaic kit: opens one mosaic read-only and answers find, get, neighbors, path, table and cite.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

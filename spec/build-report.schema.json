@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mosaic.invalid/spec/0.1/build-report.schema.json",
+  "title": "Mosaic build report 0.1 (draft)",
+  "description": "Shape of build-report.json (Specification 0.1, sections 7.2 and 7.3). Lists are sorted (conflicts by node and property, the rest by piece and locator) so the same build gives the same report; sorting is checked by tests, not by this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format", "outcome", "reason", "target", "pattern_hash",
+    "knowledge_hash", "vector_hash", "file_size", "counts",
+    "conflicts", "stale_references", "mentions", "weak_ids", "proposals", "notices"
+  ],
+  "properties": {
+    "format": { "const": "0.1" },
+    "outcome": { "enum": ["built", "failed"] },
+    "reason": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["invalid_input", "piece_mismatch", "over_budget", "strict"] }
+      ]
+    },
+    "target": { "type": "string", "minLength": 1 },
+    "pattern_hash": { "$ref": "#/$defs/hashOrNull" },
+    "knowledge_hash": { "$ref": "#/$defs/hashOrNull" },
+    "vector_hash": { "$ref": "#/$defs/hashOrNull" },
+    "file_size": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }] },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": { "$ref": "#/$defs/countMap" },
+        "edges": { "$ref": "#/$defs/countMap" }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node", "property", "winner", "losers"],
+        "properties": {
+          "node": { "type": "string" },
+          "property": { "type": "string" },
+          "winner": { "$ref": "#/$defs/valueFromPiece" },
+          "losers": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/valueFromPiece" } }
+        }
+      }
+    },
+    "stale_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type", "piece", "locator"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "piece": { "type": "string" },
+          "locator": { "type": "string" }
+        }
+      }
+    },
+    "mentions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "role", "text", "piece", "locator", "candidates"],
+        "properties": {
+          "status": { "enum": ["unmatched", "ambiguous"] },
+          "role": { "type": "string" },
+          "text": { "type": "string" },
+          "piece": { "type": "string" },
+          "locator": { "type": "string" },
+          "candidates": { "type": "array", "items": { "type": "string" } }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "const": "ambiguous" } } },
+            "then": { "properties": { "candidates": { "minItems": 2 } } },
+            "else": { "properties": { "candidates": { "maxItems": 0 } } }
+          }
+        ]
+      }
+    },
+    "weak_ids": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "count"],
+        "properties": {
+          "type": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "enum": ["outdated", "no_longer_applies"] }
+        }
+      }
+    },
+    "notices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["piece", "text"],
+        "properties": {
+          "piece": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "outcome": { "const": "built" } } },
+      "then": {
+        "properties": {
+          "reason": { "type": "null" },
+          "knowledge_hash": { "$ref": "#/$defs/hash" },
+          "file_size": { "type": "integer" }
+        }
+      },
+      "else": { "properties": { "reason": { "type": "string" } } }
+    }
+  ],
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "hashOrNull": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }] },
+    "countMap": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "valueFromPiece": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "piece"],
+      "properties": {
+        "value": {},
+        "piece": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mosaic.invalid/spec/0.1/proposals.schema.json",
+  "title": "Mosaic proposals 0.1 (draft)",
+  "description": "Shape of proposals.yaml (Specification 0.1, section 5.5). Whether proposal nodes exist in the mosaic they were built from is checked by `mosaic check` (section 5.6).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "built_from", "proposals"],
+  "properties": {
+    "format": { "const": "0.1" },
+    "built_from": {
+      "description": "Knowledge hash (or a prefix of at least 8 characters) of the mosaic the proposals were made from.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8,64}$"
+    },
+    "assistant": {
+      "description": "Default `by` for proposals: name/version.",
+      "$ref": "#/$defs/assistant"
+    },
+    "proposals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/proposal" }
+    }
+  },
+  "$defs": {
+    "assistant": { "type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$" },
+    "nodeId": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*:.+$" },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "locator"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "quote": { "type": "string", "maxLength": 600 }
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "required": ["id", "kind", "evidence", "decision"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" },
+        "kind": { "enum": ["identity", "edge"] },
+        "by": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "decision": { "enum": ["open", "accepted", "rejected"] },
+        "decided_by": { "type": "string", "minLength": 1 },
+        "note": { "type": "string" },
+        "node": { "$ref": "#/$defs/nodeId" },
+        "same_as": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "from": { "$ref": "#/$defs/nodeId" },
+        "to": { "$ref": "#/$defs/nodeId" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "identity" } } },
+          "then": {
+            "required": ["node", "same_as"],
+            "not": { "anyOf": [{ "required": ["type"] }, { "required": ["from"] }, { "required": ["to"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "edge" } } },
+          "then": {
+            "required": ["type", "from", "to"],
+            "not": { "anyOf": [{ "required": ["node"] }, { "required": ["same_as"] }] }
+          }
+        },
+        {
+          "description": "A decided proposal names who decided it.",
+          "if": { "properties": { "decision": { "enum": ["accepted", "rejected"] } } },
+          "then": { "required": ["decided_by"] },
+          "else": { "not": { "required": ["decided_by"] } }
+        },
+        {
+          "description": "By an assistant (name/version, or the file default when `by` is absent): confidence required. By a person: no confidence.",
+          "if": {
+            "anyOf": [
+              { "not": { "required": ["by"] } },
+              { "properties": { "by": { "$ref": "#/$defs/assistant" } }, "required": ["by"] }
+            ]
+          },
+          "then": { "required": ["confidence"] },
+          "else": { "not": { "required": ["confidence"] } }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "format": "0.1",
+  "outcome": "built",
+  "reason": null,
+  "target": "ops",
+  "pattern_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+  "knowledge_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+  "vector_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+  "file_size": 16300000,
+  "counts": {"nodes": {"Sensor": 412}, "edges": {"reads": 1290}},
+  "conflicts": [{"node": "Sensor:TEMP-3", "property": "unit", "winner": {"value": "°C", "piece": "sensorlist"}, "losers": [{"value": "°F", "piece": "manual"}]}],
+  "stale_references": [{"name": "TEMP_03", "type": "Sensor", "piece": "code", "locator": "file=src/io.c;line=88"}],
+  "mentions": [{"status": "unmatched", "role": "verify_tm.arg0", "text": "TMP3", "piece": "procedures", "locator": "line=14", "candidates": []}],
+  "weak_ids": [{"type": "Section", "count": 935}],
+  "proposals": [{"id": "p1", "status": "outdated"}],
+  "notices": [{"piece": "manual", "text": "Company confidential"}]
+}

@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+viewer/dist/
+kit/dist/
+playwright-report/
+test-results/
+
+# Fixtures are downloaded and pinned by hash, never committed (licences pending)
+conformance/fixtures/downloads/
+.cache/
+
+# Build outputs
+*.mosaic
+*.tessera
+build-report.json
+!tests/**/build-report.json
+!conformance/**/build-report.json
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+.import_linter_cache/

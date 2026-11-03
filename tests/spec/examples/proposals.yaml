@@ -1,0 +1,21 @@
+# The proposals example from docs/design.md, Part 2, with a full-length hash.
+format: "0.1"
+built_from: 3f6c0b1e00000000000000000000000000000000000000000000000000000000
+assistant: pattern-assistant/0.1
+proposals:
+  - id: p1
+    kind: identity
+    node: Sensor:TEMP-3
+    same_as: [TMP3]
+    confidence: 0.86
+    evidence: [{source: manual, locator: page=12, quote: "TMP3 (0..100 degC)"}]
+    decision: open
+  - id: p2
+    kind: edge
+    by: alice
+    type: reads
+    from: Step:FOP-PWR-001/2
+    to: Sensor:TEMP-3
+    evidence: [{source: procedures, locator: line=14}]
+    decision: accepted
+    decided_by: alice
