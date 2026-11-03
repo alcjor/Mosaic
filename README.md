@@ -32,13 +32,6 @@ uv sync && npm ci
 ./scripts/check-fast.sh
 ```
 
-## How this project is built
-
-Work is tracked as GitHub issues, one pull request per issue, and much of it is
-done by AI agents (Claude Code cloud sessions). Every pull request must pass CI on
-Linux, macOS and Windows; changes to the paths in `.github/CODEOWNERS` also need a
-code owner's approval. Agent rules are in [`CLAUDE.md`](CLAUDE.md).
-
 ## Licence
 
 Apache-2.0.
