@@ -1,6 +1,9 @@
 # Pull requests touching these paths need a code owner's approval to merge.
 /spec/                              @alcjor
 /docs/                              @alcjor
+/design/                            @alcjor
+/viewer/src/design/                 @alcjor
+/viewer/.stylelintrc.json           @alcjor
 /conformance/**/expected*           @alcjor
 /conformance/fixtures/manifest.json @alcjor
 /.github/                           @alcjor
