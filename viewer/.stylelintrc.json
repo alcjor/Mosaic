@@ -1,0 +1,22 @@
+{
+  "extends": ["stylelint-config-html/svelte"],
+  "ignoreFiles": ["src/design/tokens.css", "dist/**"],
+  "rules": {
+    "color-no-hex": [true, { "message": "Use a colour token: var(--…) from design/tokens.json" }],
+    "color-named": ["never", { "message": "Use a colour token: var(--…) from design/tokens.json" }],
+    "function-disallowed-list": [["rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "color", "color-mix"], { "message": "Use a colour token: var(--…) from design/tokens.json" }],
+    "declaration-property-unit-disallowed-list": [
+      {
+        "/^(margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left)/": ["px", "rem", "em"],
+        "/^(border-radius|border-.*-radius)$/": ["px", "rem", "em", "%"],
+        "font-size": ["px", "rem", "em", "%", "pt"],
+        "line-height": ["px", "rem", "em"]
+      },
+      { "message": "Use a spacing, radius or type token (var(--space-*), var(--radius-*), a type-style class)" }
+    ],
+    "declaration-property-value-disallowed-list": [
+      { "font-family": ["/^(?!var\\(--font-)/"], "font-weight": ["/^\\d/"] },
+      { "message": "Use var(--font-sans|mono) and the type-style classes from tokens.css" }
+    ]
+  }
+}

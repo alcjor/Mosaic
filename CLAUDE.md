@@ -51,7 +51,7 @@ the push on failure; a Stop hook runs it again before you finish.
   shows how each "Done when" item is met (test names, commands, output).
 - **Tests first for behaviour.** Every change adds or extends tests. Test against
   the spec's words, not against your implementation.
-- **Never** edit `spec/`, `docs/`, `conformance/**/expected*`,
+- **Never** edit `spec/`, `docs/`, `design/`, `viewer/src/design/`, `conformance/**/expected*`,
   `conformance/fixtures/manifest.json`, `.github/`, `.claude/`, this file or
   `scripts/check-fast.sh` to make something pass. Never skip, xfail or loosen a
   test to go green. These paths are CODEOWNERS-protected; PRs touching them wait for the maintainer.
@@ -76,6 +76,14 @@ the push on failure; a Stop hook runs it again before you finish.
   "Blocked by" list is all closed) from `blocked` to `ready`.
 - A milestone is done when its "Done when" in `docs/design.md` (Implementation
   plan → Milestones) passes. Don't start the next milestone's issues early.
+
+## Design system
+
+The viewer follows `design/` (tokens, brand book section 6 "App", component guidelines).
+Use tokens only: `var(--…)` for colours, spacing, radii and fonts, and the type-style
+classes from `viewer/src/design/tokens.css` (generated: never edit it). Stylelint and
+`tests/test_design.py` reject anything else. Need a value that has no token? Don't
+invent one: say so in the PR or open a `needs-decision` issue.
 
 ## Style
 

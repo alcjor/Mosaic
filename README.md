@@ -19,6 +19,7 @@ docs/          design.md (vision, data model, ADRs, corpus, spec), spec-0.1.md, 
 packages/      Python (uv workspace): mosaic-format (schema, hashes, checker), mosaic-build (builders, CLI)
 kit/           TypeScript kit (SQLite WebAssembly, ONNX Runtime Web)
 viewer/        Svelte viewer and single-file export
+design/        tokens, brand book and component guidelines (enforced in the viewer)
 conformance/   fixtures (pinned by hash), invalid files and patterns, tool cases
 views/         example view files
 ```

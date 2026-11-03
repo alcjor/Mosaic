@@ -3,9 +3,15 @@
   "private": true,
   "description": "npm workspaces for Mosaic: the kit and the viewer.",
   "license": "Apache-2.0",
-  "workspaces": ["kit", "viewer"],
-  "engines": { "node": ">=26" },
+  "workspaces": [
+    "kit",
+    "viewer"
+  ],
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
+    "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspaces",
     "build": "npm run build --workspaces"

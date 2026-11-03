@@ -1,0 +1,198 @@
+/* Mosaic — generated from design/tokens.json by scripts/gen_tokens.py. Do not edit. */
+
+:root,
+:root[data-theme="light"] {
+  --brand-navy: #0a2a5c;
+  --slab: #0a2a5c;
+  --grout: #061733;
+  --ground-shard: #0c3168;
+  --surface: #ffffff;
+  --surface-tint: #eaf2fb;
+  --heading: #0a2a5c;
+  --ink: #1b2a3d;
+  --ink-muted: #3b4b5f;
+  --accent: #2f6db5;
+  --border: #c9dcf0;
+  --mark-base: var(--brand-navy);
+  --mark-mid: #163c78;
+  --mark-piece: var(--accent);
+  --mark-line: var(--accent);
+  --shard-1: #6fa8dc;
+  --shard-2: #2f6db5;
+  --shard-3: #1f5296;
+  --shard-4: #9cc3e8;
+  --shard-5: #3d7fc9;
+  --shard-6: #cfe2f6;
+  --shard-7: #5590d0;
+  --turquoise: #14837f;
+  --turquoise-tint: #cfedea;
+  --turquoise-text: #0c5552;
+  --terracotta: #c8622a;
+  --terracotta-tint: #f8e1d2;
+  --terracotta-text: #a44e1c;
+  --saffron: #f2b630;
+  --saffron-tint: #fcefcf;
+  --saffron-text: #7a5a0e;
+  --olive: #6e8b2e;
+  --olive-tint: #e6edd3;
+  --olive-text: #55701f;
+  --majolica: #b3392b;
+  --majolica-tint: #f6dad5;
+  --majolica-text: #8e2b20;
+  --ceramic: #f5f1ea;
+  --data-reference: var(--accent);
+  --data-external: var(--turquoise);
+  --data-documents: var(--terracotta);
+  --data-pattern: var(--brand-navy);
+  --ai-proposal: var(--saffron);
+  --status-info: var(--accent);
+  --status-success: var(--olive);
+  --status-warning: var(--saffron);
+  --status-error: var(--majolica);
+  --focus-ring: var(--accent);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --margin-print: 48px;
+  --safe-edge: 40px;
+  --grout-print: 3px;
+  --grout-hero: 4.6px;
+  --app-header: 48px;
+  --radius-none: 0;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --slab: #061733;
+    --surface: #0a2a5c;
+    --surface-tint: #0c3168;
+    --heading: #ffffff;
+    --ink: #e6eef8;
+    --ink-muted: #9cc3e8;
+    --accent: #6fa8dc;
+    --border: #1f5296;
+    --mark-base: #ffffff;
+    --mark-mid: var(--shard-4);
+    --mark-line: var(--shard-4);
+    --turquoise-tint: #0c5552;
+    --turquoise-text: #cfedea;
+    --terracotta-tint: #6e3412;
+    --terracotta-text: #f8e1d2;
+    --saffron-tint: #5c430a;
+    --saffron-text: #fcefcf;
+    --olive-tint: #34461a;
+    --olive-text: #e6edd3;
+    --majolica-tint: #5e1c15;
+    --majolica-text: #f6dad5;
+  }
+}
+
+:root[data-theme="dark"] {
+  --slab: #061733;
+  --surface: #0a2a5c;
+  --surface-tint: #0c3168;
+  --heading: #ffffff;
+  --ink: #e6eef8;
+  --ink-muted: #9cc3e8;
+  --accent: #6fa8dc;
+  --border: #1f5296;
+  --mark-base: #ffffff;
+  --mark-mid: var(--shard-4);
+  --mark-line: var(--shard-4);
+  --turquoise-tint: #0c5552;
+  --turquoise-text: #cfedea;
+  --terracotta-tint: #6e3412;
+  --terracotta-text: #f8e1d2;
+  --saffron-tint: #5c430a;
+  --saffron-text: #fcefcf;
+  --olive-tint: #34461a;
+  --olive-text: #e6edd3;
+  --majolica-tint: #5e1c15;
+  --majolica-text: #f6dad5;
+}
+
+.wordmark {
+  font-family: var(--font-sans);
+  font-size: 76px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+.category {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.statement {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.tagline {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.panel-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.step-title {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.section-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+}
+
+.body-print {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.body-screen {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.caption {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+}
