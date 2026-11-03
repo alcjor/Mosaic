@@ -32,11 +32,11 @@ the browser for the viewer and later in Node for agents.
 ## Commands
 
 ```
-uv sync && npm ci               # install
+uv sync && bun install          # install (Bun, not npm or Node)
 ./scripts/check-fast.sh         # the gate: ruff, ty, import-linter, pytest, tsc/svelte-check, vitest
 uv run pytest -m slow           # budgets and large fixtures
 uv run mosaic --help            # CLI
-npm run build                   # kit + viewer
+bun run build                   # kit + viewer
 ```
 
 **Test locally, then push.** CI minutes are limited and CI runs on Linux only. Before

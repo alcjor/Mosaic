@@ -6,10 +6,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "bun --bun vite",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
-    "test": "vitest run --passWithNoTests",
-    "build": "vite build",
+    "test": "bun --bun vitest run --passWithNoTests",
+    "build": "bun --bun vite build",
     "lint": "stylelint \"src/**/*.{css,svelte}\""
   },
   "dependencies": {

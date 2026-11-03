@@ -26,10 +26,10 @@ views/         example view files
 
 ## Develop
 
-Requires [uv](https://docs.astral.sh/uv/) and Node 26+.
+Requires [uv](https://docs.astral.sh/uv/) and [Bun](https://bun.sh) 1.4+.
 
 ```
-uv sync && npm ci
+uv sync && bun install
 ./scripts/check-fast.sh
 ```
 
