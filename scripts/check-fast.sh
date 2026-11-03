@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The fast local gate: what every change must pass before it is handed back.
-# CI runs the same checks plus the full matrix on Linux, macOS and Windows.
+# CI runs the same checks on Linux.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
