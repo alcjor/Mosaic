@@ -1,0 +1,30 @@
+# The plant example from docs/design.md, Part 2 (Pattern schemas). Informative.
+format: "0.1"
+pieces:              # order = priority when values conflict
+  - sensorlist@9f2c41d0
+  - code@7ab1e93c
+  - procedures@41c0aa27
+
+types:
+  Sensor:
+    key: tag
+    describe: A value measured in the plant
+    normalise: [trim, upper]
+    from:
+      sensorlist.Row: {tag: Tag, unit: Unit, description: Description}
+      code.Define:    {tag: name, strip: PARAM_}
+  Step:
+    key: id
+    describe: One step of an operating procedure
+    from:
+      procedures.Step: {id: id, title: title}
+
+edges:
+  reads:
+    from: Step
+    to: Sensor
+    mentions: verify_tm.arg0
+
+mosaics:
+  ops:      {types: all, text: snippets, budget: 20 MB}
+  supplier: {types: [Sensor], text: none, vectors: false}

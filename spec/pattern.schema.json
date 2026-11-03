@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mosaic.invalid/spec/0.1/pattern.schema.json",
+  "title": "Mosaic pattern 0.1 (draft)",
+  "description": "Shape of pattern.yaml (Specification 0.1, section 5; Part 2, Pattern schemas). Cross-references between sections are checked by `mosaic check`, not by this schema (section 5.6).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "pieces", "types"],
+  "properties": {
+    "format": { "const": "0.1" },
+    "pieces": {
+      "description": "Pinned pieces; order is priority when values conflict.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*@[0-9a-f]{8,64}$"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "hash"],
+            "properties": {
+              "name": { "$ref": "#/$defs/pieceName" },
+              "hash": { "$ref": "#/$defs/hashPrefix" },
+              "kind": { "enum": ["tessera", "mosaic"] },
+              "path": { "type": "string", "minLength": 1 }
+            }
+          }
+        ]
+      }
+    },
+    "types": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/nodeTypeName" },
+      "additionalProperties": { "$ref": "#/$defs/typeDef" }
+    },
+    "edges": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/edgeTypeName" },
+      "additionalProperties": { "$ref": "#/$defs/edgeDef" }
+    },
+    "mosaics": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/target" }
+    }
+  },
+  "$defs": {
+    "pieceName": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+    "hashPrefix": { "type": "string", "pattern": "^[0-9a-f]{8,64}$" },
+    "nodeTypeName": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
+    "edgeTypeName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "pieceType": {
+      "description": "<piece>.<PieceType>",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*\\.[A-Z][A-Za-z0-9]*$"
+    },
+    "pieceEdgeType": {
+      "description": "<piece>.<edge_type>",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*\\.[a-z][a-z0-9_]*$"
+    },
+    "fieldName": {
+      "description": "A field of the piece node: a key of its props, or key, label, summary. Names only, never expressions.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^(){}\\[\\]$+*/=<>!|&;`]+$"
+    },
+    "normaliseStep": {
+      "enum": ["trim", "upper", "lower", "collapse-spaces", "dash-to-underscore", "underscore-to-dash"]
+    },
+    "fieldMap": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "strip": { "description": "Reserved: prefix removed from the key before normalisation.", "type": "string", "minLength": 1 }
+      },
+      "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+      "additionalProperties": { "$ref": "#/$defs/fieldName" }
+    },
+    "typeDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "from"],
+      "properties": {
+        "key": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+        "describe": { "type": "string", "maxLength": 200 },
+        "normalise": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/normaliseStep" },
+          "default": ["trim"]
+        },
+        "from": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/pieceType" },
+          "additionalProperties": { "$ref": "#/$defs/fieldMap" }
+        }
+      }
+    },
+    "edgeDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "$ref": "#/$defs/nodeTypeName" },
+        "to": { "$ref": "#/$defs/nodeTypeName" },
+        "describe": { "type": "string", "maxLength": 200 },
+        "mentions": {
+          "description": "Role hint <context>.<slot>; a '*' segment matches any segment.",
+          "type": "string",
+          "pattern": "^([a-z0-9_]+|\\*)(\\.([a-z0-9_]+|\\*))+$"
+        },
+        "map": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/pieceEdgeType" }
+        }
+      },
+      "oneOf": [
+        { "required": ["mentions"], "not": { "required": ["map"] } },
+        { "required": ["map"], "not": { "required": ["mentions"] } }
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "types": {
+          "default": "all",
+          "oneOf": [
+            { "const": "all" },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/nodeTypeName" }
+            }
+          ]
+        },
+        "trust": {
+          "default": "reviewed",
+          "oneOf": [
+            { "enum": ["reviewed", "all"] },
+            { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          ]
+        },
+        "text": { "enum": ["none", "snippets", "full"], "default": "snippets" },
+        "vectors": { "type": "boolean", "default": true },
+        "evidence": { "enum": ["primary", "all"], "default": "primary" },
+        "budget": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)? ?(B|KB|MB|GB)$"
+        },
+        "strict": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

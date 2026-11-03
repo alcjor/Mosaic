@@ -1,0 +1,6 @@
+# Byte-stable text on every OS: knowledge hashes must not depend on checkout settings.
+* text=auto eol=lf
+*.mosaic binary
+*.tessera binary
+*.sqlite binary
+*.onnx binary

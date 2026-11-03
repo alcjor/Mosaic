@@ -1,0 +1,13 @@
+{
+  "name": "mosaic-js",
+  "private": true,
+  "description": "npm workspaces for Mosaic: the kit and the viewer.",
+  "license": "Apache-2.0",
+  "workspaces": ["kit", "viewer"],
+  "engines": { "node": ">=22.12" },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces"
+  }
+}

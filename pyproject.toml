@@ -1,0 +1,57 @@
+[project]
+name = "mosaic-workspace"
+version = "0.0.0"
+description = "Workspace root for Mosaic: small, sealed knowledge graphs for small AI models."
+requires-python = ">=3.14"
+license = "Apache-2.0"
+dependencies = ["mosaic-format", "mosaic-build"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+mosaic-format = { workspace = true }
+mosaic-build = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.8",
+    "ty",
+    "import-linter>=2",
+    "jsonschema>=4.23",
+    "pyyaml>=6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages"]
+addopts = "-q --strict-markers"
+markers = ["slow: long-running tests (budgets, large fixtures); excluded from the fast hook"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = ["kit", "viewer", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ty.src]
+include = ["packages", "tests", "scripts"]
+
+[tool.importlinter]
+root_packages = ["mosaic_format", "mosaic_build"]
+
+[[tool.importlinter.contracts]]
+name = "The format package never depends on the builders"
+type = "forbidden"
+source_modules = ["mosaic_format"]
+forbidden_modules = ["mosaic_build"]
+
+[[tool.importlinter.contracts]]
+name = "Builders and format stay layered"
+type = "layers"
+layers = ["mosaic_build", "mosaic_format"]
