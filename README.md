@@ -25,7 +25,7 @@ views/         example view files
 
 ## Develop
 
-Requires [uv](https://docs.astral.sh/uv/) and Node 22.12+.
+Requires [uv](https://docs.astral.sh/uv/) and Node 26+.
 
 ```
 uv sync && npm ci
@@ -34,11 +34,10 @@ uv sync && npm ci
 
 ## How this project is built
 
-Mosaic is developed largely by AI agents (Claude Code cloud sessions) working a
-queue of GitHub issues. The maintainer owns the specification, the expected values
-in `conformance/` and the CI (see `.github/CODEOWNERS`); agents own the
-implementation, and CI on Linux, macOS and Windows is the reviewer. Agent rules
-are in [`CLAUDE.md`](CLAUDE.md).
+Work is tracked as GitHub issues, one pull request per issue, and much of it is
+done by AI agents (Claude Code cloud sessions). Every pull request must pass CI on
+Linux, macOS and Windows; changes to the paths in `.github/CODEOWNERS` also need a
+code owner's approval. Agent rules are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Licence
 

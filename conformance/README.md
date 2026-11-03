@@ -12,6 +12,6 @@ the two languages meet.
 | `tools/` | Kit tool cases on the Chinook mosaic with expected answers, valid against `spec/answers.schema.json` | M3 |
 
 **Expected values are the contract.** Files named `expected*` and the manifest are
-owned by the maintainer (see `.github/CODEOWNERS`). An agent never edits them to
+listed in `.github/CODEOWNERS`. An agent never edits them to
 make a test pass; if an expected value looks wrong, it opens an issue labelled
 `needs-decision`.
