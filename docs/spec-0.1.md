@@ -425,7 +425,7 @@ The suite is versioned with this specification and contains:
 | Netflix titles: one CSV file of movies and TV shows, one tessera, a pattern, and the expected mosaic (licence to be confirmed before publishing) | The whole flow end to end on the simplest input: import, build, seal, open in the kit and the viewer |
 | Chinook: one tessera from the Chinook sample database, a pattern, and the expected mosaic (licence to be confirmed before publishing) | A tessera builder and a mosaic builder reproduce the expected knowledge hash and vector hash; the first case with several linked types |
 | OpenFlights: airports, airlines and routes as separate tesserae, a pattern, and the expected mosaic (ODbL notice carried) | Merging several pieces, edge qualifiers, weak ids, notices |
-| PX4: a pinned build (PX4 v1.17.0, MAVLink at the pinned commit) with its expected hashes | Mentions, text, three licences and realistic size; also run on Linux, macOS and Windows in CI |
+| PX4: a pinned build (PX4 v1.17.0, MAVLink at the pinned commit) with its expected hashes | Mentions, text, three licences and realistic size; also rebuilt locally before each push to check its hashes |
 | Invalid files, one per invariant in section 3.9 | A checker rejects each, naming the invariant |
 | Invalid patterns and proposals, one per rule in sections 5 and 5.6 | A checker rejects each |
 | Tool cases with expected answers, on the Chinook mosaic | A kit's answers match and are valid against `answers.schema.json` |

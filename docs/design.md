@@ -218,7 +218,7 @@ Python builds mosaics; one TypeScript kit reads them, in the browser for the vie
 | Viewer | Svelte page that always runs the kit inside the page | `mosaic view` opens the page with a mosaic loaded, no query server; `mosaic export` saves the same page with the mosaic inside as one HTML file that opens offline with a double-click |
 | View file | YAML, used by both view and export | Edited in your own editor; mosaic view watches it and reloads the page on save. Sets which types appear, columns, what a node page shows, labels, theme, which types an export carries, and `search: semantic` (embedding model inside, about 25 MB) or `search: text` (a few MB) |
 | Repository | uv workspace with `mosaic-format` (schema, hashes, checker) and `mosaic-build` (builders and CLI); npm packages `kit` and `viewer` | The kit cannot import builder code; Python and TypeScript meet only at the mosaic file and the conformance cases |
-| Tooling | ruff, ty, pytest, import-linter; TypeScript strict, Vitest, Playwright; GitHub Actions on Linux, macOS and Windows | The same conformance tool cases run against the kit in CI |
+| Tooling | ruff, ty, pytest, import-linter; TypeScript strict, Vitest, Playwright; GitHub Actions on Linux only; slow fixture and hash checks run locally before each push | The same conformance tool cases run against the kit in CI |
 
 **Repository layout**
 
@@ -234,7 +234,7 @@ mosaic/
 ├── viewer/                   # Svelte: explore page and single-file export
 ├── conformance/              # fixtures (Netflix, Chinook, OpenFlights, PX4), invalid files, tool cases
 ├── views/                    # example view files
-└── .github/workflows/        # CI: Linux, macOS, Windows
+└── .github/workflows/        # CI: Linux
 ```
 
 `mosaic-build` depends on `mosaic-format`; the kit depends on nothing in Python, and both sides are tested against `conformance/`. Fixture sources are downloaded and pinned by hash by a script, not committed, until their licences are confirmed.
@@ -246,7 +246,7 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 |  | Goal | Done when |
 | --- | --- | --- |
 | M0 | Skeleton | Workspace, CI green, the five normative files drafted in `spec/` |
-| M1 | Netflix, build side | CSV importer that can turn a column into linked things (optionally split on a separator: directors, cast, countries, genres, years) and convert dates and mixed fields, mosaic builder (8 steps, build report, strict), `mosaic check`; the Netflix mosaic builds with a stable knowledge hash on Linux, macOS and Windows |
+| M1 | Netflix, build side | CSV importer that can turn a column into linked things (optionally split on a separator: directors, cast, countries, genres, years) and convert dates and mixed fields, mosaic builder (8 steps, build report, strict), `mosaic check`; the Netflix mosaic builds with the same knowledge hash in repeated clean local builds |
 | M2 | Netflix, read side | Vectors in the builder; TypeScript kit with `find`, `get`, `neighbors`, `table`, `cite`; `mosaic view` explores the Netflix mosaic with semantic search |
 | M3 | First milestone complete | View files, single-file export with both search settings, the Chinook fixture and its tool cases pass |
 | M4 | Several pieces | OpenFlights: merging pieces, qualifiers, weak ids, notices |
@@ -1098,7 +1098,7 @@ The action items of all seven ADRs in one list, with their status on 27 October 
 | 006 | Injected text in the benchmark (S8) | Deferred: a standing benchmark test (planted text, each supported model) once the kit's answer format exists |
 | 006 | Hash checks and defensive opening in the kit (decided: full check on every open with the canonical encoding, 0.73 s at 107k nodes) | Open: implementation |
 | 007 | Generate test data at 10,000 and 100,000 nodes | Open: until then, the 100,000-node cases use a six-fold copy of the PX4 mosaic |
-| 007 | CI job measuring every budget, and building the reference mosaic on Linux, macOS and Windows to check an identical knowledge hash (catches line endings, file-name case and encoding defaults) | Open: implementation |
+| 007 | Slow tests, run locally before each push, measuring every budget and rebuilding the reference mosaic to check an identical knowledge hash; CI runs on Linux only | Open: implementation |
 | 007 | Record measured values next to each budget | Done: ADR-007 budget table |
 
 ## Part 4 · PX4 corpus
@@ -1232,7 +1232,7 @@ All spikes except S8 have run, on 27 October 2026, on one Linux machine with Pyt
 
 | Spike | Result | Verdict |
 | --- | --- | --- |
-| S1 Reproducible builds | Same SQLite twice: byte-identical. SQLite 3.45.1 against 3.53.1: knowledge hash identical, but 259 of 4,759 pages differ (mostly index pages rebuilt by VACUUM, plus the version in the file header) | Confirms ADR-001: identity is the hash of the rows, not the bytes. Closed; the cross-OS check (Linux, macOS, Windows) moves to the builder's CI |
+| S1 Reproducible builds | Same SQLite twice: byte-identical. SQLite 3.45.1 against 3.53.1: knowledge hash identical, but 259 of 4,759 pages differ (mostly index pages rebuilt by VACUUM, plus the version in the file header) | Confirms ADR-001: identity is the hash of the rows, not the bytes. Closed; the cross-OS check is dropped: CI runs on Linux only, and repeated local builds check hash stability |
 | S3 Full-text index | 3.2 MB of 19.5 MB (16 %) on real text, against 25 % on synthetic text. `find` p95 0.9 ms at 18k nodes, 5.9 ms at 107k | Within budget; layout stands |
 | S4 Vector scan | With numpy: p95 3.8 ms at 18k, 25 ms at 107k, after loading the vectors in 6 ms and 45 ms. Pure Python reading from the file: p95 21 ms and 112 ms | Within budget with numpy; a bare kit without numpy misses 100 ms at 100k. Browser in S2 |
 | S9 Path at scale | 4-hop bidirectional search: p95 0.5 ms, worst 2.2 ms at 107k. Only 30 % of module, parameter, topic and message pairs connect within 4 hops at 18k | Fast. The graph is sparse, so `path` will often answer "no path"; the scaled copy is artificial and understates connectivity |
@@ -1748,7 +1748,7 @@ The suite is versioned with this specification and contains:
 | Netflix titles: one CSV file of movies and TV shows, one tessera, a pattern, and the expected mosaic (licence to be confirmed before publishing) | The whole flow end to end on the simplest input: import, build, seal, open in the kit and the viewer |
 | Chinook: one tessera from the Chinook sample database, a pattern, and the expected mosaic (licence to be confirmed before publishing) | A tessera builder and a mosaic builder reproduce the expected knowledge hash and vector hash; the first case with several linked types |
 | OpenFlights: airports, airlines and routes as separate tesserae, a pattern, and the expected mosaic (ODbL notice carried) | Merging several pieces, edge qualifiers, weak ids, notices |
-| PX4: a pinned build (PX4 v1.17.0, MAVLink at the pinned commit) with its expected hashes | Mentions, text, three licences and realistic size; also run on Linux, macOS and Windows in CI |
+| PX4: a pinned build (PX4 v1.17.0, MAVLink at the pinned commit) with its expected hashes | Mentions, text, three licences and realistic size; also rebuilt locally before each push to check its hashes |
 | Invalid files, one per invariant in section 3.9 | A checker rejects each, naming the invariant |
 | Invalid patterns and proposals, one per rule in sections 5 and 5.6 | A checker rejects each |
 | Tool cases with expected answers, on the Chinook mosaic | A kit's answers match and are valid against `answers.schema.json` |
