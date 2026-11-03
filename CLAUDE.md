@@ -39,7 +39,11 @@ uv run mosaic --help            # CLI
 npm run build                   # kit + viewer
 ```
 
-A Stop hook runs `scripts/check-fast.sh` before you finish; a failure sends you back.
+**Test locally, then push.** CI minutes are limited and CI runs on Linux only. Before
+every push run `./scripts/check-fast.sh`, plus `uv run pytest -m slow` when your change
+touches anything a slow test covers (fixtures, hashes, vectors, budgets). Never push to
+find out whether CI passes. A hook runs the fast gate before any `git push` and blocks
+the push on failure; a Stop hook runs it again before you finish.
 
 ## Rules for every change
 
@@ -54,7 +58,9 @@ A Stop hook runs `scripts/check-fast.sh` before you finish; a failure sends you 
 - **Ambiguity stops you.** If the spec is unclear, silent or contradictory, do not
   decide: comment on the issue with the question and the options you see, add the
   label `needs-decision`, remove `in-progress`, and stop.
-- Determinism matters on Linux, macOS and Windows: no dependence on dict/set order,
+- Fixture and hash checks (`-m slow`) run in your own environment, not in CI. Paste
+  their command and output (hashes, sizes, timings) into the PR.
+- Keep code portable and deterministic: no dependence on dict/set order,
   locale, line endings (`.gitattributes` forces LF), path separators or file-name case.
   Text compares by UTF-8 bytes unless the spec says otherwise.
 - Keep dependencies few; add one only when it clearly earns its place, and say why in the PR.
