@@ -35,28 +35,27 @@ jobs:
       - name: pytest (slow tests run locally before push)
         run: uv run pytest -m "not slow"
 
-  node:
-    name: node
+  js:
+    name: js
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 26
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run build
 
   # One required check for branch protection, so jobs can change freely.
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [python, node]
+    needs: [python, js]
     runs-on: ubuntu-latest
     steps:
       - name: all jobs passed
         run: |
-          [ "${{ needs.python.result }}" = "success" ] && [ "${{ needs.node.result }}" = "success" ]
+          [ "${{ needs.python.result }}" = "success" ] && [ "${{ needs.js.result }}" = "success" ]
