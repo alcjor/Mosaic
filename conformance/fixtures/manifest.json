@@ -6,8 +6,8 @@
       "file": "netflix_titles.csv",
       "url": null,
       "sha256": null,
-      "licence": "to be confirmed",
-      "licence_confirmed": false,
+      "licence": "permissive (confirmed by the maintainer, 2026-11-03)",
+      "licence_confirmed": true,
       "milestone": "M1"
     },
     {
