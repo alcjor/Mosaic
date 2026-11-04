@@ -14,6 +14,7 @@ import random
 import sqlite3
 import subprocess
 import sys
+import typing
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -794,3 +795,73 @@ def test_never_overwrites_a_file(tmp_path: Path) -> None:
     with pytest.raises(FileExistsError):
         seal(path, sample("tessera"))
     assert path.read_bytes() == b"keep me"
+
+
+# Section 3.1, decision on #39: no text value contains U+0000.
+
+_COLLECTIONS = {
+    "sources": Source,
+    "types": Type,
+    "nodes": Node,
+    "edges": Edge,
+    "aliases": Alias,
+    "evidence": Evidence,
+    "mentions": Mention,
+    "external_refs": ExternalRef,
+    "vectors": Vector,
+}
+
+
+def _is_text(cls: type, field: str) -> bool:
+    hint = typing.get_type_hints(cls)[field]
+    return hint is str or str in typing.get_args(hint)
+
+
+def _text_fields() -> list[tuple[str, str, str]]:
+    cases = []
+    for kind in ("tessera", "mosaic"):
+        c = sample(kind)
+        for collection, cls in [("header", Header), *_COLLECTIONS.items()]:
+            if collection == "header" or getattr(c, collection):
+                fields = dataclasses.fields(cls)
+                cases += [(kind, collection, f.name) for f in fields if _is_text(cls, f.name)]
+    return cases
+
+
+@pytest.mark.parametrize(("kind", "collection", "field"), _text_fields())
+def test_refuses_text_containing_u0000(
+    tmp_path: Path, kind: str, collection: str, field: str
+) -> None:
+    c = sample(kind)
+    text = "x\x00y"
+    if collection == "header":
+        changed = dataclasses.replace(c, header=dataclasses.replace(c.header, **{field: text}))
+    else:
+        items = list(getattr(c, collection))
+        items[0] = dataclasses.replace(items[0], **{field: text})
+        changed = dataclasses.replace(c, **{collection: items})
+    _refused(tmp_path, changed, "U+0000", field)
+
+
+def test_accepts_a_json_escape_of_u0000(tmp_path: Path) -> None:
+    """A JSON ``\\u0000`` escape is six ASCII characters, not a NUL (section 3.1)."""
+    c = sample("tessera")
+    node = dataclasses.replace(c.nodes[0], props='{"note": "a\\u0000b"}')
+    sealed = seal(tmp_path / "escape", dataclasses.replace(c, nodes=[node, *c.nodes[1:]]))
+    with _open(sealed.path) as con:
+        props = con.execute("SELECT props FROM node WHERE id = ?", (node.id,)).fetchone()[0]
+    assert props == '{"note": "a\\u0000b"}'
+
+
+def test_refuses_u0000_inside_the_edge_key_of_evidence(tmp_path: Path) -> None:
+    c = sample("tessera")
+    edge = c.edges[0]
+    ev = Evidence(
+        subject=EdgeKey(src=edge.src, type=edge.type, dst=edge.dst, qualifier="q\x00"),
+        source=c.sources[0].id,
+        locator="row=1",
+        method="extracted",
+        producer="p/1",
+    )
+    changed = dataclasses.replace(c, evidence=[*c.evidence, ev])
+    _refused(tmp_path, changed, "U+0000", "subject", "evidence at 'row=1'")
