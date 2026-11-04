@@ -12,13 +12,19 @@ columns and the columns that become props, and they are recorded in ``header.set
   and unique: node ids are unique within a tessera (section 4.1).
 - **Cells.** Values are text, kept exactly as the CSV reader gives them (no trimming: that is
   the pattern's ``strip``, section 5.2). An empty cell makes no prop, label or summary, since a
-  CSV cannot tell an empty value from a missing one. Declared props are all ``text``.
+  CSV cannot tell an empty value from a missing one. Props are ``text`` unless converted.
+- **Conversions** (issue #13) are declared per prop column in ``Settings.convert``, never
+  guessed: ``Date`` (the given formats, tried in order, to ISO ``YYYY-MM-DD``), ``Quantity``
+  (a number and a unit from a declared unit map, as two props), ``Integer``, ``Number`` and
+  ``Boolean`` (explicit spellings). A converter ignores white space around the value. A value
+  it cannot read stays as text, exactly as written, and its row is listed in the build's
+  ``Report``. The kinds declared in ``type.props`` follow the conversions (section 3.4). Month
+  names are English and digits ASCII whatever the locale: nothing here reads the locale.
 - **Reading.** The bytes are decoded with the given encoding (a leading byte order mark is
   dropped) and parsed with Python's ``csv`` module, strict quoting, ``"`` as the quote and
   doubled quotes as escapes. A quoted line break stays inside its cell; a blank line is no
   row. A row with a different number of fields than the header is refused.
-- **JSON text** (``settings``, ``props``) has no whitespace and object keys sorted by their
-  UTF-16 code units, the canonical form of RFC 8785 for objects of text.
+- **JSON text** (``settings``, ``props``) is in the canonical form of RFC 8785 (section 3.1).
 
 Errors name the file and the row, line or column at fault. The source is only read.
 """
@@ -31,12 +37,38 @@ import json
 import os
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from mosaic_format.canonical_json import canonical_json
 from mosaic_format.writer import Content, Evidence, Header, Node, Sealed, Source, Type, seal
 
 from mosaic_build import __version__
+from mosaic_build.tessera.convert import (
+    Boolean,
+    Conversion,
+    Date,
+    Integer,
+    Number,
+    Quantity,
+    check_conversions,
+    prop_kinds,
+)
+
+__all__ = [
+    "Boolean",
+    "Built",
+    "Conversion",
+    "Date",
+    "Integer",
+    "Number",
+    "Quantity",
+    "Report",
+    "Settings",
+    "build",
+    "content",
+    "read",
+]
 
 PRODUCER = f"mosaic-csv/{__version__}"
 """Written as the header's ``producer`` and the producer of every evidence row."""
@@ -50,7 +82,8 @@ class Settings:
     """What shapes a CSV tessera; recorded in ``header.settings`` as given.
 
     ``key``, ``label`` and ``summary`` name a column or are None; ``props`` names the columns
-    that become props. ``key = None`` keys rows by their position.
+    that become props. ``key = None`` keys rows by their position. ``convert`` maps a prop
+    column to its conversion; other props are text.
     """
 
     type: str = "Row"
@@ -60,36 +93,69 @@ class Settings:
     props: tuple[str, ...] = ()
     encoding: str = "utf-8"
     delimiter: str = ","
+    convert: Mapping[str, Conversion] = field(default_factory=dict)
 
     def as_json(self) -> str:
-        """The settings as canonical JSON text, for ``header.settings``."""
-        return _json(
-            {
-                "type": self.type,
-                "key": self.key,
-                "label": self.label,
-                "summary": self.summary,
-                "props": list(self.props),
-                "encoding": self.encoding,
-                "delimiter": self.delimiter,
-            }
-        )
+        """The settings as canonical JSON text, for ``header.settings``.
+
+        ``convert`` is recorded only when it names a conversion: no conversions and an empty
+        map are the same settings.
+        """
+        value: dict[str, object] = {
+            "type": self.type,
+            "key": self.key,
+            "label": self.label,
+            "summary": self.summary,
+            "props": list(self.props),
+            "encoding": self.encoding,
+            "delimiter": self.delimiter,
+        }
+        if self.convert:
+            value["convert"] = {c: v.as_json() for c, v in self.convert.items()}
+        return _json(value)
 
 
-def build(
-    source: str | os.PathLike[str], out: str | os.PathLike[str], settings: Settings
-) -> Sealed:
+@dataclass(frozen=True)
+class Report:
+    """What the builder could not do as asked, for its user; not part of the tessera.
+
+    ``unconverted`` maps every converted column, in UTF-8 byte order, to the data rows (from 1)
+    whose value its conversion could not read and so kept as text.
+    """
+
+    unconverted: Mapping[str, tuple[int, ...]] = field(default_factory=dict)
+
+    def counts(self) -> dict[str, int]:
+        """The number of values kept as text, per converted column."""
+        return {column: len(rows) for column, rows in self.unconverted.items()}
+
+
+@dataclass(frozen=True)
+class Built(Sealed):
+    """The sealed tessera and the builder's report on it."""
+
+    report: Report = field(default_factory=Report)
+
+
+def build(source: str | os.PathLike[str], out: str | os.PathLike[str], settings: Settings) -> Built:
     """Read the CSV file ``source`` and write its tessera to the new file ``out``.
 
     Raises ``ValueError`` naming the file and the row, line or column when the settings or the
     file cannot make a tessera; no file is left at ``out`` then. An existing ``out`` is never
-    overwritten (``FileExistsError``).
+    overwritten (``FileExistsError``). The result is the sealed file with the builder's report.
     """
-    return seal(out, content(source, settings))
+    made, report = read(source, settings)
+    sealed = seal(out, made)
+    return Built(sealed.path, sealed.knowledge_hash, sealed.vector_hash, report)
 
 
 def content(source: str | os.PathLike[str], settings: Settings) -> Content:
     """The tessera's content for the CSV file ``source``, ready to seal."""
+    return read(source, settings)[0]
+
+
+def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, Report]:
+    """The tessera's content for the CSV file ``source`` and the builder's report on it."""
     path = Path(source)
     name = path.name
     _check_settings(settings)
@@ -104,6 +170,7 @@ def content(source: str | os.PathLike[str], settings: Settings) -> Content:
     nodes: list[Node] = []
     evidence: list[Evidence] = []
     seen: dict[str, int] = {}
+    unconverted: dict[str, list[int]] = {c: [] for c in settings.convert}
     for n, (line, cells) in enumerate(rows, start=1):
         where = f"{name}: row {n} (line {line})"
         if len(cells) != len(header):
@@ -127,7 +194,21 @@ def content(source: str | os.PathLike[str], settings: Settings) -> Content:
                 )
         seen[key] = n
         node_id = f"{settings.type}:{key}"
-        props = {p: cells[columns[p]] for p in settings.props if cells[columns[p]] != ""}
+        props: dict[str, object] = {}
+        for p in settings.props:
+            cell = cells[columns[p]]
+            if cell == "":
+                continue
+            conversion = settings.convert.get(p)
+            if conversion is None:
+                props[p] = cell
+                continue
+            converted = conversion.read(p, cell)
+            if converted is None:
+                props[conversion.fallback(p)] = cell
+                unconverted[p].append(n)
+            else:
+                props.update(converted)
         nodes.append(
             Node(
                 id=node_id,
@@ -148,7 +229,7 @@ def content(source: str | os.PathLike[str], settings: Settings) -> Content:
             )
         )
 
-    return Content(
+    made = Content(
         header=Header(kind="tessera", producer=PRODUCER, settings=settings.as_json()),
         sources=[
             Source(id=name, kind="file", hash=hashlib.sha256(data).hexdigest(), path=name),
@@ -158,12 +239,16 @@ def content(source: str | os.PathLike[str], settings: Settings) -> Content:
                 name=settings.type,
                 kind="node",
                 key_prop=settings.key,
-                props=_json(dict.fromkeys(settings.props, "text")),
+                props=_json(prop_kinds(settings.props, settings.convert)),
             )
         ],
         nodes=nodes,
         evidence=evidence,
     )
+    report = Report(
+        {c: tuple(unconverted[c]) for c in sorted(unconverted, key=lambda c: c.encode("utf-8"))}
+    )
+    return made, report
 
 
 def _check_settings(settings: Settings) -> None:
@@ -183,6 +268,7 @@ def _check_settings(settings: Settings) -> None:
     duplicates = sorted({p for p in settings.props if settings.props.count(p) > 1})
     if duplicates:
         raise ValueError(f"settings: props name {duplicates[0]!r} twice")
+    check_conversions(settings.props, settings.convert)
 
 
 def _decode(name: str, data: bytes, encoding: str) -> str:
@@ -233,18 +319,6 @@ def _cell(cells: Sequence[str], columns: Mapping[str, int], column: str | None) 
     return value or None
 
 
-def _utf16(key: str) -> bytes:
-    return key.encode("utf-16-be", "surrogatepass")
-
-
 def _json(value: Mapping[str, object]) -> str:
-    """Canonical JSON text of an object whose values are text, None, lists of text or objects."""
-
-    def order(v: object) -> object:
-        if isinstance(v, Mapping):
-            return {k: order(v[k]) for k in sorted(v, key=_utf16)}
-        if isinstance(v, list):
-            return [order(x) for x in v]
-        return v
-
-    return json.dumps(order(value), ensure_ascii=False, separators=(",", ":"))
+    """Canonical JSON text (RFC 8785, section 3.1) of an object of JSON values."""
+    return canonical_json(json.dumps(value, ensure_ascii=False, allow_nan=False))
