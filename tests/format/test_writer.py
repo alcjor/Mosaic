@@ -110,6 +110,17 @@ def sample(kind: str, seed: int = 7) -> Content:
             )
         )
         if i % 4 == 0:
+            # Rows sharing subject, source and locator: ranked by the rest of the row (#41).
+            same = Evidence(
+                subject=n.id, source=sid, locator=f"row={i + 1}", method="extracted", producer="a/1"
+            )
+            evidence.append(dataclasses.replace(same, prop="code"))
+            evidence.append(dataclasses.replace(same, producer="sample/0"))
+            evidence.append(dataclasses.replace(same, method="inferred", confidence=0.75))
+            evidence.append(dataclasses.replace(same, method="inferred", confidence=0.25))
+            if mosaic:
+                evidence.append(dataclasses.replace(same, via=json.dumps([HASH_B])))
+                evidence.append(dataclasses.replace(same, via=json.dumps([HASH_A, HASH_B])))
             evidence.append(
                 Evidence(
                     subject=n.id,
@@ -305,7 +316,13 @@ RANKS = {
     "source": ("sid", "id"),
     "node": ("nid", "id"),
     "edge": ("eid", "src, type, dst, qualifier"),
-    "evidence": ("evid", "eid IS NOT NULL, coalesce(nid, eid), sid, locator"),
+    # Ties of (subject, sid, locator) go by the rest of the row, NULL first, confidence by its
+    # hashed value (decision on #41).
+    "evidence": (
+        "evid",
+        "eid IS NOT NULL, coalesce(nid, eid), sid, locator, prop, method, producer, "
+        "CAST(round(confidence*1000000) AS INTEGER), via",
+    ),
     "mention": ("mid", "nid, locator"),
     "external_ref": ("xid", "nid, system, kind, locator"),
 }
@@ -562,16 +579,128 @@ def test_refuses_two_edges_with_one_identity(tmp_path: Path) -> None:
     _refused(tmp_path, dataclasses.replace(c, edges=edges), "edge", c.edges[0].src)
 
 
-def test_refuses_evidence_rows_section_3_6_cannot_order(tmp_path: Path) -> None:
-    """Two rows of one subject with the same (source, locator) have no rank in section 3.6."""
+def _evidence_rows(path: Path) -> list[tuple[object, ...]]:
+    with _open(path) as con:
+        return con.execute(
+            "SELECT evid, prop, method, producer, confidence, via FROM evidence ORDER BY evid"
+        ).fetchall()
+
+
+def test_orders_evidence_of_one_subject_source_and_locator_by_the_rest_of_the_row(
+    tmp_path: Path,
+) -> None:
+    """Decision on #41: ties of (subject, sid, locator) go by (prop, method, producer,
+    confidence, via), NULL before any value, text by UTF-8 bytes."""
+    c = sample("mosaic")
+    rows = [
+        Evidence(
+            subject="Thing:zz",
+            source="src:one",
+            locator="row=7",
+            method="extracted",
+            producer="table-importer/1.0",
+            via=via,
+        )
+        for via in (json.dumps([HASH_B]), None, json.dumps([HASH_A]))
+    ]
+    rows.append(dataclasses.replace(rows[1], prop="code"))
+    rows.append(dataclasses.replace(rows[1], producer="Table-importer/1.0"))
+    rows.append(dataclasses.replace(rows[1], method="inferred", confidence=0.5))
+    rows.append(dataclasses.replace(rows[1], method="inferred", confidence=0.25))
+    node = Node(id="Thing:zz", type="Thing", key="zz", label="zz")
+    vector = Vector(node="Thing:zz", bits=bytes(48))
+    expected = [
+        (None, "extracted", "Table-importer/1.0", None, None),
+        (None, "extracted", "table-importer/1.0", None, None),
+        (None, "extracted", "table-importer/1.0", None, json.dumps([HASH_A])),
+        (None, "extracted", "table-importer/1.0", None, json.dumps([HASH_B])),
+        (None, "inferred", "table-importer/1.0", 0.25, None),
+        (None, "inferred", "table-importer/1.0", 0.5, None),
+        ("code", "extracted", "table-importer/1.0", None, None),
+    ]
+    hashes = set()
+    for n, order in enumerate(([*rows], [*reversed(rows)], [rows[3], *rows[:3], *rows[4:]])):
+        content = dataclasses.replace(
+            c,
+            nodes=[*c.nodes, node],
+            vectors=[*c.vectors, vector],
+            evidence=[*order, *c.evidence],
+        )
+        result = seal(tmp_path / f"ties-{n}", content)
+        hashes.add(result.knowledge_hash)
+        got = [
+            r[1:]
+            for r in _evidence_rows(result.path)
+            if r[3] in ("table-importer/1.0", "Table-importer/1.0")
+        ]
+        assert got == expected
+    assert len(hashes) == 1
+
+
+def test_keeps_the_same_citation_arriving_by_two_routes(tmp_path: Path) -> None:
+    """The example on #41: one row straight from a tessera, one through mosaic M; NULL first."""
+    c = sample("mosaic")
+    direct = Evidence(
+        subject=c.nodes[0].id,
+        source="src:one",
+        locator="row=7000",
+        method="extracted",
+        producer="table-importer/1.0",
+    )
+    routed = dataclasses.replace(direct, via=json.dumps([HASH_B]))
+    for n, order in enumerate(([direct, routed], [routed, direct])):
+        path = seal(
+            tmp_path / f"routes-{n}", dataclasses.replace(c, evidence=[*order, *c.evidence])
+        ).path
+        with _open(path) as con:
+            vias = con.execute(
+                "SELECT via FROM evidence WHERE locator = 'row=7000' ORDER BY evid"
+            ).fetchall()
+        assert vias == [(None,), (json.dumps([HASH_B]),)]
+
+
+def test_refuses_two_evidence_rows_equal_in_every_ranked_column(tmp_path: Path) -> None:
+    """Decision on #41: rows equal in (subject, prop, sid, locator, method, producer, confidence,
+    via) could be swapped, so the writer refuses them and names subject, source and locator."""
     c = sample("tessera")
-    ev = dataclasses.replace(c.evidence[0], producer="another/1")
+    ev = dataclasses.replace(c.evidence[0], snippet="another passage")
     _refused(
         tmp_path,
         dataclasses.replace(c, evidence=[*c.evidence, ev]),
-        c.evidence[0].locator,
         c.nodes[0].id,
+        c.evidence[0].source,
+        c.evidence[0].locator,
     )
+
+
+def test_refuses_evidence_whose_confidence_differs_only_below_the_hashed_precision(
+    tmp_path: Path,
+) -> None:
+    """Confidence ranks by CAST(round(confidence*1000000) AS INTEGER), the value it hashes as,
+    so 0.5000001 and 0.5000002 are one value and the rows are duplicates (#41)."""
+    c = sample("tessera")
+    ev = Evidence(
+        subject=c.nodes[0].id,
+        source="src:one",
+        locator="row=8000",
+        method="inferred",
+        producer="p/1",
+        confidence=0.5000001,
+    )
+    twin = dataclasses.replace(ev, confidence=0.5000002)
+    _refused(tmp_path, dataclasses.replace(c, evidence=[*c.evidence, ev, twin]), "row=8000")
+
+
+def test_edge_evidence_ties_are_ranked_too(tmp_path: Path) -> None:
+    c = sample("tessera")
+    key = c.edges[0].key
+    ev = Evidence(subject=key, source="src:one", locator="x=1", method="extracted", producer="b/1")
+    other = dataclasses.replace(ev, producer="a/1")
+    hashes = {
+        seal(tmp_path / f"e{n}", dataclasses.replace(c, evidence=[*o, *c.evidence])).knowledge_hash
+        for n, o in enumerate(([ev, other], [other, ev]))
+    }
+    assert len(hashes) == 1
 
 
 def test_refuses_an_alias_clash_under_nocase(tmp_path: Path) -> None:
