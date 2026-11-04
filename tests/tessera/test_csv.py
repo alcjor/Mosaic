@@ -17,6 +17,7 @@ import mosaic_format
 import pytest
 from mosaic_build import __version__
 from mosaic_build.tessera.csv import Settings, build
+from mosaic_format.check import check_file
 
 DATA = Path(__file__).parent / "data"
 ROWS = DATA / "rows.csv"
@@ -134,6 +135,19 @@ def test_the_tessera_opens_by_the_reading_rules(built: Path) -> None:
     with mosaic_format.open(built) as f:
         assert f.kind == "tessera"
         assert len(f.knowledge_hash) == 64
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [SETTINGS, Settings(label="name"), Settings()],
+    ids=["keyed", "weak-ids", "defaults"],
+)
+def test_the_tessera_passes_check_file(tmp_path: Path, settings: Settings) -> None:
+    """Done when (#11): the tessera passes the checker of #9 (sections 3.9 and 3.1)."""
+    out = tmp_path / "rows.tessera"
+    build(ROWS, out, settings)
+    report = check_file(out)
+    assert [str(v) for v in report.violations] == []
 
 
 def test_the_result_reports_the_knowledge_hash_of_the_file(built: Path) -> None:
