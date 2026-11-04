@@ -4,12 +4,13 @@ From the repository (editable install) it falls back to ``<repo>/spec``; from a 
 the packaged copy (``tests/format/test_wheel.py``).
 """
 
+import ast
 import json
 
 import pytest
 from mosaic_format import NORMATIVE_FILES, schema
 
-from tests.conftest import SPEC
+from tests.conftest import REPO, SPEC
 
 
 def test_spec_dir_holds_the_five_files() -> None:
@@ -48,3 +49,15 @@ def test_unknown_names_are_refused() -> None:
         schema.json_schema("grammar")
     with pytest.raises(ValueError, match=r"\.\./format\.sql"):
         schema.read_text("../format.sql")
+
+
+def test_build_hook_ships_the_same_files() -> None:
+    # hatch_build.py cannot import the package at build time, so it keeps its own list.
+    tree = ast.parse((REPO / "packages" / "mosaic-format" / "hatch_build.py").read_bytes())
+    lists = [
+        ast.literal_eval(node.value)
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == "NORMATIVE_FILES" for t in node.targets)
+    ]
+    assert lists == [NORMATIVE_FILES]

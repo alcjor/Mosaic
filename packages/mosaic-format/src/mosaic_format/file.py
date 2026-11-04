@@ -22,15 +22,19 @@ def create(path: str | os.PathLike[str], kind: str) -> Path:
     if kind not in KINDS:
         raise ValueError(f"unknown kind {kind!r}; expected one of {KINDS}")
     target = Path(path)
-    if target.exists():
-        raise FileExistsError(f"{target}: already exists; create never overwrites a file")
     for suffix in SIDECARS:
         sidecar = target.with_name(target.name + suffix)
         if sidecar.exists():
             raise FileExistsError(f"{sidecar}: a journal is in the way of {target.name}")
     sql = format_sql()
+    # Claim the name atomically: O_EXCL fails on any existing entry, a dangling symbolic link
+    # included, so no other file is ever opened, written or, on failure, removed.
     try:
-        con = sqlite3.connect(target, isolation_level=None)
+        os.close(os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666))
+    except FileExistsError:
+        raise FileExistsError(f"{target}: already exists; create never overwrites a file") from None
+    try:
+        con = sqlite3.connect(target, isolation_level=None)  # an empty file is a new database
         try:
             mode = con.execute("PRAGMA journal_mode = DELETE").fetchone()[0]
             if mode != "delete":
@@ -39,6 +43,7 @@ def create(path: str | os.PathLike[str], kind: str) -> Path:
         finally:
             con.close()
     except BaseException:
+        # Only the file claimed above and the journals it made, which did not exist before.
         for leftover in [target, *(target.with_name(target.name + s) for s in SIDECARS)]:
             leftover.unlink(missing_ok=True)
         raise

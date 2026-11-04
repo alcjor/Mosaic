@@ -6,9 +6,11 @@
 - exactly the tables, indexes, virtual tables and views of ``format.sql``.
 """
 
+import os
 import sqlite3
 from pathlib import Path
 
+import mosaic_format.file
 import pytest
 from mosaic_format import APPLICATION_ID, KINDS, USER_VERSION, create
 
@@ -139,3 +141,27 @@ def test_existing_file_is_never_overwritten(tmp_path: Path) -> None:
 def test_accepts_a_string_path(tmp_path: Path) -> None:
     path = create(str(tmp_path / "s.mosaic"), "mosaic")
     assert path == tmp_path / "s.mosaic" and path.is_file()
+
+
+def test_dangling_symbolic_link_is_refused(tmp_path: Path) -> None:
+    link = tmp_path / "link.tessera"
+    elsewhere = tmp_path / "elsewhere.tessera"
+    try:
+        os.symlink(elsewhere, link)
+    except OSError as e:  # symbolic links need a privilege on some systems
+        pytest.skip(f"cannot create a symbolic link here: {e}")
+    with pytest.raises(FileExistsError, match=r"link\.tessera"):
+        create(link, "tessera")
+    assert link.is_symlink() and not elsewhere.exists()
+
+
+def test_failed_create_removes_only_its_own_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    neighbour = tmp_path / "neighbour.tessera"
+    neighbour.write_bytes(b"not mine")
+    monkeypatch.setattr(mosaic_format.file, "format_sql", lambda: "CREATE TABLE (;")
+    with pytest.raises(sqlite3.OperationalError):
+        create(tmp_path / "broken.tessera", "tessera")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["neighbour.tessera"]
+    assert neighbour.read_bytes() == b"not mine"
