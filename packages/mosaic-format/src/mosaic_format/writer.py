@@ -18,7 +18,11 @@ The writer refuses, with an error naming the row, content it cannot rank or reso
 reference to a node, edge, source or type that is not given; two rows with one identity; two
 evidence rows equal in every ranked column (below), which no order can tell apart; mentions in
 a mosaic and vectors in a tessera (section 3.2); vectors that are not one per node; text that
-contains U+0000 (section 3.1, decision on issue #39).
+contains U+0000 (section 3.1, decision on issue #39); JSON text that is not I-JSON (below).
+
+Every JSON text (``settings``, type, node and edge ``props``, ``via``, an external reference's
+``locator``) is written in the canonical form of RFC 8785 (section 3.1, decision on issue #59), so
+equal JSON spelled differently gives the same file and hash; see ``mosaic_format.canonical_json``.
 
 Evidence of one subject with the same source and locator is ranked by the rest of the row,
 ``(prop, method, producer, confidence, via)``, with NULL before any value and ``confidence``
@@ -33,11 +37,12 @@ import os
 import sqlite3
 from collections import Counter, defaultdict
 from collections.abc import Callable, Hashable, Iterable, Sequence
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import NamedTuple
 
 from mosaic_format import FORMAT_VERSION
+from mosaic_format.canonical_json import canonical_json
 from mosaic_format.file import SIDECARS, create
 from mosaic_format.hashes import knowledge_hash, quote_confidence, vector_hash
 
@@ -248,6 +253,44 @@ def _refuse_nul(content: Content) -> None:
                 raise ValueError(
                     f"{_row_name(row)}: {field.name} contains U+0000, which text never holds (3.1)"
                 )
+
+
+_JSON_FIELDS: dict[type, tuple[str, ...]] = {
+    Header: ("settings",),
+    Type: ("props",),
+    Node: ("props",),
+    Edge: ("props",),
+    Evidence: ("via",),
+    ExternalRef: ("locator",),
+}
+"""The JSON text fields of each input row (section 3.1)."""
+
+
+def _canonical_row[R: _InputRow](row: R) -> R:
+    changes: dict[str, str] = {}
+    for name in _JSON_FIELDS.get(type(row), ()):
+        value = getattr(row, name)
+        if value is None:
+            continue
+        try:
+            changes[name] = canonical_json(value)
+        except ValueError as e:
+            raise ValueError(f"{_row_name(row)}: {name}: {e} (3.1)") from None
+    return replace(row, **changes) if changes else row
+
+
+def _canonical_json(content: Content) -> Content:
+    """Section 3.1 (decision on #59): every JSON text in RFC 8785 canonical form."""
+    c = content
+    return replace(
+        c,
+        header=_canonical_row(c.header),
+        types=[_canonical_row(t) for t in c.types],
+        nodes=[_canonical_row(n) for n in c.nodes],
+        edges=[_canonical_row(e) for e in c.edges],
+        evidence=[_canonical_row(ev) for ev in c.evidence],
+        external_refs=[_canonical_row(x) for x in c.external_refs],
+    )
 
 
 def _utf8(text: str, where: str) -> bytes:
@@ -538,6 +581,7 @@ def seal(path: str | os.PathLike[str], content: Content) -> Sealed:
     """
     header = content.header
     _refuse_nul(content)  # refuse bad content before any file exists
+    content = _canonical_json(content)
     ranked = _rank(content)
     target = create(path, header.kind)
     try:

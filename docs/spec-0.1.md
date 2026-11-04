@@ -50,6 +50,7 @@ Tesserae and mosaics share one file format. The header's `kind` says which profi
 - The file MUST contain exactly the tables, indexes, virtual tables and views of `format.sql`, with the same definitions, and nothing else apart from SQLite's internal tables (`sqlite_stat1` MAY be present).
 - Readers MUST support SQLite's FTS5 extension.
 - Text values MUST NOT contain U+0000, in any table or column, JSON text included. SQLite reads text as ending at the first U+0000 in many places (`quote()`, `length()`), so such text would be hashed and read truncated. A JSON `\u0000` escape is six ASCII characters and is allowed.
+- JSON text (`header.settings`, `type.props`, `node.props`, `edge.props`, `evidence.via` and `external_ref.locator`) MUST be in the canonical form of RFC 8785, the JSON Canonicalization Scheme: no whitespace outside strings, object keys sorted by their UTF-16 code units (unlike other text in this specification, which is ordered by UTF-8 bytes), strings escaped only where JSON requires it, and numbers written as ECMAScript's `Number::toString` writes them. It MUST also be I-JSON (RFC 7493): no duplicate object keys, no unpaired surrogates, and no number outside the range of an IEEE 754 double. An integer outside ±(2^53 − 1) would change value, so it MUST be stored as a string. Equal JSON values are then equal text, so they hash and compare the same.
 
 #### 3.2 Tables
 

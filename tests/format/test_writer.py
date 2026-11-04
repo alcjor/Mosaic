@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 from mosaic_format import APPLICATION_ID, USER_VERSION, create, knowledge_hash, vector_hash
+from mosaic_format.canonical_json import canonical_json
 from mosaic_format.hashes import knowledge_hash_sql
 from mosaic_format.writer import (
     Alias,
@@ -850,7 +851,7 @@ def test_accepts_a_json_escape_of_u0000(tmp_path: Path) -> None:
     sealed = seal(tmp_path / "escape", dataclasses.replace(c, nodes=[node, *c.nodes[1:]]))
     with _open(sealed.path) as con:
         props = con.execute("SELECT props FROM node WHERE id = ?", (node.id,)).fetchone()[0]
-    assert props == '{"note": "a\\u0000b"}'
+    assert props == '{"note":"a\\u0000b"}'  # canonical JSON (section 3.1, #59)
 
 
 def test_refuses_u0000_inside_the_edge_key_of_evidence(tmp_path: Path) -> None:
@@ -865,3 +866,105 @@ def test_refuses_u0000_inside_the_edge_key_of_evidence(tmp_path: Path) -> None:
     )
     changed = dataclasses.replace(c, evidence=[*c.evidence, ev])
     _refused(tmp_path, changed, "U+0000", "subject", "evidence at 'row=1'")
+
+
+# Section 3.1, decision on #59: JSON text is written in RFC 8785 canonical form.
+
+JSON_COLUMNS = [
+    ("header", "settings"),
+    ("type", "props"),
+    ("node", "props"),
+    ("edge", "props"),
+    ("evidence", "via"),
+    ("external_ref", "locator"),
+]
+
+
+def test_every_json_text_in_the_file_is_canonical(written: Path) -> None:
+    """The sample writes props with json.dumps (spaces after ":"), so this is not vacuous."""
+    assert sample("tessera").nodes[0].props != canonical_json(
+        sample("tessera").nodes[0].props or ""
+    )
+    with _open(written) as con:
+        for table, column in JSON_COLUMNS:
+            rows = con.execute(f"SELECT {column} FROM {table} WHERE {column} IS NOT NULL")
+            for (value,) in rows:
+                assert value == canonical_json(value), (table, column, value)
+        node_props = con.execute("SELECT count(*) FROM node WHERE props IS NOT NULL").fetchone()
+        assert node_props[0] > 0
+
+
+def test_writes_props_in_canonical_form(tmp_path: Path) -> None:
+    c = sample("tessera")
+    node = dataclasses.replace(c.nodes[0], props='{ "b" : 2.50, "a" : [1, 2.0, "\\u00e9"] }')
+    sealed = seal(tmp_path / "props", dataclasses.replace(c, nodes=[node, *c.nodes[1:]]))
+    with _open(sealed.path) as con:
+        props = con.execute("SELECT props FROM node WHERE id = ?", (node.id,)).fetchone()[0]
+    assert props == '{"a":[1,2,"\u00e9"],"b":2.5}'
+
+
+def test_json_spelling_does_not_change_the_knowledge_hash(tmp_path: Path, kind: str) -> None:
+    c = sample(kind)
+
+    def respell(text: str | None) -> str | None:
+        if text is None:
+            return None
+        value = json.loads(text)
+        if isinstance(value, dict):
+            value = dict(reversed(list(value.items())))
+        return json.dumps(value, indent=2)
+
+    respelled = dataclasses.replace(
+        c,
+        header=dataclasses.replace(c.header, settings=respell(c.header.settings) or "{}"),
+        types=[dataclasses.replace(t, props=respell(t.props) or "{}") for t in c.types],
+        nodes=[dataclasses.replace(n, props=respell(n.props)) for n in c.nodes],
+        edges=[dataclasses.replace(e, props=respell(e.props)) for e in c.edges],
+        evidence=[dataclasses.replace(ev, via=respell(ev.via)) for ev in c.evidence],
+        external_refs=[
+            dataclasses.replace(x, locator=respell(x.locator) or "{}") for x in c.external_refs
+        ],
+    )
+    assert respelled != c
+    assert seal(tmp_path / "a", c).knowledge_hash == seal(tmp_path / "b", respelled).knowledge_hash
+
+
+def test_refuses_two_routes_whose_via_differs_only_in_spelling(tmp_path: Path) -> None:
+    """Equal JSON is one value, so these rows are full duplicates (sections 3.1 and 3.5)."""
+    c = sample("mosaic")
+    a = dataclasses.replace(c.evidence[0], locator="row=990", via=f'["{HASH_B}","{HASH_A}"]')
+    b = dataclasses.replace(a, via=f'[ "{HASH_B}" , "{HASH_A}" ]')
+    _refused(tmp_path, dataclasses.replace(c, evidence=[*c.evidence, a, b]), "evidence", "row=990")
+
+
+@pytest.mark.parametrize(
+    ("kind", "collection", "field"),
+    [
+        ("tessera", "header", "settings"),
+        ("tessera", "types", "props"),
+        ("tessera", "nodes", "props"),
+        ("tessera", "edges", "props"),
+        ("tessera", "external_refs", "locator"),
+        ("mosaic", "evidence", "via"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("bad", "words"),
+    [
+        ('{"id":9007199254740993}', "store it as a string"),
+        ('{"a":1,"a":2}', "duplicate object key"),
+        ('{"x":NaN}', "NaN"),
+    ],
+)
+def test_refuses_json_that_is_not_i_json(
+    tmp_path: Path, kind: str, collection: str, field: str, bad: str, words: str
+) -> None:
+    c = sample(kind)
+    text = f"[{bad}]" if field == "via" else bad
+    if collection == "header":
+        changed = dataclasses.replace(c, header=dataclasses.replace(c.header, **{field: text}))
+    else:
+        items = list(getattr(c, collection))
+        items[0] = dataclasses.replace(items[0], **{field: text})
+        changed = dataclasses.replace(c, **{collection: items})
+    _refused(tmp_path, changed, field, words, "(3.1)")

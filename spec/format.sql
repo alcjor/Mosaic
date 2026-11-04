@@ -9,6 +9,9 @@
 -- 4096, containing exactly the objects below (plus SQLite's internal tables and
 -- optionally sqlite_stat1). Readers MUST support FTS5. No text value in any
 -- table contains U+0000 (section 3.1); the checker verifies it.
+-- JSON text (settings, props, via, external_ref.locator) is in RFC 8785
+-- canonical form and is I-JSON: integers outside +/-(2^53 - 1) are strings
+-- (section 3.1).
 --
 -- ---------------------------------------------------------------------------
 -- CANONICAL ORDER (section 3.6)
