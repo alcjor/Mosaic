@@ -298,13 +298,19 @@ def test_invariant_6_node_order_by_utf8_bytes(tmp_path: Path) -> None:
 # --- tessera --------------------------------------------------------------------------------
 
 
-def test_invariant_7_a_tessera_made_from_a_mosaic(tmp_path: Path) -> None:
+@pytest.mark.parametrize("kind", ["tessera", "mosaic"])
+def test_invariant_7_a_tessera_is_not_made_from_a_tessera_or_mosaic(
+    tmp_path: Path, kind: str
+) -> None:
+    """Sections 3.9 and 4.1: exactly one source, never a tessera or a mosaic (ADR-003)."""
     content = mif.tessera()
-    sources = [replace(s, kind="mosaic") for s in content.sources]
+    sources = [replace(s, kind=kind) for s in content.sources]
     path = tmp_path / "x.tessera"
     seal(path, replace(content, sources=sources))
     (violation,) = only(check(path), "inv-7")
-    assert "never a mosaic" in violation.message
+    assert (
+        f"kind {kind!r}" in violation.message and "never a tessera or a mosaic" in violation.message
+    )
 
 
 def test_invariant_8_duplicate_ids_are_found_without_the_unique_constraint() -> None:
