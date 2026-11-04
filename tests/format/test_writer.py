@@ -479,6 +479,19 @@ def test_search_finds_every_alias_of_a_node(written: Path, kind: str) -> None:
     assert hits == {"Thing:b", "Thing:B"}
 
 
+def test_search_joins_aliases_in_alias_order(tmp_path: Path) -> None:
+    """Section 3.6 orders aliases by text under NOCASE, so "alpha" comes before "Bravo"."""
+    c = sample("tessera")
+    extra = [Alias(text=t, node="Group:g1", origin="source") for t in ("Bravo", "alpha")]
+    path = seal(tmp_path / "aliases", dataclasses.replace(c, aliases=[*c.aliases, *extra])).path
+    query = "SELECT n.id FROM search JOIN node AS n ON n.nid = search.rowid WHERE search MATCH ?"
+    with _open(path) as con:
+        forward = [r[0] for r in con.execute(query, ('aliases:"alpha bravo"',))]
+        backward = [r[0] for r in con.execute(query, ('aliases:"bravo alpha"',))]
+    assert forward == ["Group:g1"]
+    assert backward == []
+
+
 # ---------------------------------------------------------------------------
 # Builders never assign row ids; the writer refuses what it cannot rank or resolve.
 # ---------------------------------------------------------------------------
