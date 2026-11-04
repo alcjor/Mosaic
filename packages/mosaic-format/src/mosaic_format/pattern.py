@@ -45,6 +45,10 @@ RULES: Mapping[str, tuple[str, str]] = {
     "proposal-node-type": ("5.6", "a proposal's node ids have a node type declared in the pattern"),
     "proposal-edge": ("5.6", "an edge proposal's `type` is an edge declared in `edges`"),
     "proposal-edge-ends": ("5.6", "an edge proposal's ids have the types of that edge's ends"),
+    "proposal-same-as-type": (
+        "5.6",
+        "ids in an identity proposal's same_as have the type of its node",
+    ),
     "proposal-node-missing": ("5.6", "a proposal's node ids exist in the built_from mosaic"),
 }
 """Every rule the checker reports, by name: the section that states it, and what it says."""
@@ -304,7 +308,9 @@ def _check_proposals(
                     f"proposal {proposal['id']!r}: {node_id!r} is not a node of the mosaic "
                     f"{built.knowledge_hash[:12]} it was built from",
                 )
-        if proposal["kind"] != "edge":
+        if proposal["kind"] == "identity":
+            if declared["node"]:
+                _check_same_as(f, i, proposal, types)
             continue
         edge = edges.get(proposal["type"])
         if edge is None:
@@ -322,6 +328,25 @@ def _check_proposals(
                     f"proposal {proposal['id']!r}: {proposal[end]!r} is not a {edge[end]}, the "
                     f"{end} type of edge {proposal['type']!r}",
                 )
+
+
+def _check_same_as(f: _File, i: int, proposal: Mapping[str, Any], types: Mapping[str, Any]) -> None:
+    """An entry ``<T>:<key>`` whose ``T`` is a declared node type is an id (sections 5.5, 5.6).
+
+    Its type must be the type of the proposal's node; other entries are new names, unchecked.
+    """
+    node_type = _node_type(proposal["node"])
+    for j, name in enumerate(proposal["same_as"]):
+        if ":" not in name:
+            continue
+        name_type = _node_type(name)
+        if name_type in types and name_type != node_type:
+            f.add(
+                ("proposals", i, "same_as", j),
+                "proposal-same-as-type",
+                f"proposal {proposal['id']!r}: {name!r} is an id of type {name_type}, not of "
+                f"{node_type}, the type of {proposal['node']!r}",
+            )
 
 
 def check_pattern(
