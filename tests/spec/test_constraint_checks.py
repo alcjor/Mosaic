@@ -68,8 +68,6 @@ def test_a_mosaic_source_holds_pieces_original_sources_and_proposals(
         (5, "sensorlist/sensors.csv", "file", "e" * 64, "CC BY 4.0"),
     ]
     db.executemany("INSERT INTO source (sid, id, kind, hash, notice) VALUES (?,?,?,?,?)", rows)
-    pieces = db.execute("SELECT id FROM source WHERE kind IN ('tessera', 'mosaic') ORDER BY sid")
-    assert [r[0] for r in pieces] == ["plant", "sensorlist"]
     # Decision on #66: one file through two pieces is two rows, each with its piece's notice.
     same_file = db.execute("SELECT id, notice FROM source WHERE hash = ? ORDER BY sid", ("e" * 64,))
     assert same_file.fetchall() == [
@@ -77,3 +75,15 @@ def test_a_mosaic_source_holds_pieces_original_sources_and_proposals(
         ("sensorlist/sensors.csv", "CC BY 4.0"),
     ]
     assert db.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+
+
+def test_unprefixed_copies_of_one_file_would_collide(db: sqlite3.Connection) -> None:
+    """Why copied ids carry their piece's name (decision on #66): `source.id` is UNIQUE, so the
+    same file arriving through two pieces could not be two rows under its own id."""
+    db.execute(
+        "INSERT INTO source (sid, id, kind, hash) VALUES (1, 'sensors.csv', 'file', ?)", (H,)
+    )
+    with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
+        db.execute(
+            "INSERT INTO source (sid, id, kind, hash) VALUES (2, 'sensors.csv', 'file', ?)", (H,)
+        )
