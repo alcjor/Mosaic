@@ -357,6 +357,36 @@ def test_a_header_whose_format_version_is_generated_is_a_schema_mismatch(
     assert "'9.9'" not in message
 
 
+def test_at_most_two_rows_of_a_crafted_header_are_read_for_the_version(tmp_path: Path) -> None:
+    """A crafted ``header`` may hold many rows (section 10): only two are read for the version.
+
+    The third row's version is never read, so the file is refused by the schema check.
+    """
+    path = sealed(tmp_path)
+    tamper(
+        path,
+        "DROP TABLE header",
+        "CREATE TABLE header (format_version TEXT, kind TEXT)",
+        "INSERT INTO header VALUES ('0.1', 'mosaic'), ('0.1', 'mosaic'), ('0.2', 'mosaic')",
+    )
+    message = refused(path, "schema", "header")
+    assert "'0.2'" not in message
+
+
+def test_a_crafted_header_with_many_rows_is_refused_quickly(tmp_path: Path) -> None:
+    path = sealed(tmp_path)
+    tamper(
+        path,
+        "DROP TABLE header",
+        "CREATE TABLE header (format_version TEXT, kind TEXT)",
+        "INSERT INTO header WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c"
+        " WHERE x < 200000) SELECT '0.1', 'mosaic' FROM c",
+    )
+    started = time.monotonic()
+    refused(path, "schema", "header")
+    assert time.monotonic() - started < 5
+
+
 def test_older_or_malformed_version_is_refused(tmp_path: Path) -> None:
     path = sealed(tmp_path)
     tamper(path, *_newer_version("0.0", None, False))
