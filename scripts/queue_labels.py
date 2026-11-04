@@ -3,10 +3,13 @@
 Run by `.github/workflows/queue-labels.yml` on every closed issue and pull request, whoever
 closed or merged it, and by hand with `workflow_dispatch`:
 
-1. A merged pull request closes the open issues its body names with `Closes #n` (also `Fixes`,
-   `Resolves`), in case GitHub did not.
+1. A pull request merged into the default branch closes the open issues its body names with
+   `Closes #n` (also `Fixes`, `Resolves`), in case GitHub did not. Keywords after "not" or
+   "never", in code (fenced or inline) and in quoted lines close nothing.
 2. Closed issues lose `in-progress`, `ready` and `blocked`.
-3. An open issue labelled `blocked` whose "Blocked by" list is all closed gets `ready` instead.
+3. An open issue labelled `blocked` whose "Blocked by" list is all closed gets `ready` instead:
+   `ready` is added before `blocked` is removed, so a run that fails halfway leaves the issue
+   `blocked` and the next run finds it again.
 
 Standard library only. Needs GITHUB_TOKEN (issues: write) and GITHUB_REPOSITORY; reads the
 event from GITHUB_EVENT_PATH when there is one. `--dry-run` prints the changes without making them.
@@ -27,7 +30,14 @@ from dataclasses import dataclass, field
 API = "https://api.github.com"
 QUEUE_LABELS = ("in-progress", "ready", "blocked")
 BLOCKED_BY = re.compile(r"^\W*blocked by[^#\n]*(?P<refs>[^\n]*)$", re.IGNORECASE | re.MULTILINE)
-CLOSING = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)\b", re.IGNORECASE)
+CLOSING = re.compile(
+    r"(?P<negation>(?:\bnot|\bnever|n't)\s+)?"
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(?P<number>\d+)\b",
+    re.IGNORECASE,
+)
+FENCE = re.compile(r"^ {0,3}(?P<fence>`{3,}|~{3,})")
+QUOTE = re.compile(r"^ {0,3}>")
+INLINE_CODE = re.compile(r"(?P<ticks>`+)(?!`).*?(?<!`)(?P=ticks)(?!`)")
 REF = re.compile(r"#(\d+)\b")
 
 
@@ -39,9 +49,38 @@ def blockers(body: str | None) -> list[int]:
     return list(dict.fromkeys(int(n) for n in REF.findall(match.group("refs"))))
 
 
+def _prose(body: str) -> str:
+    """The body without fenced code blocks, quoted lines and inline code spans."""
+    lines: list[str] = []
+    fence = ""
+    for line in body.splitlines():
+        match = FENCE.match(line)
+        if fence:
+            if (
+                match
+                and match["fence"][0] == fence[0]
+                and len(match["fence"]) >= len(fence)
+                and not line[match.end() :].strip()
+            ):
+                fence = ""  # the closing fence: same character, at least as long, nothing after
+            continue
+        if match:
+            fence = match.group("fence")
+            continue
+        if QUOTE.match(line):
+            continue
+        lines.append(INLINE_CODE.sub(" ", line))
+    return "\n".join(lines)
+
+
 def closing_refs(body: str | None) -> list[int]:
-    """The issue numbers a pull request body closes (`Closes #n`, `Fixes #n`, `Resolves #n`)."""
-    return list(dict.fromkeys(int(n) for n in CLOSING.findall(body or "")))
+    """The issue numbers a pull request body closes (`Closes #n`, `Fixes #n`, `Resolves #n`).
+
+    Like GitHub, only prose counts: not fenced code, inline code or quoted lines. A keyword
+    right after "not", "never" or "n't" ("does not close #7") closes nothing.
+    """
+    found = (m for m in CLOSING.finditer(_prose(body or "")) if not m.group("negation"))
+    return list(dict.fromkeys(int(m.group("number")) for m in found))
 
 
 @dataclass(frozen=True)
@@ -157,17 +196,23 @@ def _event() -> tuple[list[int], list[int]]:
     with open(path, encoding="utf-8") as f:
         event = json.load(f)
     pr = event.get("pull_request")
-    if isinstance(pr, dict) and pr.get("merged"):
-        return closing_refs(pr.get("body")), []
+    if isinstance(pr, dict):
+        base = pr.get("base")
+        default = (event.get("repository") or {}).get("default_branch")
+        into_default = isinstance(base, dict) and base.get("ref") == default
+        if pr.get("merged") and into_default:
+            return closing_refs(pr.get("body")), []
+        return [], []
     issue = event.get("issue")
     if isinstance(issue, dict) and "pull_request" not in issue:
         return [], [int(issue["number"])]
     return [], []
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], gh: GitHub | None = None) -> int:
     dry_run = "--dry-run" in argv
-    gh = GitHub(os.environ["GITHUB_TOKEN"], os.environ["GITHUB_REPOSITORY"])
+    if gh is None:
+        gh = GitHub(os.environ["GITHUB_TOKEN"], os.environ["GITHUB_REPOSITORY"])
     to_close, closed_now = _event()
 
     issues: dict[int, Issue] = {i.number: i for i in gh.issues("open", "blocked")}
@@ -196,8 +241,8 @@ def main(argv: list[str]) -> int:
     for n in p.unblock:
         print(f"#{n}: every blocker is closed, blocked -> ready")
         if not dry_run:
+            gh.add_labels(n, ["ready"])  # first: a failure after it leaves `blocked`
             gh.remove_label(n, "blocked")
-            gh.add_labels(n, ["ready"])
     if not (p.close or p.remove or p.unblock):
         print("nothing to change")
     return 0
