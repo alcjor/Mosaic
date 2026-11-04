@@ -1,7 +1,9 @@
 name: Claude review
 
-# An independent review of every pull request against the spec and CLAUDE.md.
-# Advisory: it comments; it is not a required check.
+# An independent review of every pull request against the spec and CLAUDE.md, docs-only
+# and spec-only pull requests included. Make `review` a required check on main so that
+# merges, auto-merge included, wait for it. It comments; it does not fail on findings.
+# Drafts and forks skip the job, which GitHub counts as passing.
 # Needs one repository secret: ANTHROPIC_API_KEY (API billing) or
 # CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`, uses a Claude plan).
 # Without either, the job skips.
@@ -9,9 +11,6 @@ name: Claude review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
@@ -61,15 +60,20 @@ jobs:
             1. Spec conformance: does the code do what the cited sections say
                (canonical order, hashes, evidence, reading rules, build steps, answers)?
             2. Test integrity: tests weakened, skipped, xfailed or loosened; expected
-               values, spec/, docs/, design/, .github/, .claude/ or CLAUDE.md changed;
-               tests that check the implementation instead of the spec's words.
-            3. Principles: determinism (ordering, locale, line endings, paths), domain
+               values, spec/, docs/, design/, .github/, .claude/ or CLAUDE.md changed
+               to make something pass; tests that check the implementation instead of
+               the spec's words.
+            3. Spec and docs changes (when the PR changes docs/ or spec/): the change says
+               what the decision it cites says, no other section or normative file now
+               contradicts it, and docs/spec-0.1.md and docs/adr/ stay copies of their
+               parts of docs/design.md.
+            4. Principles: determinism (ordering, locale, line endings, paths), domain
                words in format/builder/kit, the kit importing Python or the viewer,
                the builder using AI or the network, facts without evidence.
-            4. Correctness and security: bugs, unchecked input from files (they are
+            5. Correctness and security: bugs, unchecked input from files (they are
                untrusted), SQL built from strings, unbounded queries.
-            5. The issue's "Done when": is each item actually shown in the PR?
-            6. Viewer changes: tokens only (design/), no raw colours or lengths.
+            6. The issue's "Done when": is each item actually shown in the PR?
+            7. Viewer changes: tokens only (design/), no raw colours or lengths.
 
             Post each concrete finding as an inline comment on the line, saying what is
             wrong, why (spec section or rule) and what would fix it. Skip style nits that
