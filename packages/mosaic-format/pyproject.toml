@@ -12,3 +12,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mosaic_format"]
+
+# The five normative files of the repository's spec/ ship inside the package as
+# mosaic_format/spec/ (see hatch_build.py).
+[tool.hatch.build.hooks.custom]
