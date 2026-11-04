@@ -89,6 +89,12 @@ def _pattern_variants() -> list[tuple[str, dict[str, Any]]]:
     variant("trust above 1", lambda p: p["mosaics"]["ops"].__setitem__("trust", 1.5))
     variant("bad budget", lambda p: p["mosaics"]["ops"].__setitem__("budget", "twenty"))
     variant("unknown target field", lambda p: p["mosaics"]["ops"].__setitem__("cache", True))
+    # Section 5.1, decision on #60: a piece name contains no ".".
+    variant("dotted piece name", lambda p: p["pieces"].__setitem__(0, "sensor.list@9f2c41d0"))
+    variant(
+        "dotted piece name in an object",
+        lambda p: p["pieces"].__setitem__(0, {"name": "sensor.list", "hash": "9f2c41d0"}),
+    )
     return out
 
 

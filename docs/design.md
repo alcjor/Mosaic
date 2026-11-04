@@ -1533,7 +1533,7 @@ A pattern is one YAML file, `pattern.yaml`, valid against `pattern.schema.json`.
 
 #### 5.1 `pieces`
 
-An ordered list of pieces, each `name@hash` or an object with `name`, `hash`, optional `kind` and `path`. The hash is the piece's knowledge hash; a prefix of at least 8 characters MAY be given but MUST match exactly one available file. Which files are available is up to the tool that reads the pattern, for example the files in a directory it is given and each piece's `path`; a piece that matches no available file, or more than one, is a violation. **Order is priority**: when two pieces give different values for the same property of the same node, the earlier piece wins.
+An ordered list of pieces, each `name@hash` or an object with `name`, `hash`, optional `kind` and `path`. A piece name is letters, digits, `_` and `-`, starting with a letter or digit; it contains no `.`, so a reference `<piece>.<PieceType>` or `<piece>.<edge_type>` splits at its only dot. The hash is the piece's knowledge hash; a prefix of at least 8 characters MAY be given but MUST match exactly one available file. Which files are available is up to the tool that reads the pattern, for example the files in a directory it is given and each piece's `path`; a piece that matches no available file, or more than one, is a violation. **Order is priority**: when two pieces give different values for the same property of the same node, the earlier piece wins.
 
 #### 5.2 `types`
 

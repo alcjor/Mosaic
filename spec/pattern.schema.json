@@ -16,7 +16,7 @@
         "oneOf": [
           {
             "type": "string",
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*@[0-9a-f]{8,64}$"
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*@[0-9a-f]{8,64}$"
           },
           {
             "type": "object",
@@ -50,7 +50,7 @@
     }
   },
   "$defs": {
-    "pieceName": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+    "pieceName": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" },
     "hashPrefix": { "type": "string", "pattern": "^[0-9a-f]{8,64}$" },
     "nodeTypeName": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
     "edgeTypeName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
