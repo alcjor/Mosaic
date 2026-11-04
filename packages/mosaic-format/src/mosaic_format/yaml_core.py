@@ -251,6 +251,8 @@ class _Builder:
             if not isinstance(event, ScalarEvent):
                 raise self.fail(event, "a mapping key must be text, not a collection")
             key = self.scalar(event)
+            if event.anchor is not None:
+                self.anchors[str(event.anchor)] = (key, 1)
             if not isinstance(key, str):
                 raise self.fail(event, f"a mapping key must be text, not {key!r}; quote it")
             if key in out:

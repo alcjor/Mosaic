@@ -70,6 +70,10 @@ def test_aliases_repeat_the_anchored_value() -> None:
     assert load("a: &x [1, 2]\nb: *x\n", "f.yaml").data == {"a": [1, 2], "b": [1, 2]}
 
 
+def test_an_anchored_key_can_be_repeated_as_a_value() -> None:
+    assert load("&k a: 1\nb: *k\n", "f.yaml").data == {"a": 1, "b": "a"}
+
+
 def _error(text: str) -> YamlError:
     with pytest.raises(YamlError) as caught:
         load(text, "where/f.yaml")
