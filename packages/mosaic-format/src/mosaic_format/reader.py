@@ -132,8 +132,10 @@ def _check_version(path: Path, con: sqlite3.Connection) -> None:
         )
     if not _has_stored_format_version(con):
         return
-    versions = [v for (v,) in con.execute("SELECT format_version FROM header")]
-    for version in versions:
+    # The header of format.sql holds one row; read at most two of a crafted table, so a file
+    # with millions of rows cannot cost memory or time here (section 10). Any extra row is a
+    # schema mismatch, which the schema check names.
+    for (version,) in con.execute("SELECT format_version FROM header LIMIT 2"):
         if version not in IMPLEMENTED_VERSIONS:
             raise _refuse(
                 path,
