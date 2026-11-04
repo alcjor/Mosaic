@@ -27,3 +27,14 @@ NORMATIVE_FILES = (
     "answers.schema.json",
 )
 """The five normative files of Specification 0.1, in ``spec/``."""
+
+from mosaic_format.file import create  # noqa: E402
+
+__all__ = [
+    "APPLICATION_ID",
+    "FORMAT_VERSION",
+    "KINDS",
+    "NORMATIVE_FILES",
+    "USER_VERSION",
+    "create",
+]
