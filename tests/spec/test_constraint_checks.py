@@ -56,16 +56,24 @@ def test_foreign_key_check_finds_a_dangling_reference(db: sqlite3.Connection) ->
 def test_a_mosaic_source_holds_pieces_original_sources_and_proposals(
     db: sqlite3.Connection,
 ) -> None:
-    """Section 3.2 (decision on #9): pieces are exactly the rows of kind tessera or mosaic."""
+    """Section 3.2 (decisions on #9 and #66).
+
+    The pieces are the tessera and mosaic rows, and copied sources are prefixed by piece name.
+    """
     rows = [
         (1, "plant", "mosaic", "b" * 64, None),
-        (2, "proposals.yaml", "file", "c" * 64, None),
-        (3, "sensorlist", "tessera", "d" * 64, None),
-        (4, "sensors.csv", "file", "e" * 64, "CC BY 4.0"),
+        (2, "plant/sensorlist/sensors.csv", "file", "e" * 64, None),
+        (3, "proposals.yaml", "file", "c" * 64, None),
+        (4, "sensorlist", "tessera", "d" * 64, None),
+        (5, "sensorlist/sensors.csv", "file", "e" * 64, "CC BY 4.0"),
     ]
     db.executemany("INSERT INTO source (sid, id, kind, hash, notice) VALUES (?,?,?,?,?)", rows)
     pieces = db.execute("SELECT id FROM source WHERE kind IN ('tessera', 'mosaic') ORDER BY sid")
     assert [r[0] for r in pieces] == ["plant", "sensorlist"]
-    notice = db.execute("SELECT notice FROM source WHERE id = 'sensors.csv'").fetchone()[0]
-    assert notice == "CC BY 4.0"
+    # Decision on #66: one file through two pieces is two rows, each with its piece's notice.
+    same_file = db.execute("SELECT id, notice FROM source WHERE hash = ? ORDER BY sid", ("e" * 64,))
+    assert same_file.fetchall() == [
+        ("plant/sensorlist/sensors.csv", None),
+        ("sensorlist/sensors.csv", "CC BY 4.0"),
+    ]
     assert db.execute("PRAGMA integrity_check").fetchall() == [("ok",)]

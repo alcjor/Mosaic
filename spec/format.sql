@@ -92,8 +92,9 @@ CREATE TABLE header (
 );
 
 -- Tessera: exactly one source. Mosaic: one row per piece (kind tessera or
--- mosaic), every original source of every piece copied with id, kind, hash
--- and notice, and proposals.yaml when proposals are applied (section 3.2).
+-- mosaic), every original source of every piece copied with kind, path,
+-- hash and notice and its id prefixed "<piece>/", and proposals.yaml when
+-- proposals are applied (section 3.2).
 -- Evidence sid names an original source, never a piece.
 -- `path` is informative and not hashed, so moving a file does not change identity.
 CREATE TABLE source (
