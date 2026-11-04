@@ -968,3 +968,13 @@ def test_refuses_json_that_is_not_i_json(
         items[0] = dataclasses.replace(items[0], **{field: text})
         changed = dataclasses.replace(c, **{collection: items})
     _refused(tmp_path, changed, field, words, "(3.1)")
+
+
+def test_writes_header_settings_in_canonical_form(tmp_path: Path) -> None:
+    """The header is not in the knowledge hash, so only reading it back shows this (#62 review)."""
+    c = sample("tessera")
+    header = dataclasses.replace(c.header, settings='{ "b" : 1, "a" : [ 2.0 ] }')
+    sealed = seal(tmp_path / "settings", dataclasses.replace(c, header=header))
+    with _open(sealed.path) as con:
+        settings = con.execute("SELECT settings FROM header").fetchone()[0]
+    assert settings == '{"a":[2],"b":1}'

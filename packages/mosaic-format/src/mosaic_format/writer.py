@@ -579,9 +579,9 @@ def seal(path: str | os.PathLike[str], content: Content) -> Sealed:
     and ``ANALYZE`` and ``VACUUM`` run (section 7.1 step 8). The same content in any order
     gives the same knowledge hash and, with the same SQLite, the same bytes.
     """
-    header = content.header
     _refuse_nul(content)  # refuse bad content before any file exists
     content = _canonical_json(content)
+    header = content.header  # after canonicalizing: settings is written as canonical JSON
     ranked = _rank(content)
     target = create(path, header.kind)
     try:
