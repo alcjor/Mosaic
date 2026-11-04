@@ -36,4 +36,5 @@ knowledge hash of the sealed file. `tests/cases.py` seals the files and fills th
 | `proposal-node-type` | 5.6 | An identity proposal for a node of an undeclared type |
 | `proposal-edge` | 5.6 | An edge proposal for an undeclared edge |
 | `proposal-edge-ends` | 5.6 | An edge proposal whose `to` has the wrong type |
+| `proposal-same-as-type` | 5.6 | An identity proposal for an `Item` whose `same_as` names a `Group` id |
 | `proposal-node-missing` | 5.6 | An edge proposal to a node the `built_from` mosaic does not have |

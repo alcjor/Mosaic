@@ -213,6 +213,71 @@ def test_an_undeclared_type_is_not_also_reported_as_a_wrong_end(tmp_path: Path) 
     assert rules(report) == ["proposal-node-type"]
 
 
+# --- Identity proposals: ids in same_as have the type of the node (sections 5.5, 5.6, #58) --
+
+
+def test_same_as_names_and_undeclared_prefixes_are_unchecked(tmp_path: Path) -> None:
+    # Plain names, an id of the node's own type, and `Foo:1` whose `Foo` is not a declared
+    # type are all accepted, with every rule run.
+    pattern, proposals, piece, built = valid_case(tmp_path)
+    text = proposals.read_text("utf-8")
+    write(proposals, text.replace("same_as: [a-one]", "same_as: [a-one, A1, Item:b, Foo:1]"))
+    report = check_pattern(pattern, proposals=proposals, pieces=[piece], built_from=built)
+    assert report == Report((), ())
+
+
+def test_a_same_as_id_of_another_declared_type_is_rejected(tmp_path: Path) -> None:
+    pattern, proposals, piece, built = valid_case(tmp_path)
+    text = proposals.read_text("utf-8")
+    write(proposals, text.replace("same_as: [a-one]", "same_as: [a-one, Group:g, Item:b]"))
+    report = check_pattern(pattern, proposals=proposals, pieces=[piece], built_from=built)
+    assert rules(report) == ["proposal-same-as-type"]
+    violation = report.violations[0]
+    assert violation.where == "proposals/0/same_as/1"
+    assert violation.line == 8
+    assert "'Group:g'" in violation.message
+    assert "Item" in violation.message
+    assert "[proposal-same-as-type, section 5.6]" in str(violation)
+
+
+def test_each_same_as_id_of_another_type_is_reported(tmp_path: Path) -> None:
+    pattern, proposals, piece, built = valid_case(tmp_path)
+    text = proposals.read_text("utf-8")
+    block = "same_as:\n      - Group:g\n      - a-one\n      - Group:h"
+    write(proposals, text.replace("same_as: [a-one]", block))
+    report = check_pattern(pattern, proposals=proposals, pieces=[piece], built_from=built)
+    assert rules(report) == ["proposal-same-as-type", "proposal-same-as-type"]
+    assert [v.where for v in report.violations] == [
+        "proposals/0/same_as/0",
+        "proposals/0/same_as/2",
+    ]
+    assert [v.line for v in report.violations] == [9, 11]
+
+
+def test_the_type_is_the_whole_prefix_before_the_first_colon(tmp_path: Path) -> None:
+    # `Item:x:y` is an Item id; `Group` alone has no colon, so it is a name, not an id.
+    pattern, proposals, piece, built = valid_case(tmp_path)
+    text = proposals.read_text("utf-8")
+    write(proposals, text.replace("same_as: [a-one]", "same_as: ['Item:x:y', Group, Items:1]"))
+    report = check_pattern(pattern, proposals=proposals, pieces=[piece], built_from=built)
+    assert report.ok
+
+
+def test_same_as_is_not_checked_when_the_node_type_is_undeclared(tmp_path: Path) -> None:
+    pattern, proposals, piece, _built = valid_case(tmp_path)
+    text = proposals.read_text("utf-8").replace("node: Item:A", "node: Valve:A")
+    write(proposals, text.replace("same_as: [a-one]", "same_as: [Group:g]"))
+    report = check_pattern(pattern, proposals=proposals, pieces=[piece])
+    assert rules(report) == ["proposal-node-type"]
+
+
+def test_same_as_type_is_checked_without_pieces_or_mosaic(tmp_path: Path) -> None:
+    text = PROPOSALS.read_text("utf-8").replace("same_as: [TMP3]", "same_as: [TMP3, Step:FOP-1]")
+    report = check_pattern(PATTERN, proposals=write(tmp_path / "proposals.yaml", text))
+    assert rules(report) == ["proposal-same-as-type"]
+    assert "proposal-same-as-type" not in report.skipped
+
+
 # --- Reporting -------------------------------------------------------------------------------
 
 
