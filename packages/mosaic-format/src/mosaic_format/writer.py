@@ -16,10 +16,16 @@ Sealing then writes the derived tables, computes both hashes, writes the header 
 
 The writer refuses, with an error naming the row, content it cannot rank or resolve: a
 reference to a node, edge, source or type that is not given; two rows with one identity; two
-evidence rows of one subject with the same source and locator, which section 3.6 gives no
-order; mentions in a mosaic and vectors in a tessera (section 3.2); vectors that are not one
-per node. Every other rule is left to the schema's constraints and the checker. A failed
-write leaves no file behind, and an existing file is never overwritten.
+evidence rows equal in every ranked column (below), which no order can tell apart; mentions in
+a mosaic and vectors in a tessera (section 3.2); vectors that are not one per node.
+
+Evidence of one subject with the same source and locator is ranked by the rest of the row,
+``(prop, method, producer, confidence, via)``, with NULL before any value and ``confidence``
+compared by its hashed value ``CAST(round(confidence*1000000) AS INTEGER)`` (decision on
+issue #41). Builders merge exact duplicates before writing.
+
+Every other rule is left to the schema's constraints and the checker. A failed write leaves no
+file behind, and an existing file is never overwritten.
 """
 
 import os
@@ -32,7 +38,7 @@ from typing import NamedTuple
 
 from mosaic_format import FORMAT_VERSION
 from mosaic_format.file import SIDECARS, create
-from mosaic_format.hashes import knowledge_hash, vector_hash
+from mosaic_format.hashes import knowledge_hash, quote_confidence, vector_hash
 
 PLACEHOLDER_HASH = "0" * 64
 """Written into the header until the knowledge hash, which does not cover it, is known."""
@@ -209,6 +215,23 @@ def _nocase(raw: bytes) -> bytes:
     return raw.translate(_ASCII_LOWER)
 
 
+def _nullable[T](
+    value: T | None, rank: Callable[[T, str], object], where: str
+) -> tuple[()] | tuple[object]:
+    """Sort key of a nullable column: NULL before any value, as SQLite orders them."""
+    return () if value is None else (rank(value, where),)
+
+
+def _confidence_rank(value: object, where: str) -> int:
+    """``confidence`` ranks by the value it hashes as, so two rows that hash alike tie."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        value = float(value)  # stored with REAL affinity
+    try:
+        return int(quote_confidence(value, where=f"{where}: confidence"))
+    except (ValueError, OverflowError) as e:
+        raise ValueError(f"{where}: confidence {value!r} cannot be ranked ({e})") from None
+
+
 def _unique[T, K: Hashable](items: Iterable[T], key: Callable[[T], K], what: str) -> dict[K, T]:
     found: dict[K, T] = {}
     for item in items:
@@ -279,7 +302,7 @@ def _rank(content: Content) -> _Ranked:
     eid = {e.key: i for i, (_, _, e) in enumerate(ordered_edges, start=1)}
 
     ranked_evidence = []
-    seen: dict[tuple[int, int, int, bytes], Evidence] = {}
+    seen: set[tuple[object, ...]] = set()
     for ev in content.evidence:
         if isinstance(ev.subject, EdgeKey):
             name = _edge_name(ev.subject)
@@ -290,13 +313,23 @@ def _rank(content: Content) -> _Ranked:
             name = f"node {ev.subject!r}"
             subject = (0, node_of(ev.subject, f"evidence at {ev.locator!r}"))
         where = f"evidence of {name} at {ev.locator!r}"
-        order = (*subject, source_of(ev.source, where), _utf8(ev.locator, where))
+        order = (
+            *subject,
+            source_of(ev.source, where),
+            _utf8(ev.locator, where),
+            _nullable(ev.prop, _utf8, where),
+            _utf8(ev.method, where),
+            _utf8(ev.producer, where),
+            _nullable(ev.confidence, _confidence_rank, where),
+            _nullable(ev.via, _utf8, where),
+        )
         if order in seen:
             raise ValueError(
-                f"{where}: two evidence rows of {name} share source {ev.source!r} and locator "
-                f"{ev.locator!r}, which section 3.6 gives no order"
+                f"{where}: two evidence rows of {name} from source {ev.source!r} at locator "
+                f"{ev.locator!r} are equal in prop, method, producer, confidence and via; "
+                "merge them before writing"
             )
-        seen[order] = ev
+        seen.add(order)
         ranked_evidence.append((order, ev))
     ranked_evidence.sort(key=lambda r: r[0])
     ordered_evidence = [
