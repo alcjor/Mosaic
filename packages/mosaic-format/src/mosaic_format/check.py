@@ -202,10 +202,6 @@ class _Checker:
         subject = self.node_name(nid) if nid is not None else self.edge_name(eid)
         return f"of {subject} from source {_q(source)} at {_q(locator)}"
 
-    def source_name(self, sid: object) -> str:
-        found = self.rows("SELECT id FROM source WHERE sid = ?", (sid,))
-        return _q(found[0][0]) if found else f"row {sid} (missing)"
-
     # --- section 3.1: container and constraints ---------------------------------------------
 
     def container(self) -> None:
