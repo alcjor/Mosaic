@@ -1372,6 +1372,7 @@ Tesserae and mosaics share one file format. The header's `kind` says which profi
 - The page size SHOULD be 4096.
 - The file MUST contain exactly the tables, indexes, virtual tables and views of `format.sql`, with the same definitions, and nothing else apart from SQLite's internal tables (`sqlite_stat1` MAY be present).
 - Readers MUST support SQLite's FTS5 extension.
+- Text values MUST NOT contain U+0000, in any table or column, JSON text included. SQLite reads text as ending at the first U+0000 in many places (`quote()`, `length()`), so such text would be hashed and read truncated. A JSON `\u0000` escape is six ASCII characters and is allowed.
 
 #### 3.2 Tables
 
@@ -1452,7 +1453,7 @@ Text is ordered by its UTF-8 bytes (SQLite `BINARY`), and NULL before any value.
 | `source_text` | `sid, text` | `sid` |
 | `external_ref` | `xid, nid, system, kind, locator, sid` | `xid` |
 
-Each part starts with `#`, the part name and a newline (0x0A). Each row is its column values encoded as SQLite's `quote()` would, joined by commas, followed by a newline: NULL as `NULL`, integers in decimal, text in single quotes with inner quotes doubled, blobs as `X'` uppercase hex `'`. The column `confidence` is encoded as `quote(CAST(round(confidence*1000000) AS INTEGER))`, because `quote()` does not print every REAL the same way across SQLite versions. An implementation MAY compute the string in SQL; the result MUST be byte-identical. `link_count` and `search` are derived and not hashed; a checker verifies them against the hashed tables.
+Each part starts with `#`, the part name and a newline (0x0A). Each row is its column values encoded as SQLite's `quote()` would, joined by commas, followed by a newline: NULL as `NULL`, integers in decimal, text in single quotes with inner quotes doubled (text never contains U+0000, section 3.1), blobs as `X'` uppercase hex `'`. The column `confidence` is encoded as `quote(CAST(round(confidence*1000000) AS INTEGER))`, because `quote()` does not print every REAL the same way across SQLite versions. An implementation MAY compute the string in SQL; the result MUST be byte-identical. `link_count` and `search` are derived and not hashed; a checker verifies them against the hashed tables.
 
 #### 3.7 Vector layer
 

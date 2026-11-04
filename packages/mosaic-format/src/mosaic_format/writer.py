@@ -17,7 +17,8 @@ Sealing then writes the derived tables, computes both hashes, writes the header 
 The writer refuses, with an error naming the row, content it cannot rank or resolve: a
 reference to a node, edge, source or type that is not given; two rows with one identity; two
 evidence rows equal in every ranked column (below), which no order can tell apart; mentions in
-a mosaic and vectors in a tessera (section 3.2); vectors that are not one per node.
+a mosaic and vectors in a tessera (section 3.2); vectors that are not one per node; text that
+contains U+0000 (section 3.1, decision on issue #39).
 
 Evidence of one subject with the same source and locator is ranked by the rest of the row,
 ``(prop, method, producer, confidence, via)``, with NULL before any value and ``confidence``
@@ -32,7 +33,7 @@ import os
 import sqlite3
 from collections import Counter, defaultdict
 from collections.abc import Callable, Hashable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import NamedTuple
 
@@ -198,6 +199,55 @@ class Sealed:
     path: Path
     knowledge_hash: str
     vector_hash: str | None = None
+
+
+type _InputRow = (
+    Header | Source | Type | Node | Edge | Alias | Evidence | Mention | ExternalRef | Vector
+)
+
+
+def _row_name(row: _InputRow) -> str:
+    """How an error names an input row, as the writer's other refusals do."""
+    match row:
+        case Header():
+            return "header"
+        case Source(id=id_):
+            return f"source {id_!r}"
+        case Type(name=name):
+            return f"type {name!r}"
+        case Node(id=id_):
+            return f"node {id_!r}"
+        case Edge():
+            return _edge_name(row.key)
+        case Alias(text=text, node=node):
+            return f"alias {text!r} of node {node!r}"
+        case Evidence(locator=locator):
+            return f"evidence at {locator!r}"
+        case Mention(locator=locator):
+            return f"mention at {locator!r}"
+        case ExternalRef(locator=locator, node=node):
+            return f"external_ref {locator!r} of node {node!r}"
+        case Vector(node=node):
+            return f"vector of node {node!r}"
+
+
+def _refuse_nul(content: Content) -> None:
+    """Section 3.1 (decision on #39): no text value contains U+0000.
+
+    SQLite reads text as ending at the first U+0000 (``quote()``, ``length()``), so such text
+    would be hashed and read truncated. The writer must not change content, so it refuses.
+    """
+    c = content
+    rows: list[_InputRow] = [c.header, *c.sources, *c.types, *c.nodes, *c.edges, *c.aliases]
+    rows += [*c.evidence, *c.mentions, *c.external_refs, *c.vectors]
+    for row in rows:
+        for field in fields(row):
+            value = getattr(row, field.name)
+            parts = value if isinstance(value, EdgeKey) else (value,)
+            if any(isinstance(part, str) and "\x00" in part for part in parts):
+                raise ValueError(
+                    f"{_row_name(row)}: {field.name} contains U+0000, which text never holds (3.1)"
+                )
 
 
 def _utf8(text: str, where: str) -> bytes:
@@ -487,7 +537,8 @@ def seal(path: str | os.PathLike[str], content: Content) -> Sealed:
     gives the same knowledge hash and, with the same SQLite, the same bytes.
     """
     header = content.header
-    ranked = _rank(content)  # refuse bad content before any file exists
+    _refuse_nul(content)  # refuse bad content before any file exists
+    ranked = _rank(content)
     target = create(path, header.kind)
     try:
         con = sqlite3.connect(target, isolation_level=None)

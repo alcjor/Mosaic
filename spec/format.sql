@@ -7,7 +7,8 @@
 --
 -- A file is one SQLite 3 database with no journal or WAL beside it, page size
 -- 4096, containing exactly the objects below (plus SQLite's internal tables and
--- optionally sqlite_stat1). Readers MUST support FTS5.
+-- optionally sqlite_stat1). Readers MUST support FTS5. No text value in any
+-- table contains U+0000 (section 3.1); the checker verifies it.
 --
 -- ---------------------------------------------------------------------------
 -- CANONICAL ORDER (section 3.6)
@@ -50,7 +51,8 @@
 -- Each part starts with '#', the part name and a newline (0x0A). Each row is
 -- its column values encoded as SQLite's quote() would, joined by ',', followed
 -- by a newline: NULL as NULL, integers in decimal, text in single quotes with
--- inner quotes doubled, blobs as X'<uppercase hex>'. The column `confidence`
+-- inner quotes doubled (text never contains U+0000, so quote() sees all of
+-- it), blobs as X'<uppercase hex>'. The column `confidence`
 -- is encoded as quote(CAST(round(confidence*1000000) AS INTEGER)).
 -- link_count and search are derived and not hashed; a checker verifies them.
 --
