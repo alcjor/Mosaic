@@ -91,7 +91,10 @@ CREATE TABLE header (
     CHECK (kind = 'tessera' OR (pattern_hash IS NOT NULL AND target IS NOT NULL AND ai_model IS NULL))
 );
 
--- Sources (tessera: exactly one) or pieces (mosaic: one per piece).
+-- Tessera: exactly one source. Mosaic: one row per piece (kind tessera or
+-- mosaic), every original source of every piece copied with id, kind, hash
+-- and notice, and proposals.yaml when proposals are applied (section 3.2).
+-- Evidence sid names an original source, never a piece.
 -- `path` is informative and not hashed, so moving a file does not change identity.
 CREATE TABLE source (
     sid    INTEGER PRIMARY KEY,

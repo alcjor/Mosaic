@@ -49,6 +49,7 @@ Tesserae and mosaics share one file format. The header's `kind` says which profi
 - The page size SHOULD be 4096.
 - The file MUST contain exactly the tables, indexes, virtual tables and views of `format.sql`, with the same definitions, and nothing else apart from SQLite's internal tables (`sqlite_stat1` MAY be present).
 - Readers MUST support SQLite's FTS5 extension.
+- Every row MUST satisfy the constraints `format.sql` declares (`CHECK`, `NOT NULL`, `UNIQUE`, foreign keys). SQLite does not re-check them when a file is opened; `PRAGMA integrity_check` and `PRAGMA foreign_key_check` find rows that break them.
 - Text values MUST NOT contain U+0000, in any table or column, JSON text included. SQLite reads text as ending at the first U+0000 in many places (`quote()`, `length()`), so such text would be hashed and read truncated. A JSON `\u0000` escape is six ASCII characters and is allowed.
 
 #### 3.2 Tables
@@ -56,7 +57,7 @@ Tesserae and mosaics share one file format. The header's `kind` says which profi
 | Table | Holds | Profile |
 | --- | --- | --- |
 | `header` | One row describing the file | Both |
-| `source` | Sources (tessera) or pieces (mosaic), with hash and notice | Both |
+| `source` | Tessera: its one source. Mosaic: its pieces and their original sources (below). Each with hash and notice | Both |
 | `type` | Declared node and edge types | Both |
 | `node`, `edge`, `alias` | The graph | Both |
 | `evidence`, `snippet` | Provenance and source passages | Both |
@@ -66,6 +67,8 @@ Tesserae and mosaics share one file format. The header's `kind` says which profi
 | `search` | FTS5 index over labels, aliases, summaries and snippets | Both |
 | `source_text` | The entire text of each text source, one row per source, only in the full text tier | Both |
 | `external_ref` | Keys into data that stays outside, per node (section 3.10) | Both, optional |
+
+In a mosaic, `source` holds one row per piece (kind `tessera` or `mosaic`); every original source of every piece, that is every row of the piece's own `source` whose kind is not `tessera` or `mosaic`, copied with its `id`, `kind`, `hash` and `notice`; and `proposals.yaml` (kind `file`) when accepted proposals are applied. The pieces are exactly the rows of kind `tessera` or `mosaic`. Notices travel with the source they belong to, so a mosaic carries the notices of every piece (invariant 15).
 
 `search` holds one row per node, with `rowid = nid`. `label` and `summary` hold the node's label and summary; `aliases` holds its aliases in alias order (section 3.6), and `snippets` the snippets of its own evidence rows that the file keeps, in `evid` order. Several values in one column are joined by a newline (U+000A), and a column with nothing to hold is NULL. Snippets of edge evidence are not indexed. A newline does not stop phrase matching, so a phrase can span two aliases or two snippets; exact alias matches are ranked ahead of full-text hits (section 8.5).
 
@@ -100,7 +103,8 @@ The `header` table MUST hold exactly one row with `one = 1`.
 - Every node and every edge MUST have at least one evidence row; each row has exactly one subject (`nid` or `eid`).
 - `method` is `extracted` or `inferred`. An extracted row MUST have NULL `confidence`; an inferred row MUST have a confidence from 0 to 1.
 - A locator is a `;`-separated list of `name=value` pairs, most specific last, from: `file`, `row`, `line`, `page`, `section`, `chars` (as `start-end`), `field`, `entry`, `message`, `param`. Builders MAY add names; readers MUST keep unknown ones.
-- In a mosaic, `via` lists, as a JSON array, the knowledge hashes of the mosaic pieces the evidence passed through, in order; NULL when it came straight from a tessera.
+- Evidence `sid` names the original source of the fact, never a piece (section 3.2).
+- In a mosaic, `via` lists, as a JSON array, the knowledge hashes of the mosaics the evidence passed through, innermost first, so its last hash is a mosaic piece of this file; NULL when it came straight from a tessera. A mosaic without mosaic pieces has no `via`.
 - Two evidence rows MUST NOT be equal in all of `nid`, `eid`, `prop`, `sid`, `locator`, `method`, `producer`, `confidence` and `via`, with NULL equal to NULL and `confidence` compared as it is hashed (section 3.6). The same citation can still appear more than once when another of these columns differs, for example when it reaches a mosaic through two pieces and so differs only in `via`. Builders merge exact duplicates before writing.
 
 #### 3.6 Canonical order and knowledge hash
@@ -153,7 +157,7 @@ A reader that does not support the file's embedding model MUST still open it and
 
 #### 3.9 Invariants
 
-A checker MUST verify, for both profiles: one header row with a supported version; declared types for every node and edge, with edges joining nodes of the declared from and to types; edges pointing at nodes in the same file; at least one evidence row per node and edge; confidence present exactly on inferred rows; canonical order and a matching knowledge hash. For a mosaic additionally: node ids of the form `<type>:<key>`; every piece in `source` pinned by hash; `via` present where evidence passed through a mosaic; link counts equal to the edges they count; when vectors are present, one per node and a matching vector hash; notices of every piece carried. For a tessera additionally: exactly one source, never a mosaic; unique node ids. These are invariants 1 to 15 of Part 2.
+A checker MUST verify, for both profiles: that rows satisfy the constraints of `format.sql` (section 3.1); one header row with a supported version; declared types for every node and edge, with edges joining nodes of the declared from and to types; edges pointing at nodes in the same file; at least one evidence row per node and edge; confidence present exactly on inferred rows; canonical order and a matching knowledge hash. For a mosaic additionally: node ids of the form `<type>:<key>`, and a key property (`key_prop`) on every node type; every piece in `source` pinned by hash; `via` present where evidence passed through a mosaic; link counts equal to the edges they count; when vectors are present, one per node and a matching vector hash; notices of every piece carried, that is every original source of every piece with the same hash and notice, which a checker verifies for the pieces it is given; and `via` whose last hash is a mosaic piece of the file. For a tessera additionally: exactly one source, never a mosaic; unique node ids. These are invariants 1 to 15 of Part 2, except invariant 9 (a rule-based tessera is deterministic), which one file cannot show and the tessera builder tests. "Matches the pattern" in invariant 11 is checked when the pattern is given (section 5.6).
 
 #### 3.10 External references
 
