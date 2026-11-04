@@ -9,6 +9,7 @@
   "file_size": 16300000,
   "counts": {"nodes": {"Sensor": 412}, "edges": {"reads": 1290}},
   "conflicts": [{"node": "Sensor:TEMP-3", "property": "unit", "winner": {"value": "°C", "piece": "sensorlist"}, "losers": [{"value": "°F", "piece": "manual"}]}],
+  "alias_conflicts": [{"node": "Sensor:TEMP-3", "winner": {"value": "TEMP-3", "piece": "sensorlist"}, "losers": [{"value": "temp-3", "piece": "manual"}]}],
   "stale_references": [{"name": "TEMP_03", "type": "Sensor", "piece": "code", "locator": "file=src/io.c;line=88"}],
   "mentions": [{"status": "unmatched", "role": "verify_tm.arg0", "text": "TMP3", "piece": "procedures", "locator": "line=14", "candidates": []}],
   "weak_ids": [{"type": "Section", "count": 935}],

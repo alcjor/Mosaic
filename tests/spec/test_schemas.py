@@ -288,3 +288,39 @@ def test_answers_accept(answer: dict[str, Any]) -> None:
 )
 def test_answers_reject(answer: dict[str, Any]) -> None:
     assert not _validator("answers").is_valid(answer)
+
+
+def _alias_conflict_variants() -> list[tuple[str, dict[str, Any]]]:
+    """Alias conflicts (section 7.2, decision on #47): broken shapes the schema must reject."""
+    base = _load("build-report.json")
+    entry = base["alias_conflicts"][0]
+    variants = []
+
+    def with_entry(label: str, changed: dict[str, Any]) -> None:
+        doc = copy.deepcopy(base)
+        doc["alias_conflicts"] = [changed]
+        variants.append((label, doc))
+
+    missing = copy.deepcopy(base)
+    del missing["alias_conflicts"]
+    variants.append(("alias_conflicts missing", missing))
+    with_entry("no losers", {**entry, "losers": []})
+    with_entry("a property name", {**entry, "property": "alias"})
+    with_entry("a non-text spelling", {**entry, "winner": {"value": 3, "piece": "sensorlist"}})
+    with_entry("an empty spelling", {**entry, "winner": {"value": "", "piece": "sensorlist"}})
+    with_entry("no piece", {**entry, "losers": [{"value": "temp-3"}]})
+    return variants
+
+
+@pytest.mark.parametrize(
+    ("label", "doc"), _alias_conflict_variants(), ids=lambda x: x if isinstance(x, str) else ""
+)
+def test_broken_alias_conflicts_rejected(label: str, doc: dict[str, Any]) -> None:
+    assert not _validator("build-report").is_valid(doc), label
+
+
+def test_alias_conflict_from_a_proposal_validates() -> None:
+    report = _load("build-report.json")
+    loser = {"value": "Temp-3", "piece": "proposals.yaml"}
+    report["alias_conflicts"][0]["losers"].append(loser)
+    assert _validator("build-report").is_valid(report)
