@@ -243,6 +243,12 @@ def test_text_that_is_not_utf8_is_a_yaml_violation(tmp_path: Path) -> None:
     assert "UTF-8" in report.violations[0].message
 
 
+@pytest.mark.parametrize("text", ["format: " + "1" * 5000 + "\n", "[" * 2000])
+def test_hostile_yaml_is_a_violation_not_a_crash(text: str, tmp_path: Path) -> None:
+    report = check_pattern(write(tmp_path / "p.yaml", text))
+    assert rules(report) == ["yaml"]
+
+
 def test_a_violation_names_file_line_place_rule_and_section() -> None:
     v = Violation(file="p.yaml", line=3, where="types/T", rule="from-piece", message="m")
     assert str(v) == "p.yaml:3: types/T: m [from-piece, section 5.6]"

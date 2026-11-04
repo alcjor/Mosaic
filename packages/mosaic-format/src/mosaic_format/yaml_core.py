@@ -32,6 +32,12 @@ from ruamel.yaml.events import (
 MAX_VALUES = 100_000
 """The most values a document may expand to, aliases counted at each use (section 10)."""
 
+MAX_DEPTH = 64
+"""The deepest a document may nest collections (section 10); the schemas need fewer than 10."""
+
+MAX_DIGITS = 1000
+"""The most characters a number may have; Python refuses longer decimal integers anyway."""
+
 type Path = tuple[str | int, ...]
 """Where a value lies in the document: mapping keys and sequence indexes from the root."""
 
@@ -73,19 +79,32 @@ class Document:
         return None
 
 
+class _TooLong(ValueError):
+    """A number longer than :data:`MAX_DIGITS`."""
+
+
+def _long(text: str) -> str:
+    if len(text) > MAX_DIGITS:
+        raise _TooLong(text[:20])
+    return text
+
+
 def _int(text: str) -> int | None:
     if _INT.fullmatch(text):
+        _long(text)
         return int(text, 10)
     if _OCT.fullmatch(text):
+        _long(text)
         return int(text[2:], 8)
     if _HEX.fullmatch(text):
+        _long(text)
         return int(text[2:], 16)
     return None
 
 
 def _float(text: str) -> float | None:
     if _FLOAT.fullmatch(text):
-        return float(text)
+        return float(_long(text))
     if _INF.fullmatch(text):
         return -math.inf if text.startswith("-") else math.inf
     if _NAN.fullmatch(text):
@@ -157,6 +176,8 @@ class _Builder:
     def value(self, event: Event, path: Path) -> tuple[object, int]:
         """Build the value that starts at ``event`` and return it with its size in values."""
         self.lines.setdefault(path, event.start_mark.line + 1)
+        if len(path) > MAX_DEPTH:
+            raise self.fail(event, f"nested more than {MAX_DEPTH} levels deep")
         if isinstance(event, AliasEvent):
             anchor = str(event.anchor)
             if anchor not in self.anchors:
@@ -185,6 +206,12 @@ class _Builder:
             raise self.fail(event, f"tag {tag} is not a tag of the YAML 1.2 core schema")
 
     def scalar(self, event: ScalarEvent) -> object:
+        try:
+            return self.resolve_scalar(event)
+        except _TooLong:
+            raise self.fail(event, f"a number of more than {MAX_DIGITS} characters") from None
+
+    def resolve_scalar(self, event: ScalarEvent) -> object:
         text = str(event.value)
         tag = None if event.tag is None else str(event.tag)
         if tag is None:

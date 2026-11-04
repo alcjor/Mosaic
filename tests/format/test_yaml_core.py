@@ -124,6 +124,32 @@ def test_alias_expansion_is_bounded() -> None:
     assert "too large" in str(error)
 
 
+@pytest.mark.parametrize(
+    "number",
+    ["1" * 5000, "0x" + "f" * 5000, "0o" + "7" * 5000, "1." + "5" * 5000, "!!int " + "1" * 5000],
+)
+def test_overlong_numbers_are_rejected(number: str) -> None:
+    error = _error(f"v: {number}\n")
+    assert error.rule == "yaml"
+    assert "more than 1000 characters" in str(error)
+
+
+def test_long_text_that_is_not_a_number_is_kept() -> None:
+    assert load(f"v: {'1' * 5000}x\n", "f.yaml").data == {"v": "1" * 5000 + "x"}
+    assert load(f"v: '{'1' * 5000}'\n", "f.yaml").data == {"v": "1" * 5000}
+
+
+@pytest.mark.parametrize("text", ["[" * 2000, "a: " + "[" * 65 + "]" * 65 + "\n"])
+def test_deep_nesting_is_rejected(text: str) -> None:
+    error = _error(text)
+    assert error.rule == "yaml"
+    assert "nested more than 64 levels" in str(error)
+
+
+def test_nesting_up_to_the_limit_is_read() -> None:
+    assert load("[" * 64 + "]" * 64 + "\n", "f.yaml").data is not None
+
+
 def test_an_empty_file_is_null() -> None:
     assert load("", "f.yaml").data is None
     assert load("# only a comment\n", "f.yaml").data is None
