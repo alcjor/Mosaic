@@ -143,7 +143,24 @@ def test_long_text_that_is_not_a_number_is_kept() -> None:
     assert load(f"v: '{'1' * 5000}'\n", "f.yaml").data == {"v": "1" * 5000}
 
 
-@pytest.mark.parametrize("text", ["[" * 2000, "a: " + "[" * 65 + "]" * 65 + "\n"])
+def _alias_chain(links: int) -> str:
+    """Each anchor wraps the one before: two levels deep in the text, ``links + 1`` in the data."""
+    lines = ["- &a0 [x]"] + [f"- &a{k} [*a{k - 1}]" for k in range(1, links + 1)]
+    return "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "[" * 2000,
+        "[" * 65 + "]" * 65 + "\n",
+        "a: " + "[" * 64 + "]" * 64 + "\n",
+        _alias_chain(400),
+        _alias_chain(63),
+        "a: &x " + "[" * 40 + "]" * 40 + "\nb: " + "[" * 24 + "*x" + "]" * 24 + "\n",
+    ],
+    ids=["2000", "65", "64 under a key", "alias chain 400", "alias chain 63", "alias in deep"],
+)
 def test_deep_nesting_is_rejected(text: str) -> None:
     error = _error(text)
     assert error.rule == "yaml"
@@ -152,6 +169,13 @@ def test_deep_nesting_is_rejected(text: str) -> None:
 
 def test_nesting_up_to_the_limit_is_read() -> None:
     assert load("[" * 64 + "]" * 64 + "\n", "f.yaml").data is not None
+    assert load("a: " + "[" * 63 + "]" * 63 + "\n", "f.yaml").data is not None
+    # The outer sequence and 63 nested lists: 64 levels.
+    data = load(_alias_chain(62), "f.yaml").data
+    inner, levels = data, 0
+    while isinstance(inner, list):
+        inner, levels = inner[-1], levels + 1
+    assert (inner, levels) == ("x", 64)
 
 
 def test_an_empty_file_is_null() -> None:
