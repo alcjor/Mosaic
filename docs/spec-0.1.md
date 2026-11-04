@@ -288,8 +288,8 @@ A mosaic builder takes pieces, a pattern, optional proposals and a target name, 
 #### 7.1 Steps
 
 1. **Check.** Validate the pattern and proposals (section 5). Resolve each piece by hash and open it by the reading rules (section 3.8). Any failure stops the build.
-2. **Map.** For each `types.<T>.from` entry, turn every node of that piece type into a canonical node of type `T`: copy the mapped fields, take the key, apply `strip` and the normalisation steps. A node of a mosaic piece is mapped the same way, its id treated as a source key; its old id becomes an alias.
-3. **Merge.** Nodes of the same type and key are one node. For each property, the value from the earliest piece in `pieces` wins; a different value from a later piece is a conflict for the report. Aliases and external references are the union of all sources. Every original evidence row is kept for step 6.
+2. **Map.** For each `types.<T>.from` entry, turn every node of that piece type into a canonical node of type `T`: copy the mapped fields, take the key, apply `strip` and the normalisation steps. A node of a mosaic piece is mapped the same way, its id treated as a source key; its old id becomes an alias with `origin = pattern`.
+3. **Merge.** Nodes of the same type and key are one node. For each property, the value from the earliest piece in `pieces` wins; a different value from a later piece is a conflict for the report. External references are the union of all sources. Aliases are their union too, except that aliases of one node that are equal under `NOCASE` are one alias: the first added in build order keeps its spelling and `origin`. Build order is the pieces in `pieces` order, each with its own aliases in its alias order and then the aliases step 2 makes from it (the key as written, then a mosaic piece's old id), followed by accepted identity proposals (step 4) in the order of the proposals file. A losing alias spelled differently from the winner is an alias conflict for the report; one that differs only in `origin` is not. Every original evidence row is kept for step 6.
 4. **Apply identity proposals** that are accepted (section 5.5).
 5. **Link.** Make edges from `map` entries, then from mention rules, then from accepted edge proposals. Duplicate edges are one edge with all their evidence.
 6. **Select for the target.** Keep node types in `types` and edges between kept nodes; drop inferred facts below the trust policy; keep evidence by the evidence setting; keep snippets by the text tier. Drop anything left without evidence.
@@ -305,6 +305,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 | Outcome | `built` or `failed`, with the reason |
 | Hashes and size | Knowledge hash, vector hash, file size, node and edge counts per type |
 | Conflicts | Node, property, winning value and piece, losing values and pieces; clashes on label and summary only when the target is strict |
+| Alias conflicts | Node, kept alias spelling and its piece, lost spellings and their pieces (`proposals.yaml` for a proposal); only aliases equal under `NOCASE` but spelled differently (section 7.1 step 3) |
 | Stale references | Names that resolve to nothing, with the piece and locator that use them; no new-key hint in 0.1 |
 | Mentions | Unmatched and ambiguous mentions, by role, with locator |
 | Weak ids | Types whose keys came from position rather than a natural key |
@@ -314,7 +315,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 #### 7.3 Decisions (1 November 2026)
 
 - **Label and summary clashes** are resolved by piece order like any property, and reported only when the target is `strict`. Clashes on other properties are always reported.
-- **Strict mode:** a target with `strict: true` fails on any conflict or unmatched mention, and writes the build report but no mosaic. Off by default.
+- **Strict mode:** a target with `strict: true` fails on any conflict, alias conflict or unmatched mention, and writes the build report but no mosaic. Off by default.
 - **`text: full`** keeps snippets plus the entire text of each text source, once per source, in `source_text` (section 3.2, part of the knowledge hash in section 3.6). `cite` still returns the snippet; a kit MAY return a wider passage from `source_text` using the evidence locator's `chars` range.
 - **Stale references** get no new-key hint in 0.1; the report lists the stale name, the piece and the locator.
 - **The build report** is JSON, valid against `build-report.schema.json` (draft 2020-12), a fourth normative file. Its shape:
@@ -331,6 +332,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
   "file_size": 16300000,
   "counts": {"nodes": {"Sensor": 412}, "edges": {"reads": 1290}},
   "conflicts": [{"node": "Sensor:TEMP-3", "property": "unit", "winner": {"value": "°C", "piece": "sensorlist"}, "losers": [{"value": "°F", "piece": "manual"}]}],
+  "alias_conflicts": [{"node": "Sensor:TEMP-3", "winner": {"value": "TEMP-3", "piece": "sensorlist"}, "losers": [{"value": "temp-3", "piece": "manual"}]}],
   "stale_references": [{"name": "TEMP_03", "type": "Sensor", "piece": "code", "locator": "file=src/io.c;line=88"}],
   "mentions": [{"status": "unmatched", "role": "verify_tm.arg0", "text": "TMP3", "piece": "procedures", "locator": "line=14", "candidates": []}],
   "weak_ids": [{"type": "Section", "count": 935}],
@@ -339,7 +341,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 }
 ```
 
-`outcome` is `built` or `failed`; `reason` is NULL when built, otherwise one of `invalid_input`, `piece_mismatch`, `over_budget`, `strict`. A mention's `status` is `unmatched` or `ambiguous`, with the matching node ids in `candidates` when ambiguous. A proposal's `status` is `outdated` or `no_longer_applies`. Lists are sorted (conflicts by node and property, the rest by piece and locator) so the same build gives the same report.
+`outcome` is `built` or `failed`; `reason` is NULL when built, otherwise one of `invalid_input`, `piece_mismatch`, `over_budget`, `strict`. A mention's `status` is `unmatched` or `ambiguous`, with the matching node ids in `candidates` when ambiguous. A proposal's `status` is `outdated` or `no_longer_applies`. Lists are sorted (conflicts by node and property, alias conflicts by node and winning spelling, the rest by piece and locator) so the same build gives the same report.
 
 ### 8. Kit interface
 

@@ -2,13 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mosaic.invalid/spec/0.1/build-report.schema.json",
   "title": "Mosaic build report 0.1 (draft)",
-  "description": "Shape of build-report.json (Specification 0.1, sections 7.2 and 7.3). Lists are sorted (conflicts by node and property, the rest by piece and locator) so the same build gives the same report; sorting is checked by tests, not by this schema.",
+  "description": "Shape of build-report.json (Specification 0.1, sections 7.2 and 7.3). Lists are sorted (conflicts by node and property, alias conflicts by node and winning spelling, the rest by piece and locator) so the same build gives the same report; sorting is checked by tests, not by this schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "format", "outcome", "reason", "target", "pattern_hash",
     "knowledge_hash", "vector_hash", "file_size", "counts",
-    "conflicts", "stale_references", "mentions", "weak_ids", "proposals", "notices"
+    "conflicts", "alias_conflicts", "stale_references", "mentions", "weak_ids", "proposals",
+    "notices"
   ],
   "properties": {
     "format": { "const": "0.1" },
@@ -44,6 +45,19 @@
           "property": { "type": "string" },
           "winner": { "$ref": "#/$defs/valueFromPiece" },
           "losers": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/valueFromPiece" } }
+        }
+      }
+    },
+    "alias_conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node", "winner", "losers"],
+        "properties": {
+          "node": { "type": "string" },
+          "winner": { "$ref": "#/$defs/aliasFromPiece" },
+          "losers": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/aliasFromPiece" } }
         }
       }
     },
@@ -140,6 +154,15 @@
     "countMap": {
       "type": "object",
       "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "aliasFromPiece": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "piece"],
+      "properties": {
+        "value": { "type": "string", "minLength": 1 },
+        "piece": { "type": "string", "minLength": 1 }
+      }
     },
     "valueFromPiece": {
       "type": "object",
