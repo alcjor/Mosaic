@@ -70,6 +70,10 @@ def test_aliases_repeat_the_anchored_value() -> None:
     assert load("a: &x [1, 2]\nb: *x\n", "f.yaml").data == {"a": [1, 2], "b": [1, 2]}
 
 
+def test_an_anchored_key_can_be_repeated_as_a_value() -> None:
+    assert load("&k a: 1\nb: *k\n", "f.yaml").data == {"a": 1, "b": "a"}
+
+
 def _error(text: str) -> YamlError:
     with pytest.raises(YamlError) as caught:
         load(text, "where/f.yaml")
@@ -122,6 +126,56 @@ def test_alias_expansion_is_bounded() -> None:
     error = _error("\n".join(lines) + "\n")
     assert error.rule == "yaml"
     assert "too large" in str(error)
+
+
+@pytest.mark.parametrize(
+    "number",
+    ["1" * 5000, "0x" + "f" * 5000, "0o" + "7" * 5000, "1." + "5" * 5000, "!!int " + "1" * 5000],
+)
+def test_overlong_numbers_are_rejected(number: str) -> None:
+    error = _error(f"v: {number}\n")
+    assert error.rule == "yaml"
+    assert "more than 1000 characters" in str(error)
+
+
+def test_long_text_that_is_not_a_number_is_kept() -> None:
+    assert load(f"v: {'1' * 5000}x\n", "f.yaml").data == {"v": "1" * 5000 + "x"}
+    assert load(f"v: '{'1' * 5000}'\n", "f.yaml").data == {"v": "1" * 5000}
+
+
+def _alias_chain(links: int) -> str:
+    """Each anchor wraps the one before: two levels deep in the text, ``links + 1`` in the data."""
+    lines = ["- &a0 [x]"] + [f"- &a{k} [*a{k - 1}]" for k in range(1, links + 1)]
+    return "\n".join(lines) + "\n"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "[" * 2000,
+        "[" * 65 + "]" * 65 + "\n",
+        "a: " + "[" * 64 + "]" * 64 + "\n",
+        _alias_chain(400),
+        _alias_chain(63),
+        "a: &x " + "[" * 40 + "]" * 40 + "\nb: " + "[" * 24 + "*x" + "]" * 24 + "\n",
+    ],
+    ids=["2000", "65", "64 under a key", "alias chain 400", "alias chain 63", "alias in deep"],
+)
+def test_deep_nesting_is_rejected(text: str) -> None:
+    error = _error(text)
+    assert error.rule == "yaml"
+    assert "nested more than 64 levels" in str(error)
+
+
+def test_nesting_up_to_the_limit_is_read() -> None:
+    assert load("[" * 64 + "]" * 64 + "\n", "f.yaml").data is not None
+    assert load("a: " + "[" * 63 + "]" * 63 + "\n", "f.yaml").data is not None
+    # The outer sequence and 63 nested lists: 64 levels.
+    data = load(_alias_chain(62), "f.yaml").data
+    inner, levels = data, 0
+    while isinstance(inner, list):
+        inner, levels = inner[-1], levels + 1
+    assert (inner, levels) == ("x", 64)
 
 
 def test_an_empty_file_is_null() -> None:

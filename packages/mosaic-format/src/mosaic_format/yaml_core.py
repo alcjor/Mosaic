@@ -11,7 +11,7 @@ import math
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NamedTuple
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import MarkedYAMLError, YAMLError
@@ -31,6 +31,12 @@ from ruamel.yaml.events import (
 
 MAX_VALUES = 100_000
 """The most values a document may expand to, aliases counted at each use (section 10)."""
+
+MAX_DEPTH = 64
+"""The deepest a document may nest collections (section 10); the schemas need fewer than 10."""
+
+MAX_DIGITS = 1000
+"""The most characters a number may have; Python refuses longer decimal integers anyway."""
 
 type Path = tuple[str | int, ...]
 """Where a value lies in the document: mapping keys and sequence indexes from the root."""
@@ -73,19 +79,32 @@ class Document:
         return None
 
 
+class _TooLong(ValueError):
+    """A number longer than :data:`MAX_DIGITS`."""
+
+
+def _long(text: str) -> str:
+    if len(text) > MAX_DIGITS:
+        raise _TooLong(text[:20])
+    return text
+
+
 def _int(text: str) -> int | None:
     if _INT.fullmatch(text):
+        _long(text)
         return int(text, 10)
     if _OCT.fullmatch(text):
+        _long(text)
         return int(text[2:], 8)
     if _HEX.fullmatch(text):
+        _long(text)
         return int(text[2:], 16)
     return None
 
 
 def _float(text: str) -> float | None:
     if _FLOAT.fullmatch(text):
-        return float(text)
+        return float(_long(text))
     if _INF.fullmatch(text):
         return -math.inf if text.startswith("-") else math.inf
     if _NAN.fullmatch(text):
@@ -106,12 +125,20 @@ def _resolve(text: str) -> object:
     return text if real is None else real
 
 
+class _Built(NamedTuple):
+    """A value, how many values it expands to, and how many collections deep it nests."""
+
+    data: object
+    size: int
+    height: int
+
+
 class _Builder:
     def __init__(self, file: str, events: Iterator[Event]) -> None:
         self.file = file
         self.events = events
         self.lines: dict[Path, int] = {}
-        self.anchors: dict[str, tuple[object, int]] = {}
+        self.anchors: dict[str, _Built] = {}
         self.count = 0
 
     def fail(self, event: Event | None, message: str, rule: str = "yaml") -> YamlError:
@@ -148,36 +175,44 @@ class _Builder:
         if version is not None and tuple(version) != (1, 2):
             shown = ".".join(str(part) for part in version)
             raise self.fail(start, f"%YAML {shown}: the file is read as YAML 1.2 only")
-        data, _ = self.value(self.next(), ())
+        data = self.value(self.next(), ()).data
         end = self.next()
         if not isinstance(end, DocumentEndEvent):
             raise self.fail(end, "not a YAML document end")
         return data
 
-    def value(self, event: Event, path: Path) -> tuple[object, int]:
-        """Build the value that starts at ``event`` and return it with its size in values."""
+    def value(self, event: Event, path: Path) -> _Built:
+        """Build the value that starts at ``event``, at nesting level ``len(path)``."""
         self.lines.setdefault(path, event.start_mark.line + 1)
         if isinstance(event, AliasEvent):
             anchor = str(event.anchor)
             if anchor not in self.anchors:
                 raise self.fail(event, f"YAML alias *{anchor} has no anchor")
-            data, size = self.anchors[anchor]
-            self.grow(event, size)
-            return data, size
+            built = self.anchors[anchor]
+            # An alias repeats a value built elsewhere: its nesting counts from here.
+            self.deep(event, len(path) + built.height)
+            self.grow(event, built.size)
+            return built
         if isinstance(event, ScalarEvent):
-            data, size = self.scalar(event), 1
+            built = _Built(self.scalar(event), 1, 0)
             self.grow(event, 1)
         elif isinstance(event, SequenceStartEvent):
             self.collection_tag(event, "seq")
-            data, size = self.sequence(path)
+            self.deep(event, len(path) + 1)
+            built = self.sequence(path)
         elif isinstance(event, MappingStartEvent):
             self.collection_tag(event, "map")
-            data, size = self.mapping(path)
+            self.deep(event, len(path) + 1)
+            built = self.mapping(path)
         else:
             raise self.fail(event, "not a YAML value")
         if event.anchor is not None:
-            self.anchors[str(event.anchor)] = (data, size)
-        return data, size
+            self.anchors[str(event.anchor)] = built
+        return built
+
+    def deep(self, event: Event, levels: int) -> None:
+        if levels > MAX_DEPTH:
+            raise self.fail(event, f"nested more than {MAX_DEPTH} levels deep")
 
     def collection_tag(self, event: Event, kind: str) -> None:
         tag = getattr(event, "tag", None)
@@ -185,6 +220,12 @@ class _Builder:
             raise self.fail(event, f"tag {tag} is not a tag of the YAML 1.2 core schema")
 
     def scalar(self, event: ScalarEvent) -> object:
+        try:
+            return self.resolve_scalar(event)
+        except _TooLong:
+            raise self.fail(event, f"a number of more than {MAX_DIGITS} characters") from None
+
+    def resolve_scalar(self, event: ScalarEvent) -> object:
         text = str(event.value)
         tag = None if event.tag is None else str(event.tag)
         if tag is None:
@@ -208,31 +249,35 @@ class _Builder:
             raise self.fail(event, f"{text!r} is not a value of {short}")
         raise self.fail(event, f"tag {short} is not a tag of the YAML 1.2 core schema")
 
-    def sequence(self, path: Path) -> tuple[list[object], int]:
+    def sequence(self, path: Path) -> _Built:
         items: list[object] = []
-        size = 1
+        size, height = 1, 0
         while not isinstance(event := self.next(), SequenceEndEvent):
-            item, item_size = self.value(event, (*path, len(items)))
-            items.append(item)
-            size += item_size
-        return items, size
+            item = self.value(event, (*path, len(items)))
+            items.append(item.data)
+            size += item.size
+            height = max(height, item.height)
+        return _Built(items, size, height + 1)
 
-    def mapping(self, path: Path) -> tuple[dict[str, object], int]:
+    def mapping(self, path: Path) -> _Built:
         out: dict[str, object] = {}
-        size = 1
+        size, height = 1, 0
         while not isinstance(event := self.next(), MappingEndEvent):
             if not isinstance(event, ScalarEvent):
                 raise self.fail(event, "a mapping key must be text, not a collection")
             key = self.scalar(event)
+            if event.anchor is not None:
+                self.anchors[str(event.anchor)] = _Built(key, 1, 0)
             if not isinstance(key, str):
                 raise self.fail(event, f"a mapping key must be text, not {key!r}; quote it")
             if key in out:
                 raise self.fail(event, f"duplicate key {key!r}", rule="duplicate-key")
             self.lines[(*path, key)] = event.start_mark.line + 1
-            value, value_size = self.value(self.next(), (*path, key))
-            out[key] = value
-            size += value_size
-        return out, size
+            value = self.value(self.next(), (*path, key))
+            out[key] = value.data
+            size += value.size
+            height = max(height, value.height)
+        return _Built(out, size, height + 1)
 
 
 def load(text: str, file: str) -> Document:
