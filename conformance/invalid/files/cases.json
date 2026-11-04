@@ -1,0 +1,146 @@
+{
+  "canonical-json.tessera": {
+    "pieces": [],
+    "rules": [
+      "canonical-json"
+    ]
+  },
+  "constraint.tessera": {
+    "pieces": [],
+    "rules": [
+      "constraint"
+    ]
+  },
+  "container.tessera": {
+    "pieces": [],
+    "rules": [
+      "container"
+    ]
+  },
+  "evidence-duplicate.mosaic": {
+    "pieces": [],
+    "rules": [
+      "evidence-duplicate"
+    ]
+  },
+  "inv-1-no-header.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-1"
+    ]
+  },
+  "inv-1-version.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-1",
+      "constraint"
+    ]
+  },
+  "inv-10-id-form.mosaic": {
+    "pieces": [],
+    "rules": [
+      "inv-10"
+    ]
+  },
+  "inv-11-piece-hash.mosaic": {
+    "pieces": [],
+    "rules": [
+      "inv-11",
+      "constraint"
+    ]
+  },
+  "inv-12-piece-source.mosaic": {
+    "pieces": [],
+    "rules": [
+      "inv-12"
+    ]
+  },
+  "inv-13-link-count.mosaic": {
+    "pieces": [],
+    "rules": [
+      "inv-13"
+    ]
+  },
+  "inv-14-vector-hash.mosaic": {
+    "pieces": [],
+    "rules": [
+      "inv-14"
+    ]
+  },
+  "inv-15-notice.mosaic": {
+    "pieces": [
+      "inv-15-piece.tessera"
+    ],
+    "rules": [
+      "inv-15"
+    ]
+  },
+  "inv-2-no-evidence.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-2"
+    ]
+  },
+  "inv-3-extracted-confidence.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-3",
+      "constraint"
+    ]
+  },
+  "inv-4-edge-ends.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-4"
+    ]
+  },
+  "inv-5-dangling-edge.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-5",
+      "constraint"
+    ]
+  },
+  "inv-6-hash.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-6"
+    ]
+  },
+  "inv-6-order.mosaic": {
+    "pieces": [],
+    "rules": [
+      "inv-6"
+    ]
+  },
+  "inv-7-two-sources.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-7"
+    ]
+  },
+  "profile.tessera": {
+    "pieces": [],
+    "rules": [
+      "profile"
+    ]
+  },
+  "search.tessera": {
+    "pieces": [],
+    "rules": [
+      "search"
+    ]
+  },
+  "text-nul.tessera": {
+    "pieces": [],
+    "rules": [
+      "text-nul"
+    ]
+  },
+  "type-props.tessera": {
+    "pieces": [],
+    "rules": [
+      "type-props"
+    ]
+  }
+}

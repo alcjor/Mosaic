@@ -5,7 +5,7 @@ The normative definitions live in the repository's ``spec/`` directory
 the hashes (``mosaic_format.hashes``), the sealed writer
 (``mosaic_format.writer``), the reader (``mosaic_format.reader``), the pattern checker
 (``mosaic_format.pattern``, imported on its own: it alone needs a YAML parser and a JSON Schema
-validator) and, later, the file checker.
+validator) and the file checker (``mosaic_format.check``).
 """
 
 __version__ = "0.0.0"
