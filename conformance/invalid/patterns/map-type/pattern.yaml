@@ -1,0 +1,22 @@
+# Invalid: the piece declares no edge type gone (section 5.6).
+format: "0.1"
+pieces:
+  - rows@{{hash:rows.tessera}}
+types:
+  Item:
+    key: code
+    from:
+      rows.Row: {code: key}
+  Group:
+    key: name
+    describe: A set of items
+    from:
+      rows.Set: {name: label}
+edges:
+  member:
+    from: Item
+    to: Group
+    map: [rows.gone]
+mosaics:
+  all: {}
+  items: {types: [Item]}

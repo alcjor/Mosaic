@@ -1,0 +1,22 @@
+# Invalid: Item is declared twice (section 5: a reader MUST reject duplicate keys).
+format: "0.1"
+pieces:
+  - rows@0123abcd
+types:
+  Item:
+    key: code
+    from:
+      rows.Row: {code: key}
+  Item:
+    key: name
+    describe: A set of items
+    from:
+      rows.Set: {name: label}
+edges:
+  member:
+    from: Item
+    to: Group
+    map: [rows.in_set]
+mosaics:
+  all: {}
+  items: {types: [Item]}

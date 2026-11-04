@@ -1,0 +1,21 @@
+# Invalid: Group:h is not a node of the built_from mosaic (section 5.6).
+format: "0.1"
+built_from: {{hash:built_from}}
+assistant: helper/1
+proposals:
+  - id: p1
+    kind: identity
+    node: Item:a
+    same_as: [a-one, A1]
+    confidence: 0.8
+    evidence: [{source: notes, locator: page=1, quote: "a-one, also A1"}]
+    decision: open
+  - id: p2
+    kind: edge
+    by: someone
+    type: member
+    from: Item:a
+    to: Group:h
+    evidence: [{source: notes, locator: page=2}]
+    decision: accepted
+    decided_by: someone

@@ -1,0 +1,21 @@
+# Invalid: the edge contains is not declared in edges (section 5.6).
+format: "0.1"
+built_from: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+assistant: helper/1
+proposals:
+  - id: p1
+    kind: identity
+    node: Item:a
+    same_as: [a-one, A1]
+    confidence: 0.8
+    evidence: [{source: notes, locator: page=1, quote: "a-one, also A1"}]
+    decision: open
+  - id: p2
+    kind: edge
+    by: someone
+    type: contains
+    from: Item:a
+    to: Group:g
+    evidence: [{source: notes, locator: page=2}]
+    decision: accepted
+    decided_by: someone
