@@ -32,7 +32,8 @@ def _node_type(node_id: str) -> str:
 
 
 def _proposal_problems(pattern: dict[str, Any], proposals: dict[str, Any]) -> list[str]:
-    """Proposal ids have declared node types; edge proposals match a declared edge."""
+    """Proposal ids have declared node types; edge proposals match a declared edge; identity
+    proposals merge only ids of their node's type (decision on #58)."""
     types = set(pattern["types"])
     problems = []
     for p in proposals["proposals"]:
@@ -40,6 +41,13 @@ def _proposal_problems(pattern: dict[str, Any], proposals: dict[str, Any]) -> li
         problems += [
             f"{p['id']}: {i!r} has no declared type" for i in ids if _node_type(i) not in types
         ]
+        if p["kind"] == "identity":
+            node_type = _node_type(p["node"])
+            problems += [
+                f"{p['id']}: same_as id {name!r} is not a {node_type}"
+                for name in p.get("same_as", [])
+                if _node_type(name) in types and _node_type(name) != node_type
+            ]
         if p["kind"] == "edge":
             edge = pattern.get("edges", {}).get(p["type"])
             if edge is None:
@@ -70,6 +78,7 @@ def test_example_proposals_refer_to_declared_types_and_edges() -> None:
         ({"from": "Sensor:TEMP-3"}, "ends do not match"),
         ({"type": "feeds"}, "is not declared"),
         ({"to": "TEMP-3"}, "no declared type"),
+        ({"node": "Sensor:TEMP-3", "same_as": ["TMP3", "Step:FOP-1"]}, "is not a Sensor"),
     ],
 )
 def test_broken_proposals_are_caught(change: dict[str, str], problem: str) -> None:
