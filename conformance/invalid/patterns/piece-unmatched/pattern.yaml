@@ -1,0 +1,23 @@
+# Invalid: no available file has a hash starting 00000000 (section 5.1).
+format: "0.1"
+pieces:
+  - rows@{{hash:rows.tessera}}
+  - extra@00000000
+types:
+  Item:
+    key: code
+    from:
+      rows.Row: {code: key}
+  Group:
+    key: name
+    describe: A set of items
+    from:
+      rows.Set: {name: label}
+edges:
+  member:
+    from: Item
+    to: Group
+    map: [rows.in_set]
+mosaics:
+  all: {}
+  items: {types: [Item]}

@@ -1,0 +1,22 @@
+# Invalid: the piece declares no node type Gone (section 5.6).
+format: "0.1"
+pieces:
+  - rows@{{hash:rows.tessera}}
+types:
+  Item:
+    key: code
+    from:
+      rows.Row: {code: key}
+  Group:
+    key: name
+    describe: A set of items
+    from:
+      rows.Gone: {name: label}
+edges:
+  member:
+    from: Item
+    to: Group
+    map: [rows.in_set]
+mosaics:
+  all: {}
+  items: {types: [Item]}

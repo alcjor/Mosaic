@@ -4,7 +4,10 @@ version = "0.0.0"
 description = "Mosaic file format: schema, hashes and the conformance checker (mosaic check)."
 requires-python = ">=3.14"
 license = "Apache-2.0"
-dependencies = []
+dependencies = [
+    "jsonschema>=4.23",
+    "ruamel-yaml>=0.18",
+]
 
 [build-system]
 requires = ["hatchling>=1.26"]

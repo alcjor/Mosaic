@@ -1,0 +1,22 @@
+# Invalid: the edge member ends at Set, which is not a declared type (section 5.6).
+format: "0.1"
+pieces:
+  - rows@0123abcd
+types:
+  Item:
+    key: code
+    from:
+      rows.Row: {code: key}
+  Group:
+    key: name
+    describe: A set of items
+    from:
+      rows.Set: {name: label}
+edges:
+  member:
+    from: Item
+    to: Set
+    map: [rows.in_set]
+mosaics:
+  all: {}
+  items: {types: [Item]}
