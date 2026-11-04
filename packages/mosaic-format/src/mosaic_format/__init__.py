@@ -1,8 +1,8 @@
 """Mosaic file format 0.1: constants shared by every reader and writer.
 
 The normative definitions live in the repository's ``spec/`` directory
-(``format.sql`` and four JSON Schemas). This package will hold the schema
-loader, the hashes and the conformance checker (``mosaic check``).
+(``format.sql`` and four JSON Schemas). This package holds the schema loader,
+the hashes (``mosaic_format.hashes``) and, later, the conformance checker.
 """
 
 __version__ = "0.0.0"
@@ -29,6 +29,7 @@ NORMATIVE_FILES = (
 """The five normative files of Specification 0.1, in ``spec/``."""
 
 from mosaic_format.file import create  # noqa: E402
+from mosaic_format.hashes import knowledge_hash, vector_hash  # noqa: E402
 
 __all__ = [
     "APPLICATION_ID",
@@ -37,4 +38,6 @@ __all__ = [
     "NORMATIVE_FILES",
     "USER_VERSION",
     "create",
+    "knowledge_hash",
+    "vector_hash",
 ]
