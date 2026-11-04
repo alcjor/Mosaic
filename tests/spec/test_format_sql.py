@@ -165,3 +165,23 @@ def test_header_profile_rules(db: sqlite3.Connection) -> None:
         "VALUES (1, '0.1', 'mosaic', 'x/1', ?, ?, 'm@h', ?, 'ops')",
         (H, H, H),
     )
+
+
+def test_evidence_can_repeat_a_citation_that_differs_in_another_column(
+    db: sqlite3.Connection,
+) -> None:
+    """Section 3.5 (decision on #41): one citation can back several evidence rows.
+
+    The same subject, source and locator can arrive through two routes (differing only in
+    `via`) or back another property. format.sql must not make (subject, sid, locator) unique;
+    only rows equal in every ranked column are forbidden, and the checker verifies that.
+    """
+    _tessera(db)
+    sql = (
+        "INSERT INTO evidence (evid, nid, prop, sid, locator, method, producer, via) "
+        "VALUES (?, 1, ?, 1, 'row=2', 'extracted', 'test/0', ?)"
+    )
+    db.execute(sql, (1, None, None))  # straight from a tessera
+    db.execute(sql, (2, None, f'["{H}"]'))  # the same citation through a mosaic piece
+    db.execute(sql, (3, "Tag", None))  # another property from the same place
+    assert db.execute("SELECT count(*) FROM evidence WHERE nid = 1").fetchone()[0] == 3
