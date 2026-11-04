@@ -10,8 +10,10 @@ Two implementations produce that byte string and must agree byte for byte:
 - :func:`encode_knowledge` streams the rows and encodes every value in Python;
 - :func:`encode_knowledge_sql` runs :data:`KNOWLEDGE_SQL`, which builds every line in SQL.
 
-Both take an open :class:`sqlite3.Connection` and a ``sink`` that receives the bytes in order,
-so a file of any size is hashed without holding its encoding in memory.
+Both take an open :class:`sqlite3.Connection` and a ``sink`` that receives the bytes in order.
+:func:`encode_knowledge` hashes a file of any size without holding its encoding in memory; the
+SQL form sorts its whole result (``ORDER BY p, k``) in SQLite's temporary storage first, so it
+is the portable reference rather than the streaming path.
 """
 
 import hashlib

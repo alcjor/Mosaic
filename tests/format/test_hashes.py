@@ -402,7 +402,8 @@ def test_python_and_sql_agree_on_a_random_file(tmp_path: Path, seed: int) -> Non
         con.close()
 
 
-def test_knowledge_sql_uses_only_quote_round_and_cast() -> None:
+def test_knowledge_sql_states_the_confidence_and_alias_rules() -> None:
+    # Wording check only; test_golden_bytes_sql is what shows the query is right.
     lowered = KNOWLEDGE_SQL.lower()
     assert "quote(cast(round(confidence*1000000) as integer))" in lowered
     assert "order by text collate nocase, nid" in lowered
