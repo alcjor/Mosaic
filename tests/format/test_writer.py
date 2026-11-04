@@ -509,6 +509,58 @@ def test_search_joins_aliases_in_alias_order(tmp_path: Path) -> None:
     assert backward == []
 
 
+_SEARCH = "SELECT n.id FROM search JOIN node AS n ON n.nid = search.rowid WHERE search MATCH ?"
+
+
+def test_search_joins_snippets_in_evid_order(tmp_path: Path) -> None:
+    """Section 3.2 (decision on #42): the node's snippets, in ``evid`` order."""
+    c = sample("tessera")
+    extra = [
+        Evidence(
+            subject="Group:g1",
+            source=c.sources[0].id,
+            locator=locator,
+            method="extracted",
+            producer="p/1",
+            snippet=snippet,
+        )
+        for locator, snippet in (("row=902", "delta"), ("row=901", "charlie"))
+    ]
+    path = seal(tmp_path / "snippets", dataclasses.replace(c, evidence=[*c.evidence, *extra])).path
+    with _open(path) as con:
+        forward = [r[0] for r in con.execute(_SEARCH, ('snippets:"charlie delta"',))]
+        backward = [r[0] for r in con.execute(_SEARCH, ('snippets:"delta charlie"',))]
+    assert forward == ["Group:g1"]
+    assert backward == []
+
+
+def test_search_leaves_out_snippets_of_edge_evidence(tmp_path: Path) -> None:
+    """Section 3.2 (decision on #42): only the node's own evidence is indexed."""
+    c = sample("tessera")
+    edge = c.edges[0]
+    ev = Evidence(
+        subject=edge.key,
+        source=c.sources[0].id,
+        locator="row=903",
+        method="extracted",
+        producer="p/1",
+        snippet="edgeonlyword",
+    )
+    path = seal(tmp_path / "edge", dataclasses.replace(c, evidence=[*c.evidence, ev])).path
+    with _open(path) as con:
+        assert con.execute("SELECT count(*) FROM snippet WHERE text = 'edgeonlyword'").fetchone()
+        assert list(con.execute(_SEARCH, ("edgeonlyword",))) == []
+
+
+def test_a_phrase_can_span_two_aliases(tmp_path: Path) -> None:
+    """Section 3.2 (decision on #42): the newline does not stop phrase matching; accepted."""
+    c = sample("tessera")
+    extra = [Alias(text=t, node="Group:g1", origin="source") for t in ("Hall One", "Park Two")]
+    path = seal(tmp_path / "span", dataclasses.replace(c, aliases=[*c.aliases, *extra])).path
+    with _open(path) as con:
+        assert [r[0] for r in con.execute(_SEARCH, ('aliases:"one park"',))] == ["Group:g1"]
+
+
 # ---------------------------------------------------------------------------
 # Builders never assign row ids; the writer refuses what it cannot rank or resolve.
 # ---------------------------------------------------------------------------

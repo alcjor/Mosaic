@@ -1389,6 +1389,8 @@ Tesserae and mosaics share one file format. The header's `kind` says which profi
 | `source_text` | The entire text of each text source, one row per source, only in the full text tier | Both |
 | `external_ref` | Keys into data that stays outside, per node (section 3.10) | Both, optional |
 
+`search` holds one row per node, with `rowid = nid`. `label` and `summary` hold the node's label and summary; `aliases` holds its aliases in alias order (section 3.6), and `snippets` the snippets of its own evidence rows that the file keeps, in `evid` order. Several values in one column are joined by a newline (U+000A), and a column with nothing to hold is NULL. Snippets of edge evidence are not indexed. A newline does not stop phrase matching, so a phrase can span two aliases or two snippets; exact alias matches are ranked ahead of full-text hits (section 8.5).
+
 Integer row ids (`sid`, `nid`, `eid`, `evid`, `mid`) are internal: they join tables and MUST NOT be shown to agents or users. Views `v_node`, `v_edge`, `v_alias` and `v_evidence` expose text ids only.
 
 #### 3.3 Header
