@@ -81,7 +81,7 @@ def test_example_proposals_refer_to_declared_types_and_edges() -> None:
         ({"node": "Sensor:TEMP-3", "same_as": ["TMP3", "Step:FOP-1"]}, "is not a Sensor"),
     ],
 )
-def test_broken_proposals_are_caught(change: dict[str, str], problem: str) -> None:
+def test_broken_proposals_are_caught(change: dict[str, Any], problem: str) -> None:
     proposals = copy.deepcopy(_load("proposals.yaml"))
     kind = "identity" if "node" in change else "edge"
     target = next(p for p in proposals["proposals"] if p["kind"] == kind)
