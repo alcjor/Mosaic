@@ -2,7 +2,8 @@
 
 The normative definitions live in the repository's ``spec/`` directory
 (``format.sql`` and four JSON Schemas). This package holds the schema loader,
-the hashes (``mosaic_format.hashes``) and, later, the conformance checker.
+the hashes (``mosaic_format.hashes``), the sealed writer
+(``mosaic_format.writer``) and, later, the conformance checker.
 """
 
 __version__ = "0.0.0"
@@ -30,6 +31,7 @@ NORMATIVE_FILES = (
 
 from mosaic_format.file import create  # noqa: E402
 from mosaic_format.hashes import knowledge_hash, vector_hash  # noqa: E402
+from mosaic_format.writer import seal  # noqa: E402
 
 __all__ = [
     "APPLICATION_ID",
@@ -39,5 +41,6 @@ __all__ = [
     "USER_VERSION",
     "create",
     "knowledge_hash",
+    "seal",
     "vector_hash",
 ]
