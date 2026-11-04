@@ -468,7 +468,7 @@ The conformance checker enforces these; a file or pattern that breaks one is inv
 
 **Tessera**
 
-7. Exactly one source, which is never a mosaic (ADR-003).
+7. Exactly one source, which is never a tessera or a mosaic (ADR-003).
 8. Node ids are unique within the tessera.
 9. A rule-based tessera is deterministic: same source and settings give the same knowledge hash.
 
@@ -1481,7 +1481,7 @@ A reader that does not support the file's embedding model MUST still open it and
 
 #### 3.9 Invariants
 
-A checker MUST verify, for both profiles: that rows satisfy the constraints of `format.sql` (section 3.1); one header row with a supported version; declared types for every node and edge, with edges joining nodes of the declared from and to types; edges pointing at nodes in the same file; at least one evidence row per node and edge; confidence present exactly on inferred rows; canonical order and a matching knowledge hash. For a mosaic additionally: node ids of the form `<type>:<key>`, and a key property (`key_prop`) on every node type; every piece in `source` pinned by hash; `via` present where evidence passed through a mosaic; link counts equal to the edges they count; when vectors are present, one per node and a matching vector hash; notices of every piece carried, that is every original source of every piece with the same hash and notice, which a checker verifies for the pieces it is given; and `via` whose last hash is a mosaic piece of the file. For a tessera additionally: exactly one source, never a mosaic; unique node ids. These are invariants 1 to 15 of Part 2, except invariant 9 (a rule-based tessera is deterministic), which one file cannot show and the tessera builder tests. "Matches the pattern" in invariant 11 is checked when the pattern is given (section 5.6).
+A checker MUST verify, for both profiles: that rows satisfy the constraints of `format.sql` (section 3.1); one header row with a supported version; declared types for every node and edge, with edges joining nodes of the declared from and to types; edges pointing at nodes in the same file; at least one evidence row per node and edge; confidence present exactly on inferred rows; canonical order and a matching knowledge hash. For a mosaic additionally: node ids of the form `<type>:<key>`, and a key property (`key_prop`) on every node type; every piece in `source` pinned by hash; `via` present where evidence passed through a mosaic; link counts equal to the edges they count; when vectors are present, one per node and a matching vector hash; notices of every piece carried, that is every original source of every piece with the same hash and notice, which a checker verifies for the pieces it is given; and `via` whose last hash is a mosaic piece of the file. For a tessera additionally: exactly one source, never a tessera or a mosaic; unique node ids. These are invariants 1 to 15 of Part 2, except invariant 9 (a rule-based tessera is deterministic), which one file cannot show and the tessera builder tests. "Matches the pattern" in invariant 11 is checked when the pattern is given (section 5.6).
 
 #### 3.10 External references
 
@@ -1506,7 +1506,7 @@ A tessera records what one source says, in its builder's own vocabulary. Mapping
 | Content | Rule |
 | --- | --- |
 | Header | `kind = tessera`; `ai_model` set when an AI produced any fact |
-| Source | Exactly one row: the source the tessera was made from, with the hash of its content. A source MUST NOT be a mosaic |
+| Source | Exactly one row: the source the tessera was made from, with the hash of its content. A source MUST NOT be a tessera or a mosaic (ADR-003) |
 | Types | The builder's own types (for example `Row`, `Define`, `Section`), declared with their properties |
 | Nodes and edges | As found in the source; node ids unique within the file |
 | Evidence | At least one row per node and edge, with a locator into the source |
@@ -1624,7 +1624,7 @@ A mosaic builder takes pieces, a pattern, optional proposals and a target name, 
 
 1. **Check.** Validate the pattern and proposals (section 5). Resolve each piece by hash and open it by the reading rules (section 3.8). Any failure stops the build.
 2. **Map.** For each `types.<T>.from` entry, turn every node of that piece type into a canonical node of type `T`: copy the mapped fields, take the key, apply `strip` and the normalisation steps. A node of a mosaic piece is mapped the same way, its id treated as a source key; its old id becomes an alias with `origin = pattern`.
-3. **Merge.** Nodes of the same type and key are one node. For each property, the value from the earliest piece in `pieces` wins; a different value from a later piece is a conflict for the report. External references are the union of all sources. Aliases are their union too, except that aliases of one node that are equal under `NOCASE` are one alias: the first added in build order keeps its spelling and `origin`. Build order is the pieces in `pieces` order, each with its own aliases in its alias order and then the aliases step 2 makes from it (the key as written, then a mosaic piece's old id), followed by accepted identity proposals (step 4) in the order of the proposals file. A losing alias spelled differently from the winner is an alias conflict for the report; one that differs only in `origin` is not. Every original evidence row is kept for step 6.
+3. **Merge.** Nodes of the same type and key are one node. For each property, the value from the earliest piece in `pieces` wins; a different value from a later piece is a conflict for the report. External references are the union of all sources. Aliases are their union too, except that aliases of one node that are equal under `NOCASE` are one alias: the first added in build order keeps its spelling and `origin`. Build order is the pieces in `pieces` order, each with its own aliases in its alias order and then the aliases step 2 makes from it (the key as written, then a mosaic piece's old id), followed by accepted identity proposals (step 4) in the order of the proposals file. A losing alias spelled differently from the winner is an alias conflict for the report; one that differs only in `origin` is not. Every original evidence row is kept for step 6. The mosaic's `source` gets a row per piece and a copy of each piece's original sources (section 3.2); evidence then names the copied row in `sid`, and evidence taken from a mosaic piece gets that piece's knowledge hash appended to its `via` (section 3.5).
 4. **Apply identity proposals** that are accepted (section 5.5).
 5. **Link.** Make edges from `map` entries, then from mention rules, then from accepted edge proposals. Duplicate edges are one edge with all their evidence.
 6. **Select for the target.** Keep node types in `types` and edges between kept nodes; drop inferred facts below the trust policy; keep evidence by the evidence setting; keep snippets by the text tier. Drop anything left without evidence.
