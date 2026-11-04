@@ -98,6 +98,7 @@ The `header` table MUST hold exactly one row with `one = 1`.
 - `method` is `extracted` or `inferred`. An extracted row MUST have NULL `confidence`; an inferred row MUST have a confidence from 0 to 1.
 - A locator is a `;`-separated list of `name=value` pairs, most specific last, from: `file`, `row`, `line`, `page`, `section`, `chars` (as `start-end`), `field`, `entry`, `message`, `param`. Builders MAY add names; readers MUST keep unknown ones.
 - In a mosaic, `via` lists, as a JSON array, the knowledge hashes of the mosaic pieces the evidence passed through, in order; NULL when it came straight from a tessera.
+- Two evidence rows MUST NOT be equal in all of `nid`, `eid`, `prop`, `sid`, `locator`, `method`, `producer`, `confidence` and `via`, with NULL equal to NULL and `confidence` compared as it is hashed (section 3.6). The same citation can still appear more than once when another of these columns differs, for example when it reaches a mosaic through two pieces and so differs only in `via`. Builders merge exact duplicates before writing.
 
 #### 3.6 Canonical order and knowledge hash
 
@@ -108,11 +109,11 @@ Row ids MUST be dense (1 to n) and follow content order:
 | `source` | `id` |
 | `node` | `id` |
 | `edge` | `(src, type, dst, qualifier)` |
-| `evidence` | node evidence ordered by `nid`, then edge evidence ordered by `eid`; ties by `(sid, locator)` |
+| `evidence` | node evidence ordered by `nid`, then edge evidence ordered by `eid`; ties by `(sid, locator, prop, method, producer, confidence, via)`, with `confidence` compared as `CAST(round(confidence*1000000) AS INTEGER)` |
 | `mention` | `(nid, locator)` |
 | `external_ref` | `(nid, system, kind, locator)` |
 
-Text is ordered by its UTF-8 bytes (SQLite `BINARY`). The knowledge hash is the SHA-256 of the following byte string, built part by part in this order:
+Text is ordered by its UTF-8 bytes (SQLite `BINARY`), and NULL before any value. The knowledge hash is the SHA-256 of the following byte string, built part by part in this order:
 
 | Part | Columns, in order | Row order |
 | --- | --- | --- |

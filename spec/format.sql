@@ -13,13 +13,16 @@
 -- CANONICAL ORDER (section 3.6)
 -- ---------------------------------------------------------------------------
 -- Integer row ids are dense (1..n) and follow content order. Text compares by
--- its UTF-8 bytes (BINARY) unless a column declares another collation.
+-- its UTF-8 bytes (BINARY) unless a column declares another collation; NULL
+-- sorts before any value.
 --
 --   source        sid   = rank of id
 --   node          nid   = rank of id
 --   edge          eid   = rank of (src, type, dst, qualifier)
 --   evidence      evid  = node evidence ordered by nid, then edge evidence
---                         ordered by eid; ties by (sid, locator)
+--                         ordered by eid; ties by (sid, locator, prop, method,
+--                         producer, confidence, via), confidence compared as
+--                         CAST(round(confidence*1000000) AS INTEGER)
 --   mention       mid   = rank of (nid, locator)
 --   external_ref  xid   = rank of (nid, system, kind, locator)
 --
@@ -149,6 +152,9 @@ CREATE TABLE alias (
 CREATE INDEX alias_node ON alias (nid);
 
 -- Provenance: exactly one subject; confidence exactly on inferred rows (section 3.5).
+-- No two rows are equal in all of (nid, eid, prop, sid, locator, method, producer,
+-- confidence, via), NULL equal to NULL and confidence compared as hashed. UNIQUE
+-- cannot say this (it treats NULLs as distinct), so the checker verifies it.
 CREATE TABLE evidence (
     evid       INTEGER PRIMARY KEY,
     nid        INTEGER REFERENCES node (nid),
