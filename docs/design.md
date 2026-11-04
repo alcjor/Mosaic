@@ -484,9 +484,9 @@ The conformance checker enforces these; a file or pattern that breaks one is inv
 **Pattern**
 
 16. Valid against the JSON Schema.
-17. Every piece is pinned by hash; every `from` names a listed piece.
+17. Every piece is pinned by hash; every `from` names a listed piece and a node type it declares; every `map` entry names a listed piece and an edge type it declares.
 18. Type names, edge names and target names are unique.
-19. A target's pieces never include that target's own output.
+19. No piece has the name of a target of the same pattern, so no target lists its own output among its pieces.
 
 ### Physical model
 
