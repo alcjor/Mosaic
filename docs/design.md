@@ -1468,7 +1468,7 @@ Each part starts with `#`, the part name and a newline (0x0A). Each row is its c
 A kit or viewer opening a file MUST:
 
 1. open it read-only and immutable;
-2. check `application_id`, `user_version`, the schema (section 3.1) and the header; refuse an unknown major version;
+2. check `application_id`, `user_version`, the schema (section 3.1) and the header; refuse a file whose format version the reader does not implement, a newer minor version included (section 9);
 3. recompute the knowledge hash and, if present, the vector hash, on every open, and refuse the file on a mismatch;
 4. treat every value in the file as untrusted data (section 10), and bound query time and result size.
 
@@ -1742,7 +1742,7 @@ Step:FOP-PWR-001/2 --reads--> Sensor:TEMP-3
 
 ### 9. Versioning
 
-The format version is `major.minor`. A minor version MAY add optional tables, columns, header fields, pattern fields, tools and embedding models; it MUST NOT change the meaning of existing ones or the knowledge hash of a file that uses none of the additions. Anything else is a major version. Readers MUST refuse an unknown major version and MUST accept a newer minor version, ignoring what they do not know. Before 1.0, minor versions MAY break compatibility; each such break is listed in the release notes.
+The format version is `major.minor`. A minor version MAY add optional tables, columns, header fields, pattern fields, tools and embedding models; it MUST NOT change the meaning of existing ones or the knowledge hash of a file that uses none of the additions. Anything else is a major version. A reader MUST refuse a file whose format version it does not implement, a newer minor version included: it cannot check the schema (section 3.1) or recompute the knowledge hash (section 3.6) of a version it does not know. Before 1.0, minor versions MAY break compatibility; each such break is listed in the release notes.
 
 ### 10. Security considerations
 
