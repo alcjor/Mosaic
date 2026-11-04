@@ -534,3 +534,39 @@ def test_extra_evidence_rows_are_allowed_when_another_column_differs(tessera: Pa
     path = tessera.with_name("y.tessera")
     seal(path, replace(content, evidence=[*content.evidence, extra]))
     assert check(path).ok
+
+
+# --- JSON text: RFC 8785 canonical form and I-JSON (section 3.1, decision on #59) --------------
+
+
+@pytest.mark.parametrize(
+    ("table", "column", "where", "value", "says"),
+    [
+        ("header", "settings", "one = 1", '{"b":1,"a":2}', "canonical form"),
+        ("type", "props", "name = 'Group'", '{"k":"text","k":"json"}', "duplicate object key"),
+        ("node", "props", "id = 'Row:2'", '{"n":9007199254740993}', "outside"),
+        ("external_ref", "locator", "xid = 1", '{ "id" : "1" }', "canonical form"),
+    ],
+)
+def test_json_text_is_canonical_and_i_json(
+    tessera: Path, table: str, column: str, where: str, value: str, says: str
+) -> None:
+    tamper(tessera, [f"UPDATE {table} SET {column} = '{value}' WHERE {where}"])
+    (violation,) = only(check(tessera), "canonical-json")
+    assert violation.table == table and column in violation.message and says in violation.message
+
+
+def test_via_is_canonical_json(mosaic: Path) -> None:
+    spaced = f'[ "{mif.INNER_HASH}" ]'
+    tamper(mosaic, [f"UPDATE evidence SET via = '{spaced}' WHERE eid IS NULL AND via IS NOT NULL"])
+    (violation,) = only(check(mosaic), "canonical-json")
+    assert violation.table == "evidence" and "'Item:b'" in violation.where
+
+
+def test_a_json_escape_of_u0000_is_allowed(tmp_path: Path) -> None:
+    """Section 3.1: a JSON \\u0000 escape is six ASCII characters and is allowed."""
+    content = mif.tessera()
+    nodes = [replace(n, props='{"a":"x\\u0000y"}') if n.id == "Row:2" else n for n in content.nodes]
+    path = tmp_path / "x.tessera"
+    seal(path, replace(content, nodes=nodes))
+    assert check(path).ok

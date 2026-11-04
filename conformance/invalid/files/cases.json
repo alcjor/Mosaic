@@ -1,4 +1,10 @@
 {
+  "canonical-json.tessera": {
+    "pieces": [],
+    "rules": [
+      "canonical-json"
+    ]
+  },
   "constraint.tessera": {
     "pieces": [],
     "rules": [

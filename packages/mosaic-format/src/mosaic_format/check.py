@@ -6,7 +6,7 @@ reports, each naming its rule and where it is (table and text id):
 - the invariants of section 3.9 (Part 2, invariants 1 to 15), as ``inv-<n>``;
 - the rules decided after section 3.9 was written (issue #9): evidence rows that are full
   duplicates (section 3.5), text holding U+0000 (section 3.1), the exact contents of ``search``
-  (section 3.2);
+  (section 3.2), JSON text in RFC 8785 canonical form and I-JSON (section 3.1, decision on #59);
 - failures of ``format.sql``'s CHECK, NOT NULL and foreign-key constraints, found with
   ``PRAGMA integrity_check`` and ``PRAGMA foreign_key_check`` (``constraint``, section 3.1);
 - tables a profile does not use that hold rows, and declared property kinds that are not one of
@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from mosaic_format import APPLICATION_ID, FORMAT_VERSION, KINDS, USER_VERSION
+from mosaic_format.canonical_json import canonical_json
 from mosaic_format.file import SIDECARS
 from mosaic_format.hashes import VECTOR_BYTES, knowledge_hash, vector_hash
 from mosaic_format.reader import FileRefusedError, _check_schema, _reference_schema
@@ -63,6 +64,7 @@ RULES: Mapping[str, tuple[str, str]] = {
     "container": ("3.1", "application_id, user_version and schema are those of format.sql"),
     "constraint": ("3.1", "rows satisfy format.sql's CHECK, NOT NULL and foreign keys"),
     "text-nul": ("3.1", "text values do not contain U+0000"),
+    "canonical-json": ("3.1", "JSON text is in RFC 8785 canonical form and is I-JSON"),
     "search": ("3.2", "search holds exactly the expected terms of each node"),
     "profile": ("3.2", "tables a profile does not use stay empty"),
     "type-props": ("3.4", "declared properties map to text, integer, number, boolean or json"),
@@ -79,6 +81,19 @@ PIECE_KINDS = ("tessera", "mosaic")
 
 PROP_KINDS = ("text", "integer", "number", "boolean", "json")
 """The kinds a declared property may have (section 3.4)."""
+
+JSON_COLUMNS: tuple[tuple[str, str, str], ...] = (
+    ("header", "one", "settings"),
+    ("type", "name", "props"),
+    ("node", "nid", "props"),
+    ("edge", "eid", "props"),
+    ("evidence", "evid", "via"),
+    ("external_ref", "xid", "locator"),
+)
+"""The JSON text columns (section 3.1), with the column that names their row."""
+
+_SHOWN = 80
+"""Longest canonical form quoted in a message."""
 
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _EMBED_MODEL = re.compile(r".+@[0-9a-f]{64}")
@@ -405,6 +420,43 @@ class _Checker:
                         f"column {column}",
                         f"{count} text value(s) contain U+0000, which text never holds",
                     )
+
+    def json_text(self) -> None:
+        for table, key, column in JSON_COLUMNS:
+            for row, value in self.rows(
+                f"SELECT {key}, {column} FROM {table} WHERE typeof({column}) = 'text' "
+                f"ORDER BY {key}"
+            ):
+                try:
+                    canonical = canonical_json(str(value))
+                except ValueError as e:
+                    message = f"{column} is not I-JSON: {e}"
+                else:
+                    if canonical == value:
+                        continue
+                    shown = canonical if len(canonical) <= _SHOWN else canonical[:_SHOWN] + "…"
+                    message = f"{column} is not in RFC 8785 canonical form, which is {shown!r}"
+                self.add("canonical-json", table, self.row_name(table, row), message)
+
+    def row_name(self, table: str, row: object) -> str:
+        """How a violation names a row of a JSON column's table."""
+        match table:
+            case "header":
+                return ""
+            case "type":
+                return _q(row)
+            case "node":
+                return self.node_name(row).removeprefix("node ")
+            case "edge":
+                return self.edge_name(row).removeprefix("edge ")
+            case "evidence":
+                return self.evidence_name(row)
+            case _:
+                found = self.rows(
+                    "SELECT nid, system, kind FROM external_ref WHERE xid = ?", (row,)
+                )
+                nid, system, kind = found[0]
+                return f"of {self.node_name(nid)}, system {system!r}, kind {kind!r}"
 
     def search(self) -> None:
         definition = next(
@@ -761,6 +813,7 @@ def check_file(
         checker.canonical(header)
         checker.evidence_duplicates()
         checker.text_nul()
+        checker.json_text()
         checker.search()
         checker.profile()
         checker.type_props()

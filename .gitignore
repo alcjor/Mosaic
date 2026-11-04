@@ -25,6 +25,9 @@ conformance/fixtures/downloads/
 build-report.json
 !tests/**/build-report.json
 !conformance/**/build-report.json
+# The invalid files of the conformance suite are committed (section 11, #9)
+!conformance/invalid/files/*.mosaic
+!conformance/invalid/files/*.tessera
 
 # Editors and OS
 .DS_Store

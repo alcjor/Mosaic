@@ -29,6 +29,7 @@ conforming tessera, a piece of `inv-15-notice.mosaic`, which is checked with it.
 | `inv-15-notice.mosaic` | `inv-15` | Source `first/doc` without the notice of piece `inv-15-piece.tessera`; checked with that piece |
 | `evidence-duplicate.mosaic` | `evidence-duplicate` | Two evidence rows equal in every column but `evid` |
 | `text-nul.tessera` | `text-nul` | A type description holding U+0000 |
+| `canonical-json.tessera` | `canonical-json` | Node properties written with spaces, not in RFC 8785 canonical form |
 | `search.tessera` | `search` | A `search` row for a node that does not exist |
 | `profile.tessera` | `profile` | A tessera with a `link_count` row |
 | `type-props.tessera` | `type-props` | A declared property of kind `string` |

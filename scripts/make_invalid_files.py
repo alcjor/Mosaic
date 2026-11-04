@@ -406,6 +406,15 @@ CASES: tuple[Case, ...] = (
         ),
     ),
     Case(
+        "canonical-json.tessera",
+        ("canonical-json",),
+        "Node properties written with spaces, not in RFC 8785 canonical form",
+        _changed(
+            _tessera,
+            ['UPDATE node SET props = \'{"code": "a", "size": 1}\' WHERE id = \'Row:1\''],
+        ),
+    ),
+    Case(
         "search.tessera",
         ("search",),
         "A `search` row for a node that does not exist",
