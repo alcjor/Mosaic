@@ -1,0 +1,12 @@
+# Invalid: Group:g is an id of a declared type, but p1 is about an Item (section 5.6).
+format: "0.1"
+built_from: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+assistant: helper/1
+proposals:
+  - id: p1
+    kind: identity
+    node: Item:a
+    same_as: [a-one, Group:g]
+    confidence: 0.8
+    evidence: [{source: notes, locator: page=1, quote: "a-one, the g group"}]
+    decision: open
