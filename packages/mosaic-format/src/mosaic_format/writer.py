@@ -201,6 +201,14 @@ def _utf8(text: str, where: str) -> bytes:
         raise ValueError(f"{where}: text is not valid Unicode ({e.reason})") from None
 
 
+_ASCII_LOWER = bytes.maketrans(b"ABCDEFGHIJKLMNOPQRSTUVWXYZ", b"abcdefghijklmnopqrstuvwxyz")
+
+
+def _nocase(raw: bytes) -> bytes:
+    """Sort key of SQLite's ``NOCASE`` collation: UTF-8 bytes with ASCII letters folded."""
+    return raw.translate(_ASCII_LOWER)
+
+
 def _unique[T, K: Hashable](items: Iterable[T], key: Callable[[T], K], what: str) -> dict[K, T]:
     found: dict[K, T] = {}
     for item in items:
@@ -333,7 +341,7 @@ def _rank(content: Content) -> _Ranked:
     ranked_aliases = []
     for a in content.aliases:
         where = f"alias {a.text!r} of node {a.node!r}"
-        ranked_aliases.append(((_utf8(a.text, where), node_of(a.node, where)), a))
+        ranked_aliases.append(((_nocase(_utf8(a.text, where)), node_of(a.node, where)), a))
     ranked_aliases.sort(key=lambda r: r[0])
 
     return _Ranked(
