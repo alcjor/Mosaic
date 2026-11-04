@@ -205,6 +205,10 @@ CREATE TABLE vector (
 );
 
 -- Contentless full-text index, one row per node with rowid = nid.
+-- label and summary are the node's; aliases are its aliases in alias order;
+-- snippets are the snippets of its own evidence (not edge evidence) in evid
+-- order. Several values are joined by a newline; an empty column is NULL
+-- (section 3.2).
 -- Tokens keep '-', '_' and '.', so TEMP-3 and PARAM_X stay whole; positions
 -- are kept for phrase search; no prefix index. Derived, not hashed.
 CREATE VIRTUAL TABLE search USING fts5 (
