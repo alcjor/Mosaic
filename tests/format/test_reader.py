@@ -316,6 +316,47 @@ def test_newer_major_version_is_refused(
     assert ("'1.0'" in message) or ("user_version 2" in message)
 
 
+def test_newer_minor_version_with_an_added_header_column_is_refused_for_its_version(
+    tmp_path: Path,
+) -> None:
+    """A minor version may add a column to ``header`` (section 9): refused for its version.
+
+    The reader reads ``format_version`` whenever ``header`` is a plain table with that column,
+    so the message names the version, not a schema mismatch (#54).
+    """
+    path = sealed(tmp_path)
+    tamper(
+        path,
+        *_newer_version("0.2", None, False),
+        "ALTER TABLE header ADD COLUMN added_in_newer_version TEXT",
+    )
+    message = refused(path, "format version", "'0.2'", "section 9")
+    assert "schema" not in message
+    assert "knowledge hash" not in message
+
+
+def test_an_added_header_column_in_version_0_1_is_a_schema_mismatch(tmp_path: Path) -> None:
+    path = sealed(tmp_path)
+    tamper(path, "ALTER TABLE header ADD COLUMN added TEXT")
+    refused(path, "schema", "table header differs")
+
+
+def test_a_header_whose_format_version_is_generated_is_a_schema_mismatch(
+    tmp_path: Path,
+) -> None:
+    """Only a stored ``format_version`` is read before the schema check (section 10)."""
+    path = sealed(tmp_path)
+    tamper(
+        path,
+        "DROP TABLE header",
+        "CREATE TABLE header (one INTEGER PRIMARY KEY, kind TEXT,"
+        " format_version TEXT GENERATED ALWAYS AS ('9.9') VIRTUAL)",
+        "INSERT INTO header (one, kind) VALUES (1, 'mosaic')",
+    )
+    message = refused(path, "schema", "header")
+    assert "'9.9'" not in message
+
+
 def test_older_or_malformed_version_is_refused(tmp_path: Path) -> None:
     path = sealed(tmp_path)
     tamper(path, *_newer_version("0.0", None, False))
@@ -345,6 +386,48 @@ def test_tampered_row_is_refused(tmp_path: Path, statement: str) -> None:
 def test_tampered_row_in_a_tessera_is_refused(tmp_path: Path) -> None:
     path = sealed(tmp_path, "tessera")
     tamper(path, "UPDATE mention SET text = 'other' WHERE mid = 1")
+    refused(path, "knowledge hash", "mismatch")
+
+
+# Values the knowledge hash cannot encode (section 3.6). `CHECK` constraints are not re-checked
+# on open, so a schema-exact file written with `ignore_check_constraints` reaches the hashing;
+# it must be refused like any other bad file, naming it (sections 3.8 step 3 and 10, #54).
+UNENCODABLE: dict[str, tuple[str, str, str, str]] = {
+    # id: (table, column, row, value as SQL), and the value's storage class is not the hashed one
+    "confidence-text": ("evidence", "confidence", "evid = 1", "'high'"),
+    "confidence-blob": ("evidence", "confidence", "evid = 1", "X'01'"),
+    "real-in-edge-src": ("edge", "src", "eid = 1", "1.5"),
+    "real-in-evidence-sid": ("evidence", "sid", "evid = 1", "1.25"),
+}
+
+
+@pytest.mark.parametrize("cell", UNENCODABLE.values(), ids=UNENCODABLE.keys())
+def test_a_value_the_knowledge_hash_cannot_encode_is_refused(
+    tmp_path: Path, cell: tuple[str, str, str, str]
+) -> None:
+    table, column, row, value = cell
+    path = sealed(tmp_path)
+    tamper(
+        path,
+        "PRAGMA ignore_check_constraints = ON",
+        f"UPDATE {table} SET {column} = {value} WHERE {row}",
+    )
+    con = sqlite3.connect(path)
+    query = f"SELECT typeof({column}) FROM {table} WHERE {row}"
+    stored = con.execute(query).fetchone()
+    con.close()
+    assert stored in {("text",), ("blob",), ("real",)}  # stored as written, not converted
+    assert stored != ("real",) or column != "confidence"
+    refused(path, "section 3.6", f"column {column!r}")
+
+
+def test_a_real_in_a_text_column_is_stored_as_text(tmp_path: Path) -> None:
+    """A TEXT column converts a REAL to text (SQLite type affinity), so the file hashes."""
+    path = sealed(tmp_path)
+    tamper(path, "UPDATE node SET label = 1.5 WHERE nid = 1")
+    con = sqlite3.connect(path)
+    assert con.execute("SELECT typeof(label) FROM node WHERE nid = 1").fetchone() == ("text",)
+    con.close()
     refused(path, "knowledge hash", "mismatch")
 
 

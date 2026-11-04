@@ -8,9 +8,13 @@
    ``format_version`` is one this reader implements (only ``0.1``; a newer minor version is
    refused too, section 9), the schema holds exactly the objects of ``format.sql`` with the same
    definitions (``sqlite_stat1`` and ``sqlite_stat4`` may be present), and the header is one row
-   of a known kind;
+   of a known kind. The version is read before the schema is compared whenever ``header`` is a
+   plain table with a stored ``format_version`` column, so a newer minor version that adds a
+   column to ``header`` is refused for its version, not as a schema mismatch;
 3. the knowledge hash (section 3.6) and the vector hash (section 3.7) are recomputed and must
-   equal the header's.
+   equal the header's. A value either hash cannot encode (``CHECK`` constraints are not
+   re-checked on open, so a crafted file can hold, say, a ``confidence`` that is not REAL) is
+   refused too.
 
 Anything else is refused with :class:`FileRefusedError`, naming the file and what failed.
 
@@ -126,10 +130,7 @@ def _check_version(path: Path, con: sqlite3.Connection) -> None:
             f"user_version {user_version}: this reader implements format version {implemented} "
             f"(user_version {USER_VERSION}) only and refuses any other (section 9)",
         )
-    # Read the header only when it is the table of format.sql: in a crafted file `header` could
-    # be a view that never ends. Otherwise the schema check names what is wrong.
-    query = "SELECT type, name, tbl_name, sql FROM sqlite_schema WHERE name = 'header'"
-    if set(con.execute(query)) != {r for r in _reference_schema() if r[1] == "header"}:
+    if not _has_stored_format_version(con):
         return
     versions = [v for (v,) in con.execute("SELECT format_version FROM header")]
     for version in versions:
@@ -139,6 +140,26 @@ def _check_version(path: Path, con: sqlite3.Connection) -> None:
                 f"format version {version!r} is not implemented by this reader, which reads "
                 f"{implemented} only; a newer minor version is refused too (section 9)",
             )
+
+
+def _has_stored_format_version(con: sqlite3.Connection) -> bool:
+    """Whether ``header`` is a plain table with a stored ``format_version`` column.
+
+    Only then is the version read before the schema check. A newer minor version may add a
+    column to ``header`` (section 9), so the table need not match ``format.sql`` exactly; it is
+    then refused for its version, not as a schema mismatch. A crafted ``header`` that is a view,
+    a virtual table or a computed column could be endless or costly (section 10): it is left to
+    the schema check, which names what is wrong.
+    """
+    query = "SELECT type, sql FROM sqlite_schema WHERE name = 'header'"
+    rows = con.execute(query).fetchall()
+    if len(rows) != 1:
+        return False
+    (kind, sql) = rows[0]
+    if kind != "table" or not isinstance(sql, str) or not sql.startswith("CREATE TABLE "):
+        return False
+    columns = con.execute("SELECT name, hidden FROM pragma_table_xinfo('header')").fetchall()
+    return ("format_version", 0) in columns
 
 
 def _read_header(path: Path, con: sqlite3.Connection) -> dict[str, object]:
@@ -158,7 +179,10 @@ def _read_header(path: Path, con: sqlite3.Connection) -> dict[str, object]:
 
 def _check_hashes(path: Path, con: sqlite3.Connection, header: Mapping[str, object]) -> None:
     """Recompute both hashes and compare them with the header's (section 3.8 step 3)."""
-    knowledge = knowledge_hash(con)
+    try:
+        knowledge = knowledge_hash(con)
+    except (ValueError, TypeError) as e:
+        raise _refuse(path, f"{e} (section 3.6)") from None
     if knowledge != header["knowledge_hash"]:
         raise _refuse(
             path,
