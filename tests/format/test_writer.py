@@ -550,7 +550,9 @@ def test_search_leaves_out_snippets_of_edge_evidence(tmp_path: Path) -> None:
     )
     path = seal(tmp_path / "edge", dataclasses.replace(c, evidence=[*c.evidence, ev])).path
     with _open(path) as con:
-        assert con.execute("SELECT count(*) FROM snippet WHERE text = 'edgeonlyword'").fetchone()
+        assert con.execute(
+            "SELECT count(*) FROM snippet WHERE text = 'edgeonlyword'"
+        ).fetchone() == (1,)
         assert list(con.execute(_SEARCH, ("edgeonlyword",))) == []
 
 
