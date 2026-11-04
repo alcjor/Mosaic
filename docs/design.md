@@ -607,7 +607,7 @@ proposals:
 
 #### What the schema cannot check
 
-JSON Schema checks each file's shape, not references between parts. `mosaic check` adds these: every `from` names a listed piece and a type that piece declares; edge `from` and `to` name declared types; a target's `types` exist; no target uses its own output as a piece; YAML keys are not duplicated (a YAML loader would silently keep the last one); and a proposal's nodes exist in the mosaic it was built from.
+JSON Schema checks each file's shape, not references between parts. `mosaic check` adds these: every `from` names a listed piece and a type that piece declares; every `map` entry names a listed piece and an edge type it declares; edge `from` and `to` name declared types; a target's `types` exist; no target uses its own output as a piece (no piece is named like a target); YAML keys are not duplicated (a YAML loader would silently keep the last one); and a proposal's nodes have declared types and, when that mosaic is available, exist in the mosaic it was built from.
 
 Tested: both examples validate, and nine broken variants are rejected, including a missing format, an unpinned piece, an edge with both `mentions` and `map`, a computed mapping and a confidence above 1.
 
@@ -1533,7 +1533,7 @@ A pattern is one YAML file, `pattern.yaml`, valid against `pattern.schema.json`.
 
 #### 5.1 `pieces`
 
-An ordered list of pieces, each `name@hash` or an object with `name`, `hash`, optional `kind` and `path`. The hash is the piece's knowledge hash; a prefix of at least 8 characters MAY be given but MUST match exactly one available file. **Order is priority**: when two pieces give different values for the same property of the same node, the earlier piece wins.
+An ordered list of pieces, each `name@hash` or an object with `name`, `hash`, optional `kind` and `path`. The hash is the piece's knowledge hash; a prefix of at least 8 characters MAY be given but MUST match exactly one available file. Which files are available is up to the tool that reads the pattern, for example the files in a directory it is given and each piece's `path`; a piece that matches no available file, or more than one, is a violation. **Order is priority**: when two pieces give different values for the same property of the same node, the earlier piece wins.
 
 #### 5.2 `types`
 
@@ -1583,7 +1583,14 @@ Each entry is one target. Defaults apply to omitted fields.
 
 #### 5.6 Checks beyond the schemas
 
-A checker MUST also verify that every `from` names a listed piece and a type that piece declares; that edge `from` and `to` and target `types` name declared types; that names are unique within each section; that no target lists its own output among the pieces; and that every proposal refers to nodes of the mosaic it was built from.
+A checker MUST also verify:
+
+- every `from` names a listed piece and a node type that piece declares;
+- every `map` entry names a listed piece and an edge type that piece declares;
+- edge `from` and `to` and target `types` name declared types;
+- names are unique within each section;
+- no target lists its own output among the pieces: no piece has the name of a target of the same pattern. A piece name is a label in the pattern, so a clash is fixed by renaming the piece;
+- every proposal refers to nodes of the mosaic it was built from. The `node` of an identity proposal and the `from` and `to` of an edge proposal are node ids `<Type>:<key>` whose type is a node type declared in the pattern, and an edge proposal's `type` is an edge declared in `edges` whose `from` and `to` types are those of its two ids. When the `built_from` mosaic is available, these ids MUST also exist in it; when it is not, that check is skipped, since proposals are often made from an earlier build (section 5.5). Names in `same_as` are new aliases and are not checked.
 
 ### 6. Vectors
 
