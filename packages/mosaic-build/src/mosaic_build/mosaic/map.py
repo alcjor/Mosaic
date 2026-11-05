@@ -168,10 +168,31 @@ def _column(entry: Entry, old_id: str, column: str, field: str, value: Any) -> s
     return value
 
 
+def _props(entry: Entry, old_id: str, text: object) -> dict[str, Any]:
+    """A piece node's ``props``, which must be an I-JSON object (section 3.1).
+
+    The piece is untrusted (section 3.8): the reading rules do not re-check its JSON text, so
+    a value that has no canonical JSON form, such as an integer beyond 2^53 - 1, fails the build
+    here with ``invalid_input`` rather than later, when values are compared or written.
+    """
+    if text is None:
+        return {}
+    try:
+        canonical_json(str(text))
+        props = json.loads(str(text))
+    except ValueError as e:
+        raise BuildError(
+            "invalid_input", f"{_where(entry, old_id)}: props are not I-JSON (3.1): {e}"
+        ) from None
+    if not isinstance(props, dict):
+        raise BuildError("invalid_input", f"{_where(entry, old_id)}: props are not a JSON object")
+    return props
+
+
 def map_node(entry: Entry, piece: Piece, row: Sequence[Any]) -> Mapped:
     """Map one piece node, given as ``(nid, id, key, label, summary, props)``."""
     nid, old_id, key, label, summary, props_text = row
-    props: dict[str, Any] = {} if props_text is None else json.loads(props_text)
+    props = _props(entry, old_id, props_text)
     columns = {"key": key, "label": label, "summary": summary}
 
     key_field = entry.fields.get(entry.key_prop, "key")

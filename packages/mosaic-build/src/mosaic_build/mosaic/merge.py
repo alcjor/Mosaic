@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from mosaic_format.canonical_json import canonical_json
+from mosaic_format.hashes import quote_confidence
 from mosaic_format.writer import Alias, Evidence, ExternalRef, Node, Source
 
 from mosaic_build.mosaic.map import Mapped, map_nodes
@@ -256,7 +257,9 @@ class _PieceRows:
 
 
 def _evidence_key(e: Evidence) -> tuple[object, ...]:
-    return (e.subject, e.prop, e.source, e.locator, e.method, e.producer, e.confidence, e.via)
+    """What makes two evidence rows equal (section 3.5): ``confidence`` as it is hashed."""
+    confidence = quote_confidence(e.confidence)
+    return (e.subject, e.prop, e.source, e.locator, e.method, e.producer, confidence, e.via)
 
 
 def merge(inputs: Inputs, mapped: Iterable[Mapped] | None = None) -> Assembly:
