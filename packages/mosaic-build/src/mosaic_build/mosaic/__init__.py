@@ -11,11 +11,20 @@ A build runs eight steps (section 7.1). Implemented so far:
 4. **Apply identity proposals** (:func:`mosaic_build.mosaic.link.apply_identities`): aliases
    and merges from accepted identity proposals, outdated proposals flagged;
 5. **Link** (:func:`mosaic_build.mosaic.link.link`): edges from ``map`` entries, mention rules
-   and accepted edge proposals, with unmatched and ambiguous mentions recorded.
+   and accepted edge proposals, with unmatched and ambiguous mentions recorded;
+6. **Select** (:mod:`mosaic_build.mosaic.select`) for the target of
+   :mod:`mosaic_build.mosaic.target`: types, trust, evidence and text tier;
+7. **Derive** (:mod:`mosaic_build.mosaic.derive`): the declared types (link counts and the
+   full-text index come from the sealed writer; vectors wait for #20);
+8. **Seal** (:mod:`mosaic_build.mosaic.build`), within the target's budget.
+
+:func:`build` runs all eight.
 
 The builder uses no AI and no network, and the same inputs give the same result.
 """
 
+from mosaic_build.mosaic.build import Built, build
+from mosaic_build.mosaic.derive import declare
 from mosaic_build.mosaic.errors import BuildError
 from mosaic_build.mosaic.link import apply_identities, link
 from mosaic_build.mosaic.map import map_nodes
@@ -28,18 +37,27 @@ from mosaic_build.mosaic.merge import (
     merge,
 )
 from mosaic_build.mosaic.pieces import Inputs, check
+from mosaic_build.mosaic.select import select
+from mosaic_build.mosaic.target import Target, budget_bytes, target
 
 __all__ = [
     "Assembly",
     "BuildError",
+    "Built",
     "EdgeConflict",
     "Inputs",
     "MentionReport",
     "ProposalStatus",
     "StaleReference",
+    "Target",
     "apply_identities",
+    "budget_bytes",
+    "build",
     "check",
+    "declare",
     "link",
     "map_nodes",
     "merge",
+    "select",
+    "target",
 ]

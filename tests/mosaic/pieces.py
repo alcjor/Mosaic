@@ -55,8 +55,12 @@ def tessera(
     edges: Sequence[Edge] = (),
     mentions: Sequence[Mention] = (),
     producer: str = PRODUCER,
+    declared: Mapping[str, Mapping[str, str]] | None = None,
 ) -> str:
     """Seal a tessera of ``nodes`` and ``edges`` and return its knowledge hash.
+
+    ``declared`` gives a type's declared properties and their kinds (section 3.4); other types
+    declare none.
 
     Without ``evidence``, each node gets one row about the whole node at ``row=<n>`` and each
     edge one at ``edge=<n>``. An edge type's ends are the types of its first edge's ends.
@@ -91,9 +95,15 @@ def tessera(
         sources=[
             Source(id=source, kind="file", hash=source_hash, path=source, notice=notice, text=text)
         ],
-        types=[Type(name=t, kind="node") for t in types]
+        types=[Type(name=t, kind="node", props=_declared(declared, t)) for t in types]
         + [
-            Type(name=t, kind="edge", from_type=ends[0], to_type=ends[1])
+            Type(
+                name=t,
+                kind="edge",
+                from_type=ends[0],
+                to_type=ends[1],
+                props=_declared(declared, t),
+            )
             for t, ends in sorted(edge_types.items())
         ],
         nodes=nodes,
@@ -104,6 +114,10 @@ def tessera(
         external_refs=external_refs,
     )
     return seal(path, content).knowledge_hash
+
+
+def _declared(declared: Mapping[str, Mapping[str, str]] | None, type_: str) -> str:
+    return json.dumps(dict((declared or {}).get(type_, {})))
 
 
 def evidence(
@@ -143,12 +157,15 @@ def pattern(
     pieces: Sequence[str | Mapping[str, str]],
     types: Mapping[str, Any],
     edges: Mapping[str, Any] | None = None,
+    mosaics: Mapping[str, Any] | None = None,
 ) -> Path:
-    """Write ``pattern.yaml`` (JSON is YAML) with ``pieces``, ``types`` and ``edges``."""
+    """Write ``pattern.yaml`` (JSON is YAML) with ``pieces``, ``types``, ``edges``, ``mosaics``."""
     path = directory / "pattern.yaml"
     data: dict[str, Any] = {"format": "0.1", "pieces": list(pieces), "types": types}
     if edges is not None:
         data["edges"] = edges
+    if mosaics is not None:
+        data["mosaics"] = mosaics
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return path
 
