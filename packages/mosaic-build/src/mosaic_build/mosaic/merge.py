@@ -33,7 +33,7 @@ from typing import Any
 
 from mosaic_format.canonical_json import canonical_json
 from mosaic_format.hashes import quote_confidence
-from mosaic_format.writer import Alias, Evidence, ExternalRef, Node, Source
+from mosaic_format.writer import Alias, Edge, EdgeKey, Evidence, ExternalRef, Node, Source
 
 from mosaic_build.mosaic.errors import BuildError
 from mosaic_build.mosaic.map import Mapped, map_nodes
@@ -66,6 +66,52 @@ class Conflict:
 
 
 @dataclass(frozen=True)
+class EdgeConflict:
+    """An edge property given differing values (sections 7.1 step 5 and 7.3)."""
+
+    edge: EdgeKey
+    property: str
+    winner: Given
+    losers: tuple[Given, ...]
+
+
+@dataclass(frozen=True)
+class MentionReport:
+    """A mention a rule could not resolve (sections 5.3 and 7.2).
+
+    ``status`` is ``unmatched`` or ``ambiguous``; ``candidates`` are the matching node ids when
+    ambiguous, by UTF-8 bytes. ``edge_type`` names the rule; one entry per mention and rule.
+    """
+
+    status: str
+    role: str
+    text: str
+    piece: str
+    locator: str
+    candidates: tuple[str, ...]
+    edge_type: str
+
+
+@dataclass(frozen=True)
+class StaleReference:
+    """A name that resolves to nothing (section 7.2): in 0.1, an unmatched mention, with the
+    rule's ``to`` type."""
+
+    name: str
+    type: str
+    piece: str
+    locator: str
+
+
+@dataclass(frozen=True)
+class ProposalStatus:
+    """A proposal the build report lists (section 5.5): ``outdated`` or ``no_longer_applies``."""
+
+    id: str
+    status: str
+
+
+@dataclass(frozen=True)
 class AliasConflict:
     """Aliases of one node equal under ``NOCASE`` but spelled differently (section 7.2)."""
 
@@ -90,6 +136,35 @@ def _canonical(value: Any) -> str:
     return canonical_json(json.dumps(value, ensure_ascii=False))
 
 
+def _winner(values: list[Given]) -> Given:
+    """The value from the earliest piece, the first in build order within one piece."""
+    return min(values, key=lambda g: g.rank)
+
+
+def _differing(values: dict[str, list[Given]]) -> list[tuple[str, Given, tuple[Given, ...]]]:
+    """Each property given differing values: (property, winner, losers in build order).
+
+    Properties are taken by UTF-8 bytes; a loser equal to another from the same piece is listed
+    once.
+    """
+    found: list[tuple[str, Given, tuple[Given, ...]]] = []
+    for prop in sorted(values, key=lambda p: p.encode("utf-8")):
+        win = _winner(values[prop])
+        losers: list[Given] = []
+        for given in sorted(values[prop], key=lambda g: g.rank):
+            if given is win or _same(given.value, win.value):
+                continue
+            if not any(_same(given.value, g.value) and given.piece == g.piece for g in losers):
+                losers.append(given)
+        if losers:
+            found.append((prop, win, tuple(losers)))
+    return found
+
+
+def _props_text(props: dict[str, Any]) -> str | None:
+    return json.dumps(props, ensure_ascii=False) if props else None
+
+
 @dataclass
 class Merged:
     """One canonical node and everything its pieces gave it, in build order."""
@@ -107,21 +182,10 @@ class Merged:
 
     def winner(self, prop: str) -> Given:
         """The value from the earliest piece, the first in build order within one piece."""
-        return min(self.values[prop], key=lambda g: g.rank)
+        return _winner(self.values[prop])
 
     def conflicts(self) -> list[Conflict]:
-        found: list[Conflict] = []
-        for prop in sorted(self.values, key=lambda p: p.encode("utf-8")):
-            win = self.winner(prop)
-            losers: list[Given] = []
-            for given in sorted(self.values[prop], key=lambda g: g.rank):
-                if given is win or _same(given.value, win.value):
-                    continue
-                if not any(_same(given.value, g.value) and given.piece == g.piece for g in losers):
-                    losers.append(given)
-            if losers:
-                found.append(Conflict(self.id, prop, win, tuple(losers)))
-        return found
+        return [Conflict(self.id, p, w, losers) for p, w, losers in _differing(self.values)]
 
     def kept_aliases(self) -> tuple[list[Given], list[AliasConflict]]:
         """The aliases kept, first added wins under ``NOCASE``, and the alias conflicts."""
@@ -152,7 +216,29 @@ class Merged:
             key=self.key,
             label=label,
             summary=summary,
-            props=json.dumps(props, ensure_ascii=False) if props else None,
+            props=_props_text(props),
+        )
+
+
+@dataclass
+class Linked:
+    """One canonical edge (step 5) and the props its piece edges gave it, in build order."""
+
+    key: EdgeKey
+    values: dict[str, list[Given]] = field(default_factory=dict)
+    """Key of ``props`` → the values given; merged key by key like node properties."""
+
+    def give(self, prop: str, value: Any, piece: Piece) -> None:
+        self.values.setdefault(prop, []).append(Given(value, piece.name, piece.rank))
+
+    def conflicts(self) -> list[EdgeConflict]:
+        return [EdgeConflict(self.key, p, w, losers) for p, w, losers in _differing(self.values)]
+
+    def edge(self) -> Edge:
+        props = {p: _winner(given).value for p, given in self.values.items()}
+        k = self.key
+        return Edge(
+            type=k.type, src=k.src, dst=k.dst, qualifier=k.qualifier, props=_props_text(props)
         )
 
 
@@ -167,6 +253,16 @@ class Assembly:
     external_refs: list[ExternalRef]
     canonical: dict[tuple[str, str], tuple[str, ...]]
     """(piece, piece node id) → the canonical node ids it maps to, in build order."""
+    merged_into: dict[str, str] = field(default_factory=dict)
+    """Node id an identity proposal merged away → the node it was merged into (step 4)."""
+    edges: dict[EdgeKey, Linked] = field(default_factory=dict)
+    """Canonical edges in build order (step 5); their evidence is in :attr:`evidence`."""
+    mentions: list[MentionReport] = field(default_factory=list)
+    """Unmatched and ambiguous mentions, by piece and locator (UTF-8 bytes)."""
+    stale_references: list[StaleReference] = field(default_factory=list)
+    """Names that resolve to nothing, by piece and locator (UTF-8 bytes)."""
+    proposals: list[ProposalStatus] = field(default_factory=list)
+    """Outdated proposals in file order, then those that no longer apply, in file order."""
 
     def conflicts(self) -> list[Conflict]:
         """Every property conflict, by node id and property (UTF-8 bytes)."""
@@ -189,6 +285,20 @@ class Assembly:
 
     def node_rows(self) -> list[Node]:
         return [m.node() for m in self.nodes.values()]
+
+    def edge_rows(self) -> list[Edge]:
+        return [e.edge() for e in self.edges.values()]
+
+    def edge_conflicts(self) -> list[EdgeConflict]:
+        """Every edge property conflict, by from, type, to, qualifier and property (section 7.3)."""
+        found = [c for e in self.edges.values() for c in e.conflicts()]
+        found.sort(
+            key=lambda c: tuple(
+                x.encode("utf-8")
+                for x in (c.edge.src, c.edge.type, c.edge.dst, c.edge.qualifier, c.property)
+            )
+        )
+        return found
 
 
 def _sources(pieces: Sequence[Piece]) -> list[Source]:
@@ -222,12 +332,14 @@ def _where(piece: Piece, old_id: str) -> str:
     return f"piece {piece.name!r}, node {old_id!r}"
 
 
-def _via(piece: Piece, old_id: str, via: object) -> str | None:
+def _via(piece: Piece, old_id: str, via: object, where: str | None = None) -> str | None:
     """``via`` of evidence taken from ``piece``: a mosaic piece appends its hash (section 3.5).
 
     The piece is untrusted (section 3.8), so a ``via`` that is not an I-JSON array of text fails
-    the build with ``invalid_input`` instead of a ``ValueError`` later.
+    the build with ``invalid_input`` instead of a ``ValueError`` later. ``where`` names the
+    subject in that message; by default, the piece node ``old_id``.
     """
+    where = _where(piece, old_id) if where is None else where
     if via is None:
         hashes: list[object] = []
     else:
@@ -235,12 +347,11 @@ def _via(piece: Piece, old_id: str, via: object) -> str | None:
             hashes = json.loads(canonical_json(str(via)))
         except ValueError as e:
             raise BuildError(
-                "invalid_input", f"{_where(piece, old_id)}: evidence via is not I-JSON (3.1): {e}"
+                "invalid_input", f"{where}: evidence via is not I-JSON (3.1): {e}"
             ) from None
         if not isinstance(hashes, list) or not all(isinstance(h, str) for h in hashes):
             raise BuildError(
-                "invalid_input",
-                f"{_where(piece, old_id)}: evidence via is not an array of knowledge hashes (3.5)",
+                "invalid_input", f"{where}: evidence via is not an array of knowledge hashes (3.5)"
             )
     if piece.kind != "mosaic":
         return None if via is None else str(via)
@@ -289,7 +400,7 @@ class _PieceRows:
             self.refs.setdefault(_nid(row[0]), []).append(row[1:])
 
 
-def _evidence_key(e: Evidence) -> tuple[object, ...]:
+def evidence_key(e: Evidence) -> tuple[object, ...]:
     """What makes two evidence rows equal (section 3.5): ``confidence`` as it is hashed."""
     confidence = quote_confidence(e.confidence)
     return (e.subject, e.prop, e.source, e.locator, e.method, e.producer, confidence, e.via)
@@ -353,7 +464,7 @@ def merge(inputs: Inputs, mapped: Iterable[Mapped] | None = None) -> Assembly:
                         via=_via(piece, m.old_id, via),
                         snippet=None if snippet is None else str(snippet),
                     )
-                    key = _evidence_key(row)
+                    key = evidence_key(row)
                     if key not in seen_evidence:
                         seen_evidence.add(key)
                         evidence.append(row)

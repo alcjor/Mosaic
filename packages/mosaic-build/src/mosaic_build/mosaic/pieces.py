@@ -8,8 +8,15 @@ A piece that matches no file or more than one, or whose ``kind`` in the pattern 
 file's, stops the build with ``piece_mismatch``. Every available file is opened by the reading
 rules (section 3.8); one that they refuse stops the build with ``invalid_input``, since it may
 be the piece.
+
+The builder may also be given the previous mosaic of the target (section 7). It is used only
+to flag outdated proposals (section 5.5): step 1 opens it by the reading rules, a refusal stops
+the build with ``invalid_input``, and only its knowledge hash is kept. When it is the mosaic
+the proposals were built from (``built_from`` is a prefix of its knowledge hash), it is the
+``built_from`` mosaic of section 5.6, and the ids the proposals name must exist in it.
 """
 
+import hashlib
 import os
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -55,6 +62,11 @@ class Inputs:
     pattern: Mapping[str, Any]
     proposals: Mapping[str, Any] | None
     pieces: Sequence[Piece]
+    proposals_path: Path | None = None
+    proposals_hash: str | None = None
+    """SHA-256 of the proposals file's bytes, as checked: its ``source`` row (section 3.2)."""
+    previous_hash: str | None = None
+    """Knowledge hash of the previous mosaic of the target, when it is given (section 7)."""
 
     def piece(self, name: str) -> Piece:
         for p in self.pieces:
@@ -118,29 +130,59 @@ def _open_all(paths: Sequence[Path]) -> list[SealedFile]:
     return opened
 
 
+def _previous_hash(previous: Path) -> str:
+    """The knowledge hash of the previous mosaic, opened by the reading rules (section 3.8)."""
+    try:
+        with open_sealed(previous, limits=READ_ALL) as f:
+            return f.knowledge_hash
+    except FileRefusedError as e:
+        raise BuildError(
+            "invalid_input", f"previous mosaic refused by the reading rules: {e}"
+        ) from None
+
+
 def check(
     pattern: str | os.PathLike[str],
     *,
     pieces: Iterable[str | os.PathLike[str]] = (),
     proposals: str | os.PathLike[str] | None = None,
+    previous: str | os.PathLike[str] | None = None,
 ) -> Inputs:
     """Step 1: check ``pattern`` and ``proposals``, and resolve and open every piece.
 
-    ``pieces`` are the available files besides each piece's own ``path``. Raises
-    :class:`BuildError` when the build must stop, and :class:`FileNotFoundError` when a given
-    file does not exist. The caller closes the returned :class:`Inputs`.
+    ``pieces`` are the available files besides each piece's own ``path``; ``previous`` is the
+    previous mosaic of the target, if any. Raises :class:`BuildError` when the build must stop,
+    and :class:`FileNotFoundError` when a given file does not exist. The caller closes the
+    returned :class:`Inputs`.
     """
     pattern_path = Path(pattern)
     given = [Path(p) for p in pieces]
-    for path in (pattern_path, *given, *(() if proposals is None else (Path(proposals),))):
+    proposals_path = None if proposals is None else Path(proposals)
+    previous_path = None if previous is None else Path(previous)
+    optional = [p for p in (proposals_path, previous_path) if p is not None]
+    for path in (pattern_path, *given, *optional):
         if not path.is_file():
             raise FileNotFoundError(f"{path}: no such file")
 
-    report = check_pattern(pattern_path, proposals=proposals)
+    report = check_pattern(pattern_path, proposals=proposals_path)
     if not report.ok:
         raise _violations((str(v) for v in report.violations), f"{pattern_path}: pattern check")
     data = load(pattern_path.read_bytes().decode("utf-8"), str(pattern_path)).data
     entries = _entries(data)
+    proposals_bytes = None if proposals_path is None else proposals_path.read_bytes()
+    proposals_data = (
+        None
+        if proposals_bytes is None
+        else load(proposals_bytes.decode("utf-8"), str(proposals_path)).data
+    )
+    previous_hash = None if previous_path is None else _previous_hash(previous_path)
+    built_from = None
+    if (
+        previous_path is not None
+        and proposals_data is not None
+        and str(previous_hash).startswith(proposals_data["built_from"])
+    ):
+        built_from = previous_path
 
     available = list(given)
     for _, _, _, path in entries:
@@ -174,17 +216,15 @@ def check(
             resolved.append(Piece(name=name, rank=rank, file=match, path=path))
 
         report = check_pattern(
-            pattern_path, proposals=proposals, pieces=[p.file.path for p in resolved]
+            pattern_path,
+            proposals=proposals_path,
+            pieces=[p.file.path for p in resolved],
+            built_from=built_from,
         )
         if not report.ok:
             raise _violations(
                 (str(v) for v in report.violations), f"{pattern_path}: pattern check with pieces"
             )
-        proposals_data = (
-            None
-            if proposals is None
-            else load(Path(proposals).read_bytes().decode("utf-8"), str(proposals)).data
-        )
     except BaseException:
         for f in files:
             f.close()
@@ -192,4 +232,14 @@ def check(
     for f in files:
         if f.path not in chosen:
             f.close()
-    return Inputs(pattern_path, data, proposals_data, tuple(resolved))
+    return Inputs(
+        pattern_path,
+        data,
+        proposals_data,
+        tuple(resolved),
+        proposals_path=proposals_path,
+        proposals_hash=None
+        if proposals_bytes is None
+        else hashlib.sha256(proposals_bytes).hexdigest(),
+        previous_hash=previous_hash,
+    )
