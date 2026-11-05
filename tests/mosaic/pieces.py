@@ -9,9 +9,12 @@ from mosaic_format import seal
 from mosaic_format.writer import (
     Alias,
     Content,
+    Edge,
+    EdgeKey,
     Evidence,
     ExternalRef,
     Header,
+    Mention,
     Node,
     Source,
     Type,
@@ -49,12 +52,20 @@ def tessera(
     aliases: Sequence[Alias] = (),
     evidence: Sequence[Evidence] | None = None,
     external_refs: Sequence[ExternalRef] = (),
+    edges: Sequence[Edge] = (),
+    mentions: Sequence[Mention] = (),
+    producer: str = PRODUCER,
 ) -> str:
-    """Seal a tessera of ``nodes`` and return its knowledge hash.
+    """Seal a tessera of ``nodes`` and ``edges`` and return its knowledge hash.
 
-    Without ``evidence``, each node gets one row about the whole node at ``row=<n>``.
+    Without ``evidence``, each node gets one row about the whole node at ``row=<n>`` and each
+    edge one at ``edge=<n>``. An edge type's ends are the types of its first edge's ends.
     """
     types = sorted({n.type for n in nodes})
+    kinds = {n.id: n.type for n in nodes}
+    edge_types: dict[str, tuple[str, str]] = {}
+    for e in edges:
+        edge_types.setdefault(e.type, (kinds[e.src], kinds[e.dst]))
     if evidence is None:
         evidence = [
             Evidence(
@@ -62,26 +73,41 @@ def tessera(
                 source=source,
                 locator=f"file={source};row={i + 1}",
                 method="extracted",
-                producer=PRODUCER,
+                producer=producer,
             )
             for i, n in enumerate(nodes)
+        ] + [
+            Evidence(
+                subject=e.key,
+                source=source,
+                locator=f"file={source};edge={i + 1}",
+                method="extracted",
+                producer=producer,
+            )
+            for i, e in enumerate(edges)
         ]
     content = Content(
-        header=Header(kind="tessera", producer=PRODUCER),
+        header=Header(kind="tessera", producer=producer),
         sources=[
             Source(id=source, kind="file", hash=source_hash, path=source, notice=notice, text=text)
         ],
-        types=[Type(name=t, kind="node") for t in types],
+        types=[Type(name=t, kind="node") for t in types]
+        + [
+            Type(name=t, kind="edge", from_type=ends[0], to_type=ends[1])
+            for t, ends in sorted(edge_types.items())
+        ],
         nodes=nodes,
+        edges=edges,
         aliases=aliases,
         evidence=evidence,
+        mentions=mentions,
         external_refs=external_refs,
     )
     return seal(path, content).knowledge_hash
 
 
 def evidence(
-    subject: str,
+    subject: str | EdgeKey,
     locator: str,
     *,
     source: str = "src.csv",
@@ -113,10 +139,63 @@ def mosaic(
 
 
 def pattern(
-    directory: Path, pieces: Sequence[str | Mapping[str, str]], types: Mapping[str, Any]
+    directory: Path,
+    pieces: Sequence[str | Mapping[str, str]],
+    types: Mapping[str, Any],
+    edges: Mapping[str, Any] | None = None,
 ) -> Path:
-    """Write ``pattern.yaml`` (JSON is YAML) with ``pieces`` and ``types``; return its path."""
+    """Write ``pattern.yaml`` (JSON is YAML) with ``pieces``, ``types`` and ``edges``."""
     path = directory / "pattern.yaml"
-    data = {"format": "0.1", "pieces": list(pieces), "types": types}
+    data: dict[str, Any] = {"format": "0.1", "pieces": list(pieces), "types": types}
+    if edges is not None:
+        data["edges"] = edges
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return path
+
+
+def proposals(
+    directory: Path, entries: Sequence[Mapping[str, Any]], built_from: str = "0" * 64
+) -> Path:
+    """Write ``proposals.yaml`` (JSON is YAML) with ``entries``; return its path."""
+    path = directory / "proposals.yaml"
+    data = {"format": "0.1", "built_from": built_from, "proposals": list(entries)}
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    return path
+
+
+def identity(
+    id_: str, node: str, same_as: Sequence[str], decision: str = "accepted"
+) -> dict[str, Any]:
+    """An identity proposal by a person, decided by ``ana`` unless it is open."""
+    p: dict[str, Any] = {
+        "id": id_,
+        "kind": "identity",
+        "by": "ana",
+        "evidence": [{"source": "notes", "locator": "line=1"}],
+        "decision": decision,
+        "node": node,
+        "same_as": list(same_as),
+    }
+    if decision != "open":
+        p["decided_by"] = "ana"
+    return p
+
+
+def edge_proposal(
+    id_: str, type_: str, src: str, dst: str, decision: str = "accepted"
+) -> dict[str, Any]:
+    """An edge proposal by an assistant, decided by ``ana`` unless it is open."""
+    p: dict[str, Any] = {
+        "id": id_,
+        "kind": "edge",
+        "by": "helper/1.0",
+        "confidence": 0.7,
+        "evidence": [{"source": "notes", "locator": "line=2"}],
+        "decision": decision,
+        "type": type_,
+        "from": src,
+        "to": dst,
+    }
+    if decision != "open":
+        p["decided_by"] = "ana"
+    return p
