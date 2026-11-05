@@ -521,9 +521,11 @@ def test_a_mention_matches_an_alias_under_nocase(tmp_path: Path) -> None:
 
 def test_nocase_folds_only_ascii_letters(tmp_path: Path) -> None:
     piece = gauges("T-1", aliases=[Alias("Ärger", "Row:T-1", "source")])
-    a = build(tmp_path, [piece, procedure(("äRGER", "verify.x"))], DOCS, READS)
-    assert reads(a) == []
-    assert [m.status for m in a.mentions] == ["unmatched"]
+    a = build(
+        tmp_path, [piece, procedure(("äRGER", "verify.x"), ("ÄRGER", "verify.y"))], DOCS, READS
+    )
+    assert reads(a) == ["Sensor:T-1"]
+    assert [(m.text, m.status) for m in a.mentions] == [("äRGER", "unmatched")]
 
 
 def test_aliases_from_accepted_identity_proposals_take_part(tmp_path: Path) -> None:

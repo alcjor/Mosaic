@@ -52,8 +52,8 @@ from mosaic_build.mosaic.merge import (
     Assembly,
     Given,
     Linked,
-    Merged,
     MentionReport,
+    Merged,
     ProposalStatus,
     StaleReference,
     _nid,
@@ -165,7 +165,7 @@ def apply_identities(inputs: Inputs, a: Assembly) -> None:
 
 
 class _Linker:
-    """Adds edges and their evidence to an assembly, one edge per ``(src, type, dst, qualifier)``."""
+    """Adds edges and evidence to an assembly: one edge per ``(src, type, dst, qualifier)``."""
 
     def __init__(self, a: Assembly) -> None:
         self.a = a
@@ -262,7 +262,9 @@ def _map_edges(inputs: Inputs, a: Assembly, linker: _Linker) -> None:
 def role_matches(rule: str, role: str) -> bool:
     """Whether a mention's ``role`` matches a rule: a ``*`` segment matches exactly one segment."""
     wanted, given = rule.split("."), role.split(".")
-    return len(wanted) == len(given) and all(w in ("*", g) for w, g in zip(wanted, given))
+    return len(wanted) == len(given) and all(
+        w in ("*", g) for w, g in zip(wanted, given, strict=True)
+    )
 
 
 class _Targets:
