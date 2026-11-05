@@ -141,11 +141,13 @@ def test_an_id_in_same_as_merges_its_node_into_node(tmp_path: Path) -> None:
     types = {"Sensor": {"key": "tag", "from": {"list.Row": {"unit": "unit"}}}}
     a = build(tmp_path, [piece], types, entries=[identity("p1", "Sensor:A", ["Sensor:B"])])
     assert ids(a) == ["Sensor:A"]
-    # The name, then the merged node's own aliases right after, in their alias order.
+    # The name, then the merged node's own aliases right after, in their alias order, then
+    # its key (#86).
     assert aliases(a, "Sensor:A") == [
         ("Sensor:B", "proposal"),
         ("b2", "source"),
         ("bee", "source"),
+        ("B", "proposal"),
     ]
     # Its evidence and external references move to node.
     assert {e.locator for e in a.evidence if e.subject == "Sensor:A"} == {
@@ -532,6 +534,60 @@ def test_aliases_from_accepted_identity_proposals_take_part(tmp_path: Path) -> N
     entries = [identity("p1", "Sensor:T-1", ["thermo"])]
     a = build(tmp_path, [gauges("T-1"), procedure(("Thermo", "verify.x"))], DOCS, READS, entries)
     assert reads(a) == ["Sensor:T-1"]
+
+
+# A merged node's key stays an alias (section 7.1 step 4, #86).
+
+MERGE_TMP3 = [identity("p1", "Sensor:TEMP-3", ["Sensor:TMP3"])]
+GAUGES = {"Sensor": DOCS["Sensor"]}
+
+
+def test_a_merged_node_s_key_becomes_a_proposal_alias_so_its_mentions_still_match(
+    tmp_path: Path,
+) -> None:
+    # The key is written as normalised, so step 2 makes no alias from it.
+    pieces = [gauges("TEMP-3", "TMP3"), procedure(("TMP3", "verify.arg0"))]
+    a = build(tmp_path, pieces, DOCS, READS, MERGE_TMP3)
+    assert ids(a) == ["Sensor:TEMP-3", "Step:S1"]
+    assert reads(a) == ["Sensor:TEMP-3"]
+    assert (a.mentions, a.stale_references) == ([], [])
+    assert ("TMP3", "proposal") in aliases(a, "Sensor:TEMP-3")
+
+
+def test_a_merged_key_equal_under_nocase_to_an_alias_node_has_adds_nothing(
+    tmp_path: Path,
+) -> None:
+    # Key written ``tmp3``: step 2 keeps it as an alias (origin = source) of Sensor:TMP3.
+    pieces = [gauges("TEMP-3", "tmp3"), procedure(("TMP3", "verify.arg0"))]
+    a = build(tmp_path, pieces, DOCS, READS, MERGE_TMP3)
+    assert aliases(a, "Sensor:TEMP-3") == [("Sensor:TMP3", "proposal"), ("tmp3", "source")]
+    assert a.alias_conflicts() == []
+    assert reads(a) == ["Sensor:TEMP-3"]
+    assert a.mentions == []
+
+
+def test_a_merged_node_s_key_comes_after_its_own_aliases_in_build_order(tmp_path: Path) -> None:
+    # "zz" and "aa" sort after and before "TMP3" in alias order; the key follows both.
+    piece = gauges(
+        "TEMP-3",
+        "TMP3",
+        aliases=[Alias("zz", "Row:TMP3", "source"), Alias("aa", "Row:TMP3", "source")],
+    )
+    a = build(tmp_path, [piece], GAUGES, entries=MERGE_TMP3)
+    assert aliases(a, "Sensor:TEMP-3") == [
+        ("Sensor:TMP3", "proposal"),
+        ("aa", "source"),
+        ("zz", "source"),
+        ("TMP3", "proposal"),
+    ]
+
+
+def test_a_later_alias_equal_to_a_merged_key_under_nocase_loses_to_it(tmp_path: Path) -> None:
+    entries = [*MERGE_TMP3, identity("p2", "Sensor:TEMP-3", ["tmp3"])]
+    a = build(tmp_path, [gauges("TEMP-3", "TMP3")], GAUGES, entries=entries)
+    (c,) = a.alias_conflicts()
+    assert (c.winner.value, c.winner.origin) == ("TMP3", "proposal")
+    assert [(g.value, g.piece) for g in c.losers] == [("tmp3", "proposals.yaml")]
 
 
 def test_a_star_segment_matches_exactly_one_segment(tmp_path: Path) -> None:
