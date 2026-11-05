@@ -649,6 +649,20 @@ def test_a_via_that_is_not_hashes_fails_the_build_naming_the_piece_and_node(
     assert what in str(e.value)
 
 
+def test_evidence_of_a_tessera_with_a_via_fails_the_build(tmp_path: Path) -> None:
+    # Section 3.5: via is NULL when the evidence came straight from a tessera.
+    path = tmp_path / "list.tessera"
+    h = tessera(path, [node("Row:1", "g1")], evidence=[evidence("Row:1", "row=1", via='["x"]')])
+    with (
+        pytest.raises(BuildError) as e,
+        check(pattern(tmp_path, [f"list@{h}"], gauge({"tag": "key"})), pieces=[path]) as i,
+    ):
+        merge(i)
+    assert e.value.reason == "invalid_input"
+    assert "piece 'list', node 'Row:1'" in str(e.value)
+    assert "evidence of a tessera has a via" in str(e.value)
+
+
 def test_an_alias_that_differs_only_in_origin_is_no_conflict(tmp_path: Path) -> None:
     inner = tmp_path / "base.mosaic"
     h = _inner_mosaic(inner, "c" * 64)

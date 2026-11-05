@@ -335,14 +335,22 @@ def _where(piece: Piece, old_id: str) -> str:
 def _via(piece: Piece, old_id: str, via: object, where: str | None = None) -> str | None:
     """``via`` of evidence taken from ``piece``: a mosaic piece appends its hash (section 3.5).
 
-    The piece is untrusted (section 3.8), so a ``via`` that is not an I-JSON array of text fails
-    the build with ``invalid_input`` instead of a ``ValueError`` later. ``where`` names the
-    subject in that message; by default, the piece node ``old_id``.
+    The piece is untrusted (section 3.8), so a ``via`` that is not an I-JSON array of text, or
+    any ``via`` in a tessera (evidence straight from a tessera has none), fails the build with
+    ``invalid_input`` instead of a ``ValueError`` later. ``where`` names the subject in that
+    message; by default, the piece node ``old_id``.
     """
     where = _where(piece, old_id) if where is None else where
-    if via is None:
-        hashes: list[object] = []
-    else:
+    if piece.kind != "mosaic":
+        if via is not None:
+            raise BuildError(
+                "invalid_input",
+                f"{where}: evidence of a tessera has a via; only evidence that passed through a "
+                f"mosaic has one (3.5)",
+            )
+        return None
+    hashes: list[object] = []
+    if via is not None:
         try:
             hashes = json.loads(canonical_json(str(via)))
         except ValueError as e:
@@ -353,8 +361,6 @@ def _via(piece: Piece, old_id: str, via: object, where: str | None = None) -> st
             raise BuildError(
                 "invalid_input", f"{where}: evidence via is not an array of knowledge hashes (3.5)"
             )
-    if piece.kind != "mosaic":
-        return None if via is None else str(via)
     return json.dumps([*hashes, piece.knowledge_hash])
 
 
