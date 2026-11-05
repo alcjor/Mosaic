@@ -330,6 +330,12 @@ CASES: tuple[Case, ...] = (
         _sealed(_with(_tessera, add_sources=[Source(id="doc2", kind="file", hash=NOTES_HASH)])),
     ),
     Case(
+        "inv-8-via.tessera",
+        ("inv-8",),
+        "An evidence row of a tessera has a `via` (decision on #83)",
+        _changed(_tessera, [f"UPDATE evidence SET via = '[\"{ZERO}\"]' WHERE evid = 1"]),
+    ),
+    Case(
         "inv-10-id-form.mosaic",
         ("inv-10",),
         "A node `Item:z` whose key is `zz`",
@@ -449,9 +455,9 @@ CASES: tuple[Case, ...] = (
 
 NO_FILE = {
     "inv-8": (
-        "Node ids unique in a tessera: format.sql's `UNIQUE` forbids duplicates, and a file "
-        "without it fails section 3.1. The checker still looks for duplicate ids "
-        "(`GROUP BY id HAVING count(*) > 1`)."
+        "The unique-ids half (the `via` half has `inv-8-via.tessera`): format.sql's `UNIQUE` "
+        "forbids duplicate ids, and a file without it fails section 3.1. The checker still looks "
+        "for duplicate ids (`GROUP BY id HAVING count(*) > 1`)."
     ),
     "inv-9": (
         "A rule-based tessera is deterministic: one file cannot show it. The tessera builders "
