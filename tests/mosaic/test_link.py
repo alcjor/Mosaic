@@ -141,11 +141,13 @@ def test_an_id_in_same_as_merges_its_node_into_node(tmp_path: Path) -> None:
     types = {"Sensor": {"key": "tag", "from": {"list.Row": {"unit": "unit"}}}}
     a = build(tmp_path, [piece], types, entries=[identity("p1", "Sensor:A", ["Sensor:B"])])
     assert ids(a) == ["Sensor:A"]
-    # The name, then the merged node's own aliases right after, in their alias order.
+    # The name, then the merged node's own aliases right after, in their alias order, then
+    # its key (#86).
     assert aliases(a, "Sensor:A") == [
         ("Sensor:B", "proposal"),
         ("b2", "source"),
         ("bee", "source"),
+        ("B", "proposal"),
     ]
     # Its evidence and external references move to node.
     assert {e.locator for e in a.evidence if e.subject == "Sensor:A"} == {

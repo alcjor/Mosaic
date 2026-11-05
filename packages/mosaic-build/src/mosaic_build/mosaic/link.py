@@ -6,8 +6,10 @@ proposals are applied in the order of the proposals file:
 - Each name in ``same_as``, in its listed order, becomes an alias of ``node`` with
   ``origin = proposal``; ``proposals.yaml`` is its piece for alias conflicts.
 - A name that is the id of a node merges that node into ``node``: its own aliases follow right
-  after, in alias order (``text`` under ``NOCASE``, section 3.6); its property values, evidence
-  and external references move to ``node``; and its piece nodes map to ``node`` from then on.
+  after, in alias order (``text`` under ``NOCASE``, section 3.6), and then its key, as an alias
+  with ``origin = proposal``, unless the key is equal under ``NOCASE`` to an alias ``node``
+  already has (then it adds nothing and is no conflict); its property values, evidence and
+  external references move to ``node``; and its piece nodes map to ``node`` from then on.
   The earliest piece still wins each property across the merged nodes.
 - An id that an earlier proposal merged away stands for the node it was merged into, following
   each merge in turn; a proposal that would merge a node into itself merges nothing.
@@ -158,7 +160,20 @@ def apply_identities(inputs: Inputs, a: Assembly) -> None:
             node.aliases.append(Given(name, PROPOSALS, rank, "proposal"))
             other = resolve(a, name)
             if other != node.id and other in a.nodes:
-                _absorb(a, node, a.nodes.pop(other))
+                merged = a.nodes.pop(other)
+                _absorb(a, node, merged)
+                _keep_key(node, merged, rank)
+
+
+def _keep_key(node: Merged, merged: Merged, rank: int) -> None:
+    """Add the key of ``merged`` as an alias of ``node`` after its own aliases (step 4).
+
+    Names that matched the merged node then still match (section 5.3). A key equal under
+    ``NOCASE`` to an alias ``node`` already has adds nothing and is not an alias conflict.
+    """
+    folded = nocase(merged.key)
+    if all(nocase(str(g.value)) != folded for g in node.aliases):
+        node.aliases.append(Given(merged.key, PROPOSALS, rank, "proposal"))
 
 
 # --- step 5 ----------------------------------------------------------------------------------
