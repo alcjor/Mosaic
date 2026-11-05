@@ -330,3 +330,19 @@ def test_alias_conflict_from_a_proposal_validates() -> None:
     loser = {"value": "Temp-3", "piece": "proposals.yaml"}
     report["alias_conflicts"][0]["losers"].append(loser)
     assert _validator("build-report").is_valid(report)
+
+
+def test_a_conflict_names_a_node_or_an_edge_but_not_both() -> None:
+    """Section 7.3: a conflict names a node by its id, or an edge by type, from, to, qualifier."""
+    report = _load("build-report.json")
+    conflict = report["conflicts"][0]
+    edge = {"type": "reads", "from": "Step:A", "to": "Sensor:TEMP-3", "qualifier": ""}
+    on_edge = {k: v for k, v in conflict.items() if k != "node"} | {"edge": edge}
+    report["conflicts"] = [conflict, on_edge]
+    assert _validator("build-report").is_valid(report)
+    report["conflicts"] = [conflict | {"edge": edge}]
+    assert not _validator("build-report").is_valid(report), "node and edge"
+    report["conflicts"] = [{k: v for k, v in conflict.items() if k != "node"}]
+    assert not _validator("build-report").is_valid(report), "neither node nor edge"
+    report["conflicts"] = [on_edge | {"edge": {k: v for k, v in edge.items() if k != "qualifier"}}]
+    assert not _validator("build-report").is_valid(report), "edge without qualifier"

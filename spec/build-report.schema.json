@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mosaic.invalid/spec/0.1/build-report.schema.json",
   "title": "Mosaic build report 0.1 (draft)",
-  "description": "Shape of build-report.json (Specification 0.1, sections 7.2 and 7.3). Lists are sorted (conflicts by node and property, alias conflicts by node and winning spelling, the rest by piece and locator, and each entry's losers in build order) so the same build gives the same report; sorting is checked by tests, not by this schema.",
+  "description": "Shape of build-report.json (Specification 0.1, sections 7.2 and 7.3). A conflict names either a node or an edge. Lists are sorted (conflicts on nodes first, by node and property, then conflicts on edges, by from, type, to, qualifier and property; alias conflicts by node and winning spelling, the rest by piece and locator, and each entry's losers in build order) so the same build gives the same report; sorting is checked by tests, not by this schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -39,9 +39,21 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["node", "property", "winner", "losers"],
+        "required": ["property", "winner", "losers"],
+        "oneOf": [{ "required": ["node"] }, { "required": ["edge"] }],
         "properties": {
           "node": { "type": "string" },
+          "edge": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "from", "to", "qualifier"],
+            "properties": {
+              "type": { "type": "string" },
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "qualifier": { "type": "string" }
+            }
+          },
           "property": { "type": "string" },
           "winner": { "$ref": "#/$defs/valueFromPiece" },
           "losers": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/valueFromPiece" } }
