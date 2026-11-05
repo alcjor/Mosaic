@@ -119,6 +119,12 @@
       "inv-7"
     ]
   },
+  "inv-8-via.tessera": {
+    "pieces": [],
+    "rules": [
+      "inv-8"
+    ]
+  },
   "profile.tessera": {
     "pieces": [],
     "rules": [

@@ -48,7 +48,7 @@ INVARIANTS: Mapping[int, str] = {
     5: "edges point to nodes in the same file",
     6: "rows are in canonical order with dense row ids, and the knowledge hash matches",
     7: "a tessera has exactly one source, which is never a tessera or a mosaic",
-    8: "node ids are unique within a tessera",
+    8: "node ids are unique within a tessera, and no evidence row has a via",
     9: "a rule-based tessera is deterministic",
     10: "mosaic node ids are type plus key and unique; every node type has a key property",
     11: "every piece of a mosaic is pinned by hash",
@@ -570,6 +570,13 @@ class _Checker:
             "SELECT id, count(*) FROM node GROUP BY id HAVING count(*) > 1 ORDER BY id"
         ):
             self.add("inv-8", "node", _q(id_), f"{count} nodes share this id")
+        for (evid,) in self.rows("SELECT evid FROM evidence WHERE via IS NOT NULL ORDER BY evid"):
+            self.add(
+                "inv-8",
+                "evidence",
+                self.evidence_name(evid),
+                "the row has a via; a tessera's evidence never has one (section 3.5)",
+            )
 
     # --- mosaic -------------------------------------------------------------------------------
 

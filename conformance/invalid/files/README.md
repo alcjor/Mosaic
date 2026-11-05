@@ -21,6 +21,7 @@ conforming tessera, a piece of `inv-15-notice.mosaic`, which is checked with it.
 | `inv-6-hash.tessera` | `inv-6` | The header's knowledge hash is not that of the content |
 | `inv-6-order.mosaic` | `inv-6` | The only `external_ref` row has `xid` 2: row ids are not dense |
 | `inv-7-two-sources.tessera` | `inv-7` | A tessera with two sources |
+| `inv-8-via.tessera` | `inv-8` | An evidence row of a tessera has a `via` (decision on #83) |
 | `inv-10-id-form.mosaic` | `inv-10` | A node `Item:z` whose key is `zz` |
 | `inv-11-piece-hash.mosaic` | `inv-11`, `constraint` | Piece `first` with hash `abc123` (format.sql's CHECK wants 64 hex characters) |
 | `inv-12-piece-source.mosaic` | `inv-12` | An evidence row whose source is piece `first`, not an original source |
@@ -38,7 +39,7 @@ conforming tessera, a piece of `inv-15-notice.mosaic`, which is checked with it.
 
 Invariants without a file:
 
-- `inv-8`: Node ids unique in a tessera: format.sql's `UNIQUE` forbids duplicates, and a file without it fails section 3.1. The checker still looks for duplicate ids (`GROUP BY id HAVING count(*) > 1`).
+- `inv-8`: The unique-ids half (the `via` half has `inv-8-via.tessera`): format.sql's `UNIQUE` forbids duplicate ids, and a file without it fails section 3.1. The checker still looks for duplicate ids (`GROUP BY id HAVING count(*) > 1`).
 - `inv-9`: A rule-based tessera is deterministic: one file cannot show it. The tessera builders test it (two builds give the same knowledge hash); the checker skips it.
 
 Uniqueness of `(type, key)` in a mosaic (invariant 10) has no file for the same reason as invariant 8.

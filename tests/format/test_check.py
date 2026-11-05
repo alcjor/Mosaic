@@ -98,7 +98,7 @@ def test_each_invalid_file_is_rejected_naming_exactly_its_rules(name: str) -> No
 
 def test_every_checked_invariant_and_rule_has_a_file() -> None:
     named = {rule for case in CASES.values() for rule in case["rules"]}
-    without_file = {"inv-8", "inv-9", "piece-refused"}
+    without_file = {"inv-9", "piece-refused"}  # inv-8 has a file for its via half
     assert named == set(RULES) - without_file
     for name, case in CASES.items():
         rule = case["rules"][0]  # the rule the file breaks; `constraint` may follow
@@ -228,6 +228,15 @@ def test_invariant_1_unsupported_version_is_named(tessera: Path) -> None:
     assert len(violations) == 1 and "'0.2'" in violations[0].message
 
 
+def test_invariant_8_evidence_of_a_tessera_has_no_via(tessera: Path) -> None:
+    """Section 3.9 and Part 2 invariant 8 (decision on #83): a tessera's evidence has no via."""
+    hash_ = "a" * 64
+    tamper(tessera, [f"UPDATE evidence SET via = '[\"{hash_}\"]' WHERE evid = 1"])
+    (violation,) = only(check(tessera), "inv-8")
+    assert violation.table == "evidence"
+    assert "via" in violation.message
+
+
 def test_invariant_2_an_edge_without_evidence(tessera: Path) -> None:
     tamper(tessera, ["DELETE FROM evidence WHERE eid IS NOT NULL"])
     (violation,) = only(check(tessera), "inv-2")
@@ -320,6 +329,7 @@ def test_invariant_8_duplicate_ids_are_found_without_the_unique_constraint() -> 
     con = sqlite3.connect(":memory:")
     con.execute("CREATE TABLE node (nid INTEGER PRIMARY KEY, id TEXT)")
     con.execute("CREATE TABLE source (sid INTEGER PRIMARY KEY, id TEXT, kind TEXT)")
+    con.execute("CREATE TABLE evidence (evid INTEGER PRIMARY KEY, via TEXT)")  # no via: no inv-8
     con.execute("INSERT INTO source VALUES (1, 'doc', 'file')")
     con.executemany("INSERT INTO node VALUES (?, ?)", [(1, "Row:1"), (2, "Row:1"), (3, "Row:2")])
     checker = c._Checker(Path("x.tessera"), con)
