@@ -5,6 +5,7 @@ maintainer's decision comment, written into the spec by #78).
 """
 
 import json
+import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,7 @@ import mosaic_format
 import pytest
 from mosaic_build.mosaic import Assembly, BuildError, check, merge
 from mosaic_build.mosaic.merge import Given
-from mosaic_format import seal
+from mosaic_format import knowledge_hash, seal
 from mosaic_format.writer import (
     Alias,
     Content,
@@ -110,6 +111,39 @@ def test_an_unusable_key_fails_the_build_naming_the_piece_and_node(
     assert e.value.reason == "invalid_input"
     assert "piece 'list', node 'Row:2'" in str(e.value)
     assert what in str(e.value)
+
+
+def _with_raw_props(path: Path, node_id: str, props: str) -> str:
+    """Rewrite one node's props as raw text, as a crafted file could, and reseal its hash."""
+    con = sqlite3.connect(path, isolation_level=None)
+    try:
+        con.execute("UPDATE node SET props = ? WHERE id = ?", (props, node_id))
+        con.execute("UPDATE header SET knowledge_hash = ?", (knowledge_hash(con),))
+        (h,) = con.execute("SELECT knowledge_hash FROM header").fetchone()
+    finally:
+        con.close()
+    return str(h)
+
+
+@pytest.mark.parametrize(
+    "props",
+    ['{"Tag":9007199254740993}', '{"Tag":"a","Tag":"b"}', '{"Unit":"V","Tag":1e400}'],
+)
+def test_props_that_are_not_i_json_fail_the_build_naming_the_piece_and_node(
+    tmp_path: Path, props: str
+) -> None:
+    path = tmp_path / "list.tessera"
+    tessera(path, [node("Row:1", "r1", Tag="g1")])
+    h = _with_raw_props(path, "Row:1", props)
+    types = gauge({"tag": "Tag"})
+    with (
+        pytest.raises(BuildError) as e,
+        check(pattern(tmp_path, [f"list@{h}"], types), pieces=[path]) as i,
+    ):
+        merge(i)
+    assert e.value.reason == "invalid_input"
+    assert "piece 'list', node 'Row:1'" in str(e.value)
+    assert "not I-JSON" in str(e.value)
 
 
 def test_strip_removes_its_prefix_before_normalisation(tmp_path: Path) -> None:
@@ -454,6 +488,20 @@ def test_inferred_evidence_keeps_its_confidence(tmp_path: Path) -> None:
     ev = [evidence("Row:1", "row=1", method="inferred", confidence=0.75)]
     a = assemble(tmp_path, [("list", rows, {"evidence": ev})], gauge({"tag": "key"}))
     assert [(e.method, e.confidence, e.via) for e in a.evidence] == [("inferred", 0.75, None)]
+
+
+def test_evidence_equal_once_confidence_is_compared_as_hashed_is_kept_once(
+    tmp_path: Path,
+) -> None:
+    # Section 3.5: rows are equal with confidence compared as it is hashed (section 3.6),
+    # CAST(round(confidence*1000000) AS INTEGER); these two both hash as 700000.
+    rows = [node("Row:1", "g1"), node("Row:2", "g1 ")]
+    ev = [
+        evidence("Row:1", "row=1", method="inferred", confidence=0.7000001),
+        evidence("Row:2", "row=1", method="inferred", confidence=0.7000002),
+    ]
+    a = assemble(tmp_path, [("list", rows, {"evidence": ev})], gauge({"tag": "key"}))
+    assert [(e.locator, e.confidence) for e in a.evidence] == [("row=1", 0.7000001)]
 
 
 def test_exact_duplicate_evidence_is_kept_once(tmp_path: Path) -> None:
