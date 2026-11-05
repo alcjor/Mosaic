@@ -35,6 +35,7 @@ from mosaic_format.canonical_json import canonical_json
 from mosaic_format.hashes import quote_confidence
 from mosaic_format.writer import Alias, Evidence, ExternalRef, Node, Source
 
+from mosaic_build.mosaic.errors import BuildError
 from mosaic_build.mosaic.map import Mapped, map_nodes
 from mosaic_build.mosaic.pieces import Inputs, Piece
 
@@ -217,12 +218,44 @@ def _sources(pieces: Sequence[Piece]) -> list[Source]:
     return rows
 
 
-def _via(piece: Piece, via: object) -> str | None:
-    """``via`` of evidence taken from ``piece``: a mosaic piece appends its hash (section 3.5)."""
+def _where(piece: Piece, old_id: str) -> str:
+    return f"piece {piece.name!r}, node {old_id!r}"
+
+
+def _via(piece: Piece, old_id: str, via: object) -> str | None:
+    """``via`` of evidence taken from ``piece``: a mosaic piece appends its hash (section 3.5).
+
+    The piece is untrusted (section 3.8), so a ``via`` that is not an I-JSON array of text fails
+    the build with ``invalid_input`` instead of a ``ValueError`` later.
+    """
+    if via is None:
+        hashes: list[object] = []
+    else:
+        try:
+            hashes = json.loads(canonical_json(str(via)))
+        except ValueError as e:
+            raise BuildError(
+                "invalid_input", f"{_where(piece, old_id)}: evidence via is not I-JSON (3.1): {e}"
+            ) from None
+        if not isinstance(hashes, list) or not all(isinstance(h, str) for h in hashes):
+            raise BuildError(
+                "invalid_input",
+                f"{_where(piece, old_id)}: evidence via is not an array of knowledge hashes (3.5)",
+            )
     if piece.kind != "mosaic":
         return None if via is None else str(via)
-    hashes = [] if via is None else json.loads(str(via))
     return json.dumps([*hashes, piece.knowledge_hash])
+
+
+def _locator(piece: Piece, old_id: str, locator: object) -> str:
+    """An external reference's ``locator`` in canonical form, or the build fails (section 3.1)."""
+    try:
+        return canonical_json(str(locator))
+    except ValueError as e:
+        raise BuildError(
+            "invalid_input",
+            f"{_where(piece, old_id)}: external reference locator is not I-JSON (3.1): {e}",
+        ) from None
 
 
 def _nid(value: object) -> int:
@@ -317,7 +350,7 @@ def merge(inputs: Inputs, mapped: Iterable[Mapped] | None = None) -> Assembly:
                         producer=str(producer),
                         prop=canonical_prop,
                         confidence=None if confidence is None else float(confidence),
-                        via=_via(piece, via),
+                        via=_via(piece, m.old_id, via),
                         snippet=None if snippet is None else str(snippet),
                     )
                     key = _evidence_key(row)
@@ -333,7 +366,7 @@ def merge(inputs: Inputs, mapped: Iterable[Mapped] | None = None) -> Assembly:
                     locator=str(locator),
                     source=f"{piece.name}/{source}",
                 )
-                identity = (ref.node, ref.system, ref.kind, canonical_json(ref.locator))
+                identity = (ref.node, ref.system, ref.kind, _locator(piece, m.old_id, locator))
                 if identity not in seen_refs:
                     seen_refs.add(identity)
                     refs.append(ref)

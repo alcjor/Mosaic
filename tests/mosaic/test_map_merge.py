@@ -15,6 +15,7 @@ import pytest
 from mosaic_build.mosaic import Assembly, BuildError, check, merge
 from mosaic_build.mosaic.merge import Given
 from mosaic_format import knowledge_hash, seal
+from mosaic_format.hashes import quote_confidence
 from mosaic_format.writer import (
     Alias,
     Content,
@@ -115,9 +116,14 @@ def test_an_unusable_key_fails_the_build_naming_the_piece_and_node(
 
 def _with_raw_props(path: Path, node_id: str, props: str) -> str:
     """Rewrite one node's props as raw text, as a crafted file could, and reseal its hash."""
+    return _crafted(path, "UPDATE node SET props = ? WHERE id = ?", (props, node_id))
+
+
+def _crafted(path: Path, sql: str, params: tuple[object, ...]) -> str:
+    """Change a sealed file with ``sql``, as a crafted file could, and reseal its hash."""
     con = sqlite3.connect(path, isolation_level=None)
     try:
-        con.execute("UPDATE node SET props = ? WHERE id = ?", (props, node_id))
+        con.execute(sql, params)
         con.execute("UPDATE header SET knowledge_hash = ?", (knowledge_hash(con),))
         (h,) = con.execute("SELECT knowledge_hash FROM header").fetchone()
     finally:
@@ -501,7 +507,8 @@ def test_evidence_equal_once_confidence_is_compared_as_hashed_is_kept_once(
         evidence("Row:2", "row=1", method="inferred", confidence=0.7000002),
     ]
     a = assemble(tmp_path, [("list", rows, {"evidence": ev})], gauge({"tag": "key"}))
-    assert [(e.locator, e.confidence) for e in a.evidence] == [("row=1", 0.7000001)]
+    assert len(a.evidence) == 1
+    assert quote_confidence(a.evidence[0].confidence) == b"700000"
 
 
 def test_exact_duplicate_evidence_is_kept_once(tmp_path: Path) -> None:
@@ -549,6 +556,24 @@ def test_external_refs_are_a_union_and_equal_ones_keep_the_first_sid(tmp_path: P
         ExternalRef("Gauge:g1", "hist", "timeseries", '{"series":"G1"}', "first/first.csv"),
         ExternalRef("Gauge:g1", "hist", "timeseries", '{"series":"G2"}', "second/second.csv"),
     ]
+
+
+def test_a_locator_that_is_not_i_json_fails_the_build_naming_the_piece_and_node(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "list.tessera"
+    ref = ExternalRef("Row:1", "hist", "timeseries", '{"series":"G1"}', "src.csv")
+    tessera(path, [node("Row:1", "g1")], external_refs=[ref])
+    h = _crafted(path, "UPDATE external_ref SET locator = ?", ('{"series":1e400}',))
+    types = gauge({"tag": "key"})
+    with (
+        pytest.raises(BuildError) as e,
+        check(pattern(tmp_path, [f"list@{h}"], types), pieces=[path]) as i,
+    ):
+        merge(i)
+    assert e.value.reason == "invalid_input"
+    assert "piece 'list', node 'Row:1'" in str(e.value)
+    assert "locator is not I-JSON" in str(e.value)
 
 
 # --- a mosaic piece (section 7.1 step 2; decision 7) ---------------------------------------
@@ -601,6 +626,27 @@ def test_a_mosaic_piece_s_nodes_are_mapped_by_the_field_map(tmp_path: Path) -> N
         ("base/list/src.csv", None, json.dumps([h])),
         ("base/list/src.csv", "volts", json.dumps([h])),
     ]
+
+
+@pytest.mark.parametrize(
+    ("via", "what"),
+    [("[1e400]", "via is not I-JSON"), ("[1]", "via is not an array of knowledge hashes")],
+)
+def test_a_via_that_is_not_hashes_fails_the_build_naming_the_piece_and_node(
+    tmp_path: Path, via: str, what: str
+) -> None:
+    inner = tmp_path / "base.mosaic"
+    _inner_mosaic(inner, "c" * 64)
+    h = _crafted(inner, "UPDATE evidence SET via = ? WHERE prop IS NULL", (via,))
+    types = {"Meter": {"key": "code", "from": {"base.Gauge": {"volts": "unit"}}}}
+    with (
+        pytest.raises(BuildError) as e,
+        check(pattern(tmp_path, [f"base@{h}"], types), pieces=[inner]) as i,
+    ):
+        merge(i)
+    assert e.value.reason == "invalid_input"
+    assert "piece 'base', node 'Gauge:G-1'" in str(e.value)
+    assert what in str(e.value)
 
 
 def test_an_alias_that_differs_only_in_origin_is_no_conflict(tmp_path: Path) -> None:
