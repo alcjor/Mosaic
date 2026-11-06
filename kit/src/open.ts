@@ -26,11 +26,13 @@
  * grows with the file's size alone; the tools bound their own queries.
  */
 import sqlite3InitModule, { type Database, type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import { type FindAnswer, type ErrorAnswer, ToolError, errorAnswer } from "./answers.js";
+import { type CiteAnswer, type ErrorAnswer, type FindAnswer, type GetAnswer, ToolError, errorAnswer } from "./answers.js";
 import { Deadline, TIME_LIMIT_MS } from "./bounds.js";
 import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION, type ToolName } from "./constants.js";
+import { cite } from "./cite.js";
 import { find } from "./find.js";
 import { FORMAT_SQL } from "./format-sql.js";
+import { get } from "./get.js";
 import { UnhashableError, knowledgeHash, vectorHash } from "./hashes.js";
 
 /** Format versions this kit implements (section 9). */
@@ -109,6 +111,16 @@ export interface SealedFile {
    * full-text hits, or an error answer. `args` is taken as untrusted input and checked.
    */
   find(args: unknown): Promise<FindAnswer | ErrorAnswer>;
+  /**
+   * `get` (section 8.1): the node `args.id`, with its type, label, summary, properties, aliases,
+   * external references and link counts, or an error answer naming the closest matches.
+   */
+  get(args: unknown): Promise<GetAnswer | ErrorAnswer>;
+  /**
+   * `cite` (section 8.1): the evidence of the node `args.id`, or of the edge `args.from`,
+   * `args.type`, `args.to`, or an error answer.
+   */
+  cite(args: unknown): Promise<CiteAnswer | ErrorAnswer>;
   /** Free the file's memory. Closing twice is harmless. */
   close(): void;
 }
@@ -457,6 +469,8 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
     header,
     timeLimitMs: deadline.limitMs,
     find: async (args) => answer("find", () => find(db, mosaic, args)),
+    get: async (args) => answer("get", () => get(db, mosaic, args)),
+    cite: async (args) => answer("cite", () => cite(db, mosaic, args)),
     close() {
       if (open) db.close();
       open = false;
