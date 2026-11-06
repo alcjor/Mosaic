@@ -469,3 +469,26 @@ describe("get and cite: bounded time and result size (section 3.8 step 4, sectio
     file.close();
   }, 120_000);
 });
+
+describe("get: property objects read from the file keep every key (section 3.8 step 4, section 10)", () => {
+  it("keeps a property named __proto__ as a property, never as the answer's prototype", async () => {
+    const file = await open({ nodes: [{ type: "Item", key: "a", props: '{"__proto__":{"a":1},"x":"y"}', externalRefs: [{ system: "sys", kind: "record", locator: '{"__proto__":"p"}' }] }] });
+    const data = await got(file, { id: "Item:a" });
+    expect(Object.keys(data.props!).sort()).toEqual(["__proto__", "x"]);
+    expect(Object.getPrototypeOf(data.props)).toBe(Object.prototype);
+    expect((data.props as Record<string, unknown>)["a"]).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(data.props))).toEqual(JSON.parse('{"__proto__":{"a":1},"x":"y"}'));
+    expect(Object.keys(data.external_refs[0]!.locator)).toEqual(["__proto__"]);
+    file.close();
+  });
+
+  it("cuts property names and external-ref locator keys like their values", async () => {
+    const key = "k".repeat(1000);
+    const file = await open({ nodes: [{ type: "Item", key: "a", props: `{"${key}":1}`, externalRefs: [{ system: "sys", kind: "record", locator: `{"${key}":2}` }] }] });
+    const data = await got(file, { id: "Item:a" });
+    const cutKey = "k".repeat(TEXT_LIMITS.summary) + CUT_MARKER;
+    expect(data.props).toEqual({ [cutKey]: 1 });
+    expect(data.external_refs[0]!.locator).toEqual({ [cutKey]: 2 });
+    file.close();
+  });
+});
