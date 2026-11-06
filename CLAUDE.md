@@ -232,7 +232,7 @@ Plan PRs (`M<n>.0`) and plan files show the slices as a Mermaid `flowchart TD` a
 top of `plan/M<n>.md`: one node per slice, `After` as arrows, and classes `done`,
 `todo` and `parked`.
 
-Mermaid rules: short plain-text labels (no HTML, no Markdown inside nodes), quoted when
+Mermaid rules: short plain-text labels (no Markdown, no HTML except `<br/>` for a line break), quoted when
 they contain punctuation, at most 15 nodes per diagram, no colours except the three
 status classes. Prefer two small diagrams to one large one; if a diagram would
 not fit those rules, the slice is too big.
