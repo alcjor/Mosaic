@@ -47,7 +47,7 @@ describe("conformance/reading: the kit opens or refuses each file as cases.json 
   it("covers every refusal rule and both kinds of file", () => {
     const rules = new Set(Object.values(CASES).map((c) => c.rule));
     expect([...rules].filter((r) => r !== null).sort()).toEqual([...REFUSAL_RULES].sort());
-    expect(names.filter((n) => CASES[n]!.opens)).toEqual(["mosaic.mosaic", "tessera.tessera"]);
+    expect(names.filter((n) => CASES[n]!.opens)).toEqual(["mosaic.mosaic", "tessera.tessera", "wal.mosaic"]);
   });
 
   for (const name of names) {
@@ -92,6 +92,31 @@ describe("conformance/invalid/files: the kit refuses the files that break 3.8 st
       expect(error.rule).toBe(rule);
     });
   }
+});
+
+describe("SQLite header settings that section 3.8 step 2 does not check", () => {
+  it("opens a file in WAL mode with no write-ahead log beside it, without changing its bytes", async () => {
+    const bytes = read("reading/wal.mosaic");
+    expect([bytes[18], bytes[19]]).toEqual([2, 2]);
+    const before = bytes.slice();
+    const file = await openFile(bytes, "wal.mosaic");
+    expect({ ...file.header }).toEqual(CASES["mosaic.mosaic"]!.header);
+    file.close();
+    expect(bytes).toEqual(before);
+  });
+
+  it("refuses a file whose text encoding is UTF-16, naming the encoding", async () => {
+    for (const [code, label] of [
+      [2, "UTF-16le"],
+      [3, "UTF-16be"],
+    ] as const) {
+      const bytes = read("reading/mosaic.mosaic");
+      new DataView(bytes.buffer, bytes.byteOffset).setUint32(56, code);
+      const error = await refusal(bytes, "utf16.mosaic");
+      expect(error.rule).toBe("sqlite");
+      expect(error.message).toContain(`text encoding ${label}`);
+    }
+  });
 });
 
 describe("opening is read-only (3.8 step 1)", () => {

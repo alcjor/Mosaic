@@ -79,6 +79,14 @@ def _bytes(data: bytes) -> Callable[[Path, str], None]:
     return make
 
 
+def _wal_flagged(path: Path, piece_hash: str) -> None:
+    """The conforming mosaic with bytes 18 and 19 of its SQLite header set to 2 (WAL mode)."""
+    seal(path, mif.mosaic(piece_hash))
+    data = bytearray(path.read_bytes())
+    data[18] = data[19] = 2
+    path.write_bytes(bytes(data))
+
+
 def _mosaic(before: list[str] | None = None, after: list[str] | None = None):
     return mif._changed(mif.mosaic, before or [], after or [])
 
@@ -90,6 +98,13 @@ CASES: tuple[Case, ...] = (
         None,
         "The conforming mosaic, with vectors, whose first piece is `tessera.tessera`",
         mif._sealed(mif.mosaic),
+    ),
+    Case(
+        "wal.mosaic",
+        None,
+        "The conforming mosaic in WAL mode (bytes 18 and 19 of the SQLite header are 2), with no "
+        "write-ahead log beside it: a single SQLite 3 database file (section 3.1)",
+        _wal_flagged,
     ),
     Case(
         "empty.mosaic",

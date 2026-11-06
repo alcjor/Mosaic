@@ -136,8 +136,9 @@ function load(s: Sqlite3Static, bytes: Uint8Array, name: string): Database {
     configure(db);
     return db;
   }
+  refuseUtf16(bytes, name);
   const { capi, wasm } = s;
-  const pointer = wasm.allocFromTypedArray(bytes);
+  const pointer = wasm.allocFromTypedArray(walCleared(bytes));
   const flags = capi.SQLITE_DESERIALIZE_FREEONCLOSE | capi.SQLITE_DESERIALIZE_READONLY;
   const rc = capi.sqlite3_deserialize(db, "main", pointer, bytes.byteLength, bytes.byteLength, flags);
   if (rc !== capi.SQLITE_OK) {
@@ -150,6 +151,45 @@ function load(s: Sqlite3Static, bytes: Uint8Array, name: string): Database {
   }
   configure(db);
   return db;
+}
+
+/** The 16 bytes that open every SQLite 3 database file. */
+const SQLITE_MAGIC = new TextEncoder().encode("SQLite format 3\0");
+
+function isSqliteHeader(bytes: Uint8Array): boolean {
+  return bytes.byteLength >= 100 && SQLITE_MAGIC.every((b, i) => bytes[i] === b);
+}
+
+/**
+ * Refuse a database whose text is stored as UTF-16: the SQLite WebAssembly the kit runs on is
+ * built without UTF-16 (`SQLITE_OMIT_UTF16`), so it cannot read one. Bytes 56–59 of the
+ * SQLite header hold the text encoding: 1 for UTF-8, 2 for UTF-16le, 3 for UTF-16be.
+ */
+function refuseUtf16(bytes: Uint8Array, name: string): void {
+  if (!isSqliteHeader(bytes)) return;
+  const encoding = new DataView(bytes.buffer, bytes.byteOffset + 56, 4).getUint32(0);
+  if (encoding === 2 || encoding === 3) {
+    const label = encoding === 2 ? "UTF-16le" : "UTF-16be";
+    throw new FileRefusedError(
+      name,
+      "sqlite",
+      `text encoding ${label}: this kit reads SQLite databases whose text is UTF-8 only (section 3.1)`,
+    );
+  }
+}
+
+/**
+ * The bytes to load, with a write-ahead-log flag cleared. A sealed file has no write-ahead log
+ * beside it (section 3.1), so one opened in WAL mode is read as it stands, as SQLite reads an
+ * immutable file; an in-memory copy cannot be opened in WAL mode. Bytes 18 and 19 of the
+ * SQLite header are 2 in WAL mode and 1 otherwise. The caller's bytes are never changed.
+ */
+function walCleared(bytes: Uint8Array): Uint8Array {
+  if (!isSqliteHeader(bytes) || (bytes[18] !== 2 && bytes[19] !== 2)) return bytes;
+  const copy = bytes.slice();
+  if (copy[18] === 2) copy[18] = 1;
+  if (copy[19] === 2) copy[19] = 1;
+  return copy;
 }
 
 function configure(db: Database): void {

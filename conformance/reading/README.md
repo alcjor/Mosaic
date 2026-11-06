@@ -14,6 +14,7 @@ file breaks only its one rule. `mosaic check` passes the files that open (`mosai
 | --- | --- | --- |
 | `tessera.tessera` | opens | The conforming tessera |
 | `mosaic.mosaic` | opens | The conforming mosaic, with vectors, whose first piece is `tessera.tessera` |
+| `wal.mosaic` | opens | The conforming mosaic in WAL mode (bytes 18 and 19 of the SQLite header are 2), with no write-ahead log beside it: a single SQLite 3 database file (section 3.1) |
 | `empty.mosaic` | `application_id` | An empty file, which SQLite opens as an empty database |
 | `not-sqlite.mosaic` | `sqlite` | A text file, not a SQLite database |
 | `application-id.mosaic` | `application_id` | `application_id` is 0 |

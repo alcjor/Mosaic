@@ -69,12 +69,13 @@ def test_mosaic_check_passes_the_files_that_open_and_fails_the_others(name: str)
 def test_every_rule_has_a_file_and_both_kinds_open() -> None:
     assert {c["rule"] for c in CASES.values()} == {None, *mrf.RULES}
     opening = sorted(n for n, c in CASES.items() if c["opens"])
-    assert opening == ["mosaic.mosaic", "tessera.tessera"]
+    assert opening == ["mosaic.mosaic", "tessera.tessera", "wal.mosaic"]
     for name in opening:
         assert CASES[name]["rule"] is None
         header = CASES[name]["header"]
         assert isinstance(header, dict)
         assert header["kind"] == name.rsplit(".", 1)[1]
+    assert CASES["wal.mosaic"]["header"] == CASES["mosaic.mosaic"]["header"]
 
 
 def test_the_files_are_exactly_what_the_script_writes(tmp_path: Path) -> None:
