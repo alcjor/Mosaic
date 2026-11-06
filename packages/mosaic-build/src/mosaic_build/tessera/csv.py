@@ -85,6 +85,7 @@ __all__ = [
     "Date",
     "Integer",
     "Link",
+    "LinkError",
     "Number",
     "Quantity",
     "Report",
@@ -103,8 +104,20 @@ NODE_TYPE = re.compile(r"[A-Z][A-Za-z0-9]*")
 """Node type names (section 3.4)."""
 EDGE_TYPE = re.compile(r"[a-z][a-z0-9_]*")
 """Edge type names (section 3.4)."""
+_FIELD_SIZE = 2**31 - 1
+"""Python's ``csv`` refuses longer cells (131,072 characters by default); this is its largest
+limit on every platform. Cells are only as long as the file then."""
 DIRECTIONS = ("out", "in")
 """A link's edge goes from the row to the value (``out``) or from the value to the row."""
+
+
+class LinkError(ValueError):
+    """A link setting the builder refuses; ``field`` names the link's field at fault, or None
+    for the link as a whole."""
+
+    def __init__(self, message: str, field: str | None = None) -> None:
+        super().__init__(message)
+        self.field = field
 
 
 @dataclass(frozen=True)
@@ -341,19 +354,21 @@ def check_link(column: str, link: Link) -> None:
     """Refuse a link that cannot make a tessera, naming the link and the setting at fault."""
     at = f"settings: links.{column}"
     if ";" in column:
-        raise ValueError(f"{at}: a column name with ';' cannot be a locator value (section 3.5)")
+        raise LinkError(f"{at}: a column name with ';' cannot be a locator value (section 3.5)")
     if NODE_TYPE.fullmatch(link.type) is None:
-        raise ValueError(
-            f"{at}: type {link.type!r} is not a node type name ^[A-Z][A-Za-z0-9]*$ (3.4)"
+        raise LinkError(
+            f"{at}: type {link.type!r} is not a node type name ^[A-Z][A-Za-z0-9]*$ (3.4)", "type"
         )
     if EDGE_TYPE.fullmatch(link.edge) is None:
-        raise ValueError(
-            f"{at}: edge {link.edge!r} is not an edge type name ^[a-z][a-z0-9_]*$ (3.4)"
+        raise LinkError(
+            f"{at}: edge {link.edge!r} is not an edge type name ^[a-z][a-z0-9_]*$ (3.4)", "edge"
         )
     if link.direction not in DIRECTIONS:
-        raise ValueError(f"{at}: direction {link.direction!r} is not 'out' or 'in'")
+        raise LinkError(f"{at}: direction {link.direction!r} is not 'out' or 'in'", "direction")
     if link.separator == "":
-        raise ValueError(f"{at}: separator must not be empty; leave it out for one value")
+        raise LinkError(
+            f"{at}: separator must not be empty; leave it out for one value", "separator"
+        )
 
 
 def check_links(settings: Settings) -> None:
@@ -413,6 +428,7 @@ def _parse(name: str, text: str, delimiter: str) -> tuple[list[str], list[tuple[
     """The header row and the data rows, each with the line it starts on; blank lines dropped."""
     reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, strict=True)
     records: list[tuple[int, list[str]]] = []
+    limit = csv.field_size_limit(_FIELD_SIZE)  # the spec sets no limit on a cell's length
     try:
         line = reader.line_num + 1
         for record in reader:
@@ -421,6 +437,8 @@ def _parse(name: str, text: str, delimiter: str) -> tuple[list[str], list[tuple[
             line = reader.line_num + 1
     except csv.Error as e:
         raise ValueError(f"{name}: line {reader.line_num}: {e}") from None
+    finally:
+        csv.field_size_limit(limit)
     if not records:
         raise ValueError(f"{name}: has no header row")
     return records[0][1], records[1:]

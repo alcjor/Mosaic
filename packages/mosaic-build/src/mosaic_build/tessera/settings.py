@@ -24,7 +24,7 @@ from typing import Any
 from mosaic_format.yaml_core import load
 
 from mosaic_build.tessera.convert import Boolean, Conversion, Date, Integer, Number, Quantity
-from mosaic_build.tessera.csv import Link, Settings, check_link, check_settings
+from mosaic_build.tessera.csv import Link, LinkError, Settings, check_link, check_settings
 
 __all__ = ["SettingsError", "conversion", "from_json", "link", "read"]
 
@@ -132,8 +132,9 @@ def link(column: str, value: object, where: _Where) -> Link:
     )
     try:
         check_link(column, made)
-    except ValueError as e:
-        raise SettingsError(where, str(e).removeprefix("settings: ")) from None
+    except LinkError as e:
+        at = where if e.field is None else (*where, e.field)
+        raise SettingsError(at, str(e).removeprefix("settings: ")) from None
     return made
 
 
