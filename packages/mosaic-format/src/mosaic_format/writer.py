@@ -571,6 +571,20 @@ def _remove(target: Path) -> None:
         leftover.unlink(missing_ok=True)
 
 
+def first_snippets(content: Content) -> dict[str, str]:
+    """Each node's first snippet: of its own evidence rows that keep one, the first in ``evid``
+    order (sections 3.6 and 6). Nodes without a snippet are absent; edge evidence does not count.
+
+    The order is the one :func:`seal` writes, so the snippet is the one a reader finds first.
+    """
+    ranked = _rank(_canonical_json(content))
+    first: dict[str, str] = {}
+    for nid, _, _, ev in ranked.evidence:
+        if nid is not None and ev.snippet is not None and isinstance(ev.subject, str):
+            first.setdefault(ev.subject, ev.snippet)
+    return first
+
+
 def seal(path: str | os.PathLike[str], content: Content) -> Sealed:
     """Write ``content`` as a new sealed file at ``path`` and return its hashes.
 
