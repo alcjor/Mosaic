@@ -115,15 +115,25 @@ function sqlite(): Promise<Sqlite3Static> {
  */
 export async function openFile(bytes: Uint8Array, name: string): Promise<SealedFile> {
   const [s, expected] = await Promise.all([sqlite(), referenceSchema()]);
-  const db = load(s, bytes, name);
+  let db: Database;
+  try {
+    db = load(s, bytes, name);
+  } catch (e) {
+    throw refused(name, e);
+  }
   try {
     const header = verify(db, name, expected);
     return sealedFile(db, name, header);
   } catch (e) {
     db.close();
-    if (e instanceof FileRefusedError) throw e;
-    throw new FileRefusedError(name, "sqlite", `not a readable SQLite 3 database (${message(e)}) (section 3.1)`);
+    throw refused(name, e);
   }
+}
+
+/** `e` as a refusal: SQLite's own errors mean the file is not a readable database. */
+function refused(name: string, e: unknown): FileRefusedError {
+  if (e instanceof FileRefusedError) return e;
+  return new FileRefusedError(name, "sqlite", `not a readable SQLite 3 database (${message(e)}) (section 3.1)`);
 }
 
 function message(e: unknown): string {
@@ -132,27 +142,31 @@ function message(e: unknown): string {
 
 /** A read-only database holding a copy of `bytes` (section 3.8 step 1). */
 function load(s: Sqlite3Static, bytes: Uint8Array, name: string): Database {
+  // Refuse what needs no SQLite before a database handle exists, so a refusal leaks nothing.
+  refuseUtf16(bytes, name);
   const db = new s.oo1.DB(":memory:", "c");
-  if (bytes.byteLength === 0) {
-    // SQLite reads an empty file as an empty database, which the checks then refuse.
+  try {
+    if (bytes.byteLength > 0) {
+      // An empty file is read as an empty database, which the checks then refuse.
+      const { capi, wasm } = s;
+      const pointer = wasm.allocFromTypedArray(walCleared(bytes));
+      // With FREEONCLOSE, SQLite frees the copy when the database closes, or at once on failure.
+      const flags = capi.SQLITE_DESERIALIZE_FREEONCLOSE | capi.SQLITE_DESERIALIZE_READONLY;
+      const rc = capi.sqlite3_deserialize(db, "main", pointer, bytes.byteLength, bytes.byteLength, flags);
+      if (rc !== capi.SQLITE_OK) {
+        throw new FileRefusedError(
+          name,
+          "sqlite",
+          `not a readable SQLite 3 database (${capi.sqlite3_js_rc_str(rc)}) (section 3.1)`,
+        );
+      }
+    }
     configure(db);
     return db;
-  }
-  refuseUtf16(bytes, name);
-  const { capi, wasm } = s;
-  const pointer = wasm.allocFromTypedArray(walCleared(bytes));
-  const flags = capi.SQLITE_DESERIALIZE_FREEONCLOSE | capi.SQLITE_DESERIALIZE_READONLY;
-  const rc = capi.sqlite3_deserialize(db, "main", pointer, bytes.byteLength, bytes.byteLength, flags);
-  if (rc !== capi.SQLITE_OK) {
+  } catch (e) {
     db.close();
-    throw new FileRefusedError(
-      name,
-      "sqlite",
-      `not a readable SQLite 3 database (${capi.sqlite3_js_rc_str(rc)}) (section 3.1)`,
-    );
+    throw e;
   }
-  configure(db);
-  return db;
 }
 
 /** The 16 bytes that open every SQLite 3 database file. */
