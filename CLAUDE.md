@@ -98,8 +98,10 @@ the push on failure; a Stop hook runs it again before you finish.
   locale, line endings (`.gitattributes` forces LF), path separators or file-name case.
   Text compares by UTF-8 bytes unless the spec says otherwise.
 - Keep dependencies few; add one only when it clearly earns its place, and say why in the PR.
-- Fixture sources are never committed; they are downloaded and pinned by hash
-  (`scripts/fetch_fixtures.py`). All example data is invented or openly licensed.
+- Fixture sources are never committed to `main`; they are downloaded and pinned by hash
+  (`scripts/fetch_fixtures.py`). A source with no origin an agent environment can reach
+  lives on the `fixtures` branch, linked by commit. All example data is invented or
+  openly licensed.
 
 ## Work plan (no issues)
 

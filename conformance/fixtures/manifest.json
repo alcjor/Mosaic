@@ -1,12 +1,12 @@
 {
-  "comment": "Fixture sources, pinned by SHA-256 and downloaded by scripts/fetch_fixtures.py. Never commit the files themselves. Changing a url or hash here needs the maintainer's review (CODEOWNERS).",
+  "comment": "Fixture sources, pinned by SHA-256 and downloaded by scripts/fetch_fixtures.py. Never commit the files themselves to main: a source an agent environment cannot download from its origin lives on the fixtures branch, linked by commit. Changing a url or hash here needs the maintainer's review (CODEOWNERS).",
   "fixtures": [
     {
       "name": "netflix-titles",
       "file": "netflix_titles.csv",
-      "url": null,
-      "sha256": null,
-      "licence": "permissive (confirmed by the maintainer, 2026-11-03)",
+      "url": "https://raw.githubusercontent.com/alcjor/Mosaic/bad19dd2c5e0ae684942ba481e5bf191e4365c25/netflix-titles/netflix_titles.csv",
+      "sha256": "df1f4ad2027a5a14c3a33932ef0d4054565ff88adf92b7f263601b70fdc6f3f3",
+      "licence": "CC0-1.0 (Netflix Movies and TV Shows, Shivam Bansal, Kaggle; confirmed by the maintainer, 2026-11-06)",
       "licence_confirmed": true,
       "milestone": "M1"
     },
