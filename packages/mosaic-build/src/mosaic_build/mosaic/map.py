@@ -19,6 +19,9 @@ type ``T`` by the entry's field map (section 5.2, decisions 1-4 and 7 on #14):
 - Every other entry fills a property in ``props``.
 - A node of a mosaic piece is mapped the same way; its old id becomes an alias with
   ``origin = pattern`` (in step 3).
+- A piece node is **weak-keyed** when its key comes from the piece node's ``key`` (an entry
+  for the key property naming ``key``, or no entry) and its piece type's ``key_prop`` is NULL:
+  the key came from position, not a natural key (section 7.2, decision Q1 on #17; ADR-002).
 
 Entries are taken in pattern order and, within an entry, the piece's nodes in ``nid`` order;
 across pieces, in ``pieces`` order. That is the build order of step 3.
@@ -94,6 +97,8 @@ class Mapped:
     label: str | None
     summary: str | None
     props: Mapping[str, Any]
+    weak: bool = False
+    """Whether the key came from position rather than a natural key (section 7.2)."""
 
     @property
     def type(self) -> str:
@@ -189,8 +194,12 @@ def _props(entry: Entry, old_id: str, text: object) -> dict[str, Any]:
     return props
 
 
-def map_node(entry: Entry, piece: Piece, row: Sequence[Any]) -> Mapped:
-    """Map one piece node, given as ``(nid, id, key, label, summary, props)``."""
+def map_node(entry: Entry, piece: Piece, row: Sequence[Any], *, positional: bool = False) -> Mapped:
+    """Map one piece node, given as ``(nid, id, key, label, summary, props)``.
+
+    ``positional`` says that the piece type's ``key_prop`` is NULL, so a key taken from the
+    piece node's ``key`` is weak (section 7.2).
+    """
     nid, old_id, key, label, summary, props_text = row
     props = _props(entry, old_id, props_text)
     columns = {"key": key, "label": label, "summary": summary}
@@ -228,6 +237,7 @@ def map_node(entry: Entry, piece: Piece, row: Sequence[Any]) -> Mapped:
         label=texts["label"],
         summary=texts["summary"],
         props=mapped,
+        weak=positional and key_field == "key",
     )
 
 
@@ -238,9 +248,18 @@ def map_nodes(inputs: Inputs) -> Iterator[Mapped]:
         for entry in all_entries:
             if entry.piece != piece.name:
                 continue
+            positional = _positional(piece, entry.piece_type)
             rows = piece.file.query(
                 "SELECT nid, id, key, label, summary, props FROM node WHERE type = ? ORDER BY nid",
                 (entry.piece_type,),
             )
             for row in rows:
-                yield map_node(entry, piece, row)
+                yield map_node(entry, piece, row, positional=positional)
+
+
+def _positional(piece: Piece, piece_type: str) -> bool:
+    """Whether the piece declares node type ``piece_type`` with a NULL ``key_prop``."""
+    rows = piece.file.query(
+        "SELECT key_prop FROM type WHERE name = ? AND kind = 'node'", (piece_type,)
+    )
+    return any(key_prop is None for (key_prop,) in rows)

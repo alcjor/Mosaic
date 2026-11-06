@@ -56,11 +56,13 @@ def tessera(
     mentions: Sequence[Mention] = (),
     producer: str = PRODUCER,
     declared: Mapping[str, Mapping[str, str]] | None = None,
+    key_props: Mapping[str, str] | None = None,
 ) -> str:
     """Seal a tessera of ``nodes`` and ``edges`` and return its knowledge hash.
 
     ``declared`` gives a type's declared properties and their kinds (section 3.4); other types
-    declare none.
+    declare none. ``key_props`` gives a node type's ``key_prop`` (its natural key); other types
+    have NULL, as for keys taken from position (ADR-002).
 
     Without ``evidence``, each node gets one row about the whole node at ``row=<n>`` and each
     edge one at ``edge=<n>``. An edge type's ends are the types of its first edge's ends.
@@ -95,7 +97,15 @@ def tessera(
         sources=[
             Source(id=source, kind="file", hash=source_hash, path=source, notice=notice, text=text)
         ],
-        types=[Type(name=t, kind="node", props=_declared(declared, t)) for t in types]
+        types=[
+            Type(
+                name=t,
+                kind="node",
+                key_prop=(key_props or {}).get(t),
+                props=_declared(declared, t),
+            )
+            for t in types
+        ]
         + [
             Type(
                 name=t,

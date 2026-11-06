@@ -108,6 +108,7 @@ def _alias_order(given: Given) -> bytes:
 def _absorb(a: Assembly, node: Merged, other: Merged) -> None:
     """Merge ``other`` into ``node`` (step 4): aliases, values, evidence, references, pieces."""
     node.aliases.extend(sorted(other.aliases, key=_alias_order))
+    node.weak = node.weak or other.weak
     for prop, values in other.values.items():
         node.values.setdefault(prop, []).extend(values)
 
@@ -357,12 +358,26 @@ def _mention_edges(inputs: Inputs, a: Assembly, linker: _Linker) -> None:
                     status = "unmatched" if not found else "ambiguous"
                     a.mentions.append(
                         MentionReport(
-                            status, role, text, piece.name, locator, tuple(found), type_name
+                            status,
+                            role,
+                            text,
+                            piece.name,
+                            locator,
+                            tuple(found),
+                            type_name,
+                            tuple(sources),
                         )
                     )
                     if not found:
                         a.stale_references.append(
-                            StaleReference(text, definition["to"], piece.name, locator)
+                            StaleReference(
+                                text,
+                                definition["to"],
+                                piece.name,
+                                locator,
+                                type_name,
+                                tuple(sources),
+                            )
                         )
                     continue
                 for s in sources:

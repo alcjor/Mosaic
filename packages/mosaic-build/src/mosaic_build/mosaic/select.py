@@ -20,10 +20,14 @@ In this order (decisions Q2 and Q3 on #16):
    ``all``, every row stays.
 6. **Text.** ``none`` drops every snippet and source text; ``snippets`` drops source texts;
    ``full`` keeps both. Sources themselves stay whole, cited or not (section 3.2).
+7. **Mentions** for the report: only those of rules whose edge type the target declares (both
+   ends in scope, section 7.1 step 7), and not those whose containing node went. Stale
+   references follow them (section 7.2, decision Q5 on #17).
 """
 
 from collections.abc import Mapping
 from dataclasses import replace
+from typing import Any
 
 from mosaic_format.canonical_json import canonical_json
 from mosaic_format.hashes import quote_confidence
@@ -145,6 +149,18 @@ def select(inputs: Inputs, a: Assembly, t: Target) -> None:
     a.evidence = kept
     if t.text != "full":
         a.sources = [replace(s, text=None) if s.text is not None else s for s in a.sources]
+
+    edges: Mapping[str, Any] = inputs.pattern.get("edges", {})
+    declared = {n for n, d in edges.items() if d["from"] in in_scope and d["to"] in in_scope}
+    a.mentions = [m for m in a.mentions if _bears(m.edge_type, m.nodes, declared, a)]
+    a.stale_references = [
+        s for s in a.stale_references if _bears(s.edge_type, s.nodes, declared, a)
+    ]
+
+
+def _bears(edge_type: str, nodes: tuple[str, ...], declared: set[str], a: Assembly) -> bool:
+    """Whether a mention bears on the mosaic: its rule is declared and its node is kept."""
+    return edge_type in declared and any(n in a.nodes for n in nodes)
 
 
 def _kept(subject: Subject, a: Assembly) -> bool:
