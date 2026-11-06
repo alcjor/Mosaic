@@ -246,7 +246,8 @@ function checkHashes(db: Database, name: string, header: Header): void {
     throw new FileRefusedError(
       name,
       "knowledge_hash",
-      `knowledge hash mismatch: the header says ${shown(header.knowledge_hash)}, the content gives ${shown(knowledge)} (section 3.6)`,
+      `knowledge hash mismatch: the header says ${shown(header.knowledge_hash)}, ` +
+        `the content gives ${shown(knowledge)} (section 3.6)`,
     );
   }
   const vectors = hashed(name, "vector_hash", "3.7", () => vectorHash(db));
@@ -254,7 +255,8 @@ function checkHashes(db: Database, name: string, header: Header): void {
     throw new FileRefusedError(
       name,
       "vector_hash",
-      `vector hash mismatch: the header says ${shown(header.vector_hash)}, the vectors give ${shown(vectors)} (section 3.7)`,
+      `vector hash mismatch: the header says ${shown(header.vector_hash)}, ` +
+        `the vectors give ${shown(vectors)} (section 3.7)`,
     );
   }
 }
@@ -264,7 +266,9 @@ function hashed<T>(name: string, rule: RefusalRule, section: string, compute: ()
   try {
     return compute();
   } catch (e) {
-    if (e instanceof UnhashableError) throw new FileRefusedError(name, rule, `${e.message} (section ${section})`);
+    if (e instanceof UnhashableError) {
+      throw new FileRefusedError(name, rule, `${e.message} (section ${section})`);
+    }
     throw e;
   }
 }
