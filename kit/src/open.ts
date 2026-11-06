@@ -19,19 +19,14 @@
  * `conformance/reading/` holds the cases both read.
  *
  * Every value in the file is untrusted data (step 4, section 10). Opening reads the schema and
- * at most two header rows; the tools bound their own queries.
+ * at most two header rows, however many the file holds; the tools bound their own queries.
  */
 import sqlite3InitModule, { type Database, type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
+import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION } from "./constants.js";
 import { FORMAT_SQL } from "./format-sql.js";
 
 /** Format versions this kit implements (section 9). */
-export const IMPLEMENTED_VERSIONS: readonly string[] = ["0.1"];
-
-/** PRAGMA application_id of every tessera and mosaic: "MOSA" (section 3.1). */
-const APPLICATION_ID = 0x4d4f5341;
-
-/** PRAGMA user_version of format 0.1 (section 3.1). */
-const USER_VERSION = 1;
+export const IMPLEMENTED_VERSIONS: readonly string[] = [FORMAT_VERSION];
 
 /** The kinds of file a header names (section 3.3). */
 const KINDS = ["tessera", "mosaic"] as const;
@@ -355,9 +350,12 @@ function compareUtf8(a: string, b: string): number {
 
 /** The one header row (section 3.3), with a kind this kit knows. */
 function readHeader(db: Database, name: string): Header {
-  const rows = db.selectObjects("SELECT * FROM header");
+  // CHECK (one = 1) is not enforced on read, so a crafted header can hold any number of rows:
+  // read at most two, so it costs nothing to refuse (section 10).
+  const rows = db.selectObjects("SELECT * FROM header LIMIT 2");
   if (rows.length !== 1) {
-    throw new FileRefusedError(name, "header", `header has ${rows.length} rows; it must hold exactly one (section 3.3)`);
+    const found = rows.length === 0 ? "0 rows" : "2 rows or more";
+    throw new FileRefusedError(name, "header", `header has ${found}; it must hold exactly one (section 3.3)`);
   }
   const row = rows[0]!;
   if (row.one !== 1) {

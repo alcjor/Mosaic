@@ -120,6 +120,43 @@ describe("SQLite header settings that section 3.8 step 2 does not check", () => 
   });
 });
 
+describe("a crafted header (3.8 step 4, section 10)", () => {
+  const COLUMNS =
+    "format_version, kind, producer, settings, knowledge_hash, vector_hash, embed_model, pattern_hash, target, ai_model";
+
+  /** mosaic.mosaic with `extra` more header rows: CHECK (one = 1) is not enforced on read. */
+  async function withHeaderRows(extra: number): Promise<Uint8Array> {
+    const s = await sqlite3InitModule();
+    const bytes = read("reading/mosaic.mosaic");
+    const db = new s.oo1.DB(":memory:", "c");
+    try {
+      const pointer = s.wasm.allocFromTypedArray(bytes);
+      const flags = s.capi.SQLITE_DESERIALIZE_FREEONCLOSE | s.capi.SQLITE_DESERIALIZE_RESIZEABLE;
+      expect(s.capi.sqlite3_deserialize(db, "main", pointer, bytes.length, bytes.length, flags)).toBe(0);
+      db.exec("PRAGMA ignore_check_constraints = ON");
+      db.exec(
+        `WITH RECURSIVE n(i) AS (SELECT 2 UNION ALL SELECT i + 1 FROM n WHERE i < ${extra + 1}) ` +
+          `INSERT INTO header SELECT n.i, ${COLUMNS} FROM n, (SELECT ${COLUMNS} FROM header WHERE one = 1)`,
+      );
+      expect(db.selectValue("SELECT count(*) FROM header")).toBe(extra + 1);
+      return s.capi.sqlite3_js_db_export(db);
+    } finally {
+      db.close();
+    }
+  }
+
+  it("refuses a header of 100,000 rows for header, saying it has 2 rows or more", async () => {
+    const error = await refusal(await withHeaderRows(99_999), "rows.mosaic");
+    expect(error.rule).toBe("header");
+    expect(error.message).toContain("header has 2 rows or more");
+  });
+
+  it("says a header with no rows has 0 rows", async () => {
+    const error = await refusal(read("reading/no-header.mosaic"), "no-header.mosaic");
+    expect(error.message).toContain("header has 0 rows");
+  });
+});
+
 describe("opening is read-only (3.8 step 1)", () => {
   it("leaves the given bytes as they were and opens them again the same way", async () => {
     const bytes = read("reading/mosaic.mosaic");

@@ -167,11 +167,14 @@ def _has_stored_format_version(con: sqlite3.Connection) -> bool:
 
 def _read_header(path: Path, con: sqlite3.Connection) -> dict[str, object]:
     """The one header row (section 3.3), with a kind this reader knows."""
-    cursor = con.execute("SELECT * FROM header")
+    # CHECK (one = 1) is not enforced on read, so a crafted header can hold any number of rows:
+    # read at most two, so it costs nothing to refuse (section 10).
+    cursor = con.execute("SELECT * FROM header LIMIT 2")
     names = [d[0] for d in cursor.description]
     rows = cursor.fetchall()
     if len(rows) != 1:
-        raise _refuse(path, f"header has {len(rows)} rows; it must hold exactly one (section 3.3)")
+        found = "0 rows" if not rows else "2 rows or more"
+        raise _refuse(path, f"header has {found}; it must hold exactly one (section 3.3)")
     header = dict(zip(names, rows[0], strict=True))
     if header["one"] != 1:
         raise _refuse(path, f"header row has one = {header['one']!r}, not 1 (section 3.3)")

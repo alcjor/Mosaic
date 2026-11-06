@@ -119,3 +119,29 @@ def test_a_file_flagged_utf_16_is_refused_for_its_encoding_as_the_kit_refuses_it
     path.write_bytes(bytes(data))
     with pytest.raises(FileRefusedError, match=f"text encoding {label}"):
         open_sealed(path).close()
+
+
+def test_a_header_of_many_rows_is_refused_reading_at_most_two(tmp_path: Path) -> None:
+    # CHECK (one = 1) is not enforced on read (section 3.1), so a crafted file can hold any
+    # number of header rows; the reader refuses it without reading them all (section 10).
+    columns = (
+        "format_version, kind, producer, settings, knowledge_hash, vector_hash, embed_model, "
+        "pattern_hash, target, ai_model"
+    )
+    path = tmp_path / "rows.mosaic"
+    path.write_bytes((FILES / "mosaic.mosaic").read_bytes())
+    mrf.mif.tamper(
+        path,
+        after=[
+            "WITH RECURSIVE n(i) AS (SELECT 2 UNION ALL SELECT i + 1 FROM n WHERE i < 100000) "
+            f"INSERT INTO header SELECT n.i, {columns} FROM n, "
+            f"(SELECT {columns} FROM header WHERE one = 1)"
+        ],
+    )
+    with pytest.raises(FileRefusedError, match="header has 2 rows or more"):
+        open_sealed(path).close()
+
+
+def test_a_header_with_no_rows_is_said_to_have_0_rows() -> None:
+    with pytest.raises(FileRefusedError, match="header has 0 rows"):
+        open_sealed(FILES / "no-header.mosaic").close()
