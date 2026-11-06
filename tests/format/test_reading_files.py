@@ -107,3 +107,15 @@ def test_the_readme_lists_every_file_with_its_rule() -> None:
     for name, case in CASES.items():
         row = next(line for line in readme.splitlines() if line.startswith(f"| `{name}` |"))
         assert ("opens" if case["opens"] else f"`{case['rule']}`") in row
+
+
+@pytest.mark.parametrize(("code", "label"), [(2, "UTF-16le"), (3, "UTF-16be")])
+def test_a_file_flagged_utf_16_is_refused_for_its_encoding_as_the_kit_refuses_it(
+    tmp_path: Path, code: int, label: str
+) -> None:
+    data = bytearray((FILES / "mosaic.mosaic").read_bytes())
+    data[56:60] = code.to_bytes(4, "big")
+    path = tmp_path / "flagged.mosaic"
+    path.write_bytes(bytes(data))
+    with pytest.raises(FileRefusedError, match=f"text encoding {label}"):
+        open_sealed(path).close()

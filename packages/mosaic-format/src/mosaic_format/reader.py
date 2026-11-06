@@ -227,6 +227,31 @@ def _connect(path: Path) -> sqlite3.Connection:
     return con
 
 
+SQLITE_MAGIC = b"SQLite format 3\x00"
+"""The 16 bytes that open every SQLite 3 database file."""
+
+_UTF16 = {2: "UTF-16le", 3: "UTF-16be"}
+"""Text encodings of the SQLite header (bytes 56 to 59) other than UTF-8 (1)."""
+
+
+def _check_encoding_bytes(path: Path) -> None:
+    """Refuse a file whose SQLite header says its text is UTF-16, before SQLite reads it.
+
+    The kit reads these bytes too, so both readers name the encoding even when the rest of the
+    file does not match its header (section 3.1, decision B on #104).
+    """
+    with path.open("rb") as f:
+        head = f.read(100)
+    if len(head) == 100 and head.startswith(SQLITE_MAGIC):
+        encoding = _UTF16.get(int.from_bytes(head[56:60], "big"))
+        if encoding is not None:
+            raise _refuse(
+                path,
+                f"text encoding {encoding}: a tessera or mosaic stores its text as UTF-8 "
+                f"(section 3.1)",
+            )
+
+
 def _check_encoding(path: Path, con: sqlite3.Connection) -> None:
     """Text is stored as UTF-8 (section 3.1, decision B on #104)."""
     (encoding,) = con.execute("PRAGMA encoding").fetchone()
@@ -364,6 +389,7 @@ def open(path: str | Path, *, limits: Limits | None = None) -> SealedFile:
                 f"{sidecar.name} lies beside it; a sealed file has no journal or "
                 f"write-ahead log (section 3.1)",
             )
+    _check_encoding_bytes(target)
     con = _connect(target)
     try:
         header = _verify(target, con)
