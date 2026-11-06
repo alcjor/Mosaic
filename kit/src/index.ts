@@ -1,8 +1,8 @@
 /**
  * The mosaic kit (Specification 0.1, section 8).
  *
- * Opens one mosaic read-only and offers six read-only tools; `find`, `get` and `cite` are here,
- * `neighbors` and `table` arrive in M2, `path` later. This module gathers what the kit exports.
+ * Opens one mosaic read-only and offers six read-only tools; `find`, `get`, `neighbors` and
+ * `cite` are here, `table` arrives in M2, `path` later. This module gathers what the kit exports.
  */
 
 export * from "./constants.js";
@@ -32,6 +32,8 @@ export {
   type GetAnswer,
   type GetData,
   type Match,
+  type NeighborEdge,
+  type NeighborsAnswer,
 } from "./answers.js";
 
 export { QUERY_LIMIT, RESULT_LIMIT, TIME_LIMIT_MS } from "./bounds.js";
@@ -39,6 +41,8 @@ export { QUERY_LIMIT, RESULT_LIMIT, TIME_LIMIT_MS } from "./bounds.js";
 export { textQuery, type FindArgs } from "./find.js";
 
 export { type GetArgs } from "./get.js";
+
+export { type NeighborsArgs } from "./neighbors.js";
 
 export { type CiteArgs } from "./cite.js";
 
