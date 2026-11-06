@@ -12,13 +12,16 @@
  * - An edge's `qualifier` (section 3.4) is shown when it is not empty, so two edges of one type
  *   between the same pair stay apart; like other text §8.2 names no limit for, it is cut at
  *   400 characters with the marker (decision A on #110).
- * - The other node's label is cut at 120 characters with the marker (section 8.2).
+ * - The other node's label is cut at 120 characters with the marker (section 8.2). An edge whose
+ *   other node has an id longer than an answer's id can be (512 characters,
+ *   `answers.schema.json`) is left out of the list, as from suggestions, and still counted in
+ *   `total`, which matches `get`'s link counts.
  */
 import type { Database } from "@sqlite.org/sqlite-wasm";
 import { type NeighborEdge, type NeighborsAnswer, ToolError, shownArgument } from "./answers.js";
 import { RESULT_LIMIT } from "./bounds.js";
 import { TEXT_LIMITS } from "./constants.js";
-import { OTHER_TEXT_LIMIT, argumentsOf, idArgument, nodeOf, text } from "./lookup.js";
+import { ID_LIMIT, OTHER_TEXT_LIMIT, argumentsOf, idArgument, nodeOf, text } from "./lookup.js";
 
 export interface NeighborsArgs {
   readonly id: string;
@@ -39,10 +42,19 @@ const NEIGHBORS = `
     SELECT type, 'in', src, qualifier FROM edge
      WHERE dst = $nid AND $direction IN ('in', 'both') AND ($edge IS NULL OR type = $edge)
   )
-  SELECT l.type, l.direction, n.id, n.label, l.qualifier, count(*) OVER ()
-    FROM links AS l JOIN node AS n ON n.nid = l.other
-   ORDER BY l.type COLLATE BINARY, l.direction DESC, n.id COLLATE BINARY, l.qualifier COLLATE BINARY
+  SELECT type, direction, id, label, qualifier, total FROM (
+    SELECT l.type, l.direction, n.id, n.label, l.qualifier, count(*) OVER () AS total
+      FROM links AS l JOIN node AS n ON n.nid = l.other
+  )
+   WHERE length(id) <= $idLimit
+   ORDER BY type COLLATE BINARY, direction DESC, id COLLATE BINARY, qualifier COLLATE BINARY
    LIMIT $limit`;
+
+const TOTAL = `
+  SELECT (SELECT count(*) FROM edge
+           WHERE src = $nid AND $direction IN ('out', 'both') AND ($edge IS NULL OR type = $edge))
+       + (SELECT count(*) FROM edge
+           WHERE dst = $nid AND $direction IN ('in', 'both') AND ($edge IS NULL OR type = $edge))`;
 
 /** Run `neighbors` on `db`, which passed the reading rules; the caller bounds its time. */
 export function neighbors(db: Database, mosaic: string, args: unknown): NeighborsAnswer {
@@ -62,12 +74,8 @@ export function neighbors(db: Database, mosaic: string, args: unknown): Neighbor
   if (edge !== undefined && db.selectValue("SELECT 1 FROM type WHERE name = ? AND kind = 'edge'", [edge]) === undefined) {
     throw new ToolError("unknown_edge", `${shownArgument(edge)} is not an edge type of this mosaic`);
   }
-  const rows = db.selectArrays(NEIGHBORS, {
-    $nid: nid,
-    $edge: edge ?? null,
-    $direction: (direction as NeighborsArgs["direction"]) ?? "both",
-    $limit: Math.min(limit ?? RESULT_LIMIT, RESULT_LIMIT),
-  });
+  const keep = { $nid: nid, $edge: edge ?? null, $direction: (direction as NeighborsArgs["direction"]) ?? "both" };
+  const rows = db.selectArrays(NEIGHBORS, { ...keep, $idLimit: ID_LIMIT, $limit: Math.min(limit ?? RESULT_LIMIT, RESULT_LIMIT) });
   const edges = rows.map(([type, way, other, label, qualifier]): NeighborEdge => {
     const found: NeighborEdge = {
       edge: String(type),
@@ -78,6 +86,6 @@ export function neighbors(db: Database, mosaic: string, args: unknown): Neighbor
     const shown = text(qualifier, OTHER_TEXT_LIMIT);
     return shown === null || shown === "" ? found : { ...found, qualifier: shown };
   });
-  const total = rows.length === 0 ? 0 : Number(rows[0]![5]);
+  const total = rows.length === 0 ? Number(db.selectValue(TOTAL, keep)) : Number(rows[0]![5]);
   return { tool: "neighbors", mosaic, data: { id, edges, total } };
 }

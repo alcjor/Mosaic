@@ -249,6 +249,40 @@ describe("neighbors: text from the file only inside data, length-limited (sectio
   });
 });
 
+describe("neighbors: an other node's id too long for an answer (answers.schema.json, id maxLength 512)", () => {
+  it("leaves that edge out of the list and still counts it in the total", async () => {
+    const long = "k".repeat(600);
+    const file = await open({
+      edgeTypes: [["rel", "Item", "Item"]],
+      nodes: [
+        { type: "Item", key: "a" },
+        { type: "Item", key: "b" },
+        { type: "Item", key: long },
+      ],
+      edges: [
+        { type: "rel", from: "Item:a", to: "Item:b" },
+        { type: "rel", from: "Item:a", to: `Item:${long}` },
+      ],
+    });
+    const data = await linked(file, { id: "Item:a" });
+    expect(data.edges.map((e) => e.id)).toEqual(["Item:b"]);
+    expect(data.total).toBe(2);
+    const only = await linked(file, { id: "Item:a", limit: 1 });
+    expect(only.edges.map((e) => e.id)).toEqual(["Item:b"]);
+    file.close();
+    const alone = await open({
+      edgeTypes: [["rel", "Item", "Item"]],
+      nodes: [
+        { type: "Item", key: "a" },
+        { type: "Item", key: long },
+      ],
+      edges: [{ type: "rel", from: "Item:a", to: `Item:${long}` }],
+    });
+    expect(await linked(alone, { id: "Item:a" })).toEqual({ id: "Item:a", edges: [], total: 1 });
+    alone.close();
+  });
+});
+
 describe("neighbors: bounded time and result size (section 3.8 step 4, section 10)", () => {
   const hub = (n: number): MosaicSpec => ({
     edgeTypes: [["rel", "Item", "Item"]],
