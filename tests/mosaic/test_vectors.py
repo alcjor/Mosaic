@@ -163,3 +163,18 @@ def test_bits_need_384_dimensions() -> None:
 def test_pooled_bits_of_a_model_output() -> None:
     first = [(-1.0) ** i * (i + 1) for i in range(v.DIMENSIONS)]  # +, -, +, - …
     assert v.to_bits(v.pool(_output(first))) == b"\xaa" * 48
+
+
+# --- which snippet: the first in evid order (answer on #105, reading A) ------------------------
+
+
+def test_the_node_text_takes_the_first_snippet_of_the_node_in_evid_order() -> None:
+    snippets = [(2, "size 1"), (1, "a,1,x")]
+    assert v.first_snippet(snippets) == "a,1,x"
+    text = v.node_text("Item", "a", "Item A", None, v.first_snippet(snippets))
+    assert text == "Item a: Item A.  a,1,x"
+
+
+def test_a_node_without_snippets_embeds_the_empty_string() -> None:
+    assert v.first_snippet([]) is None
+    assert v.node_text("Item", "a", "Item A", None, v.first_snippet([])) == "Item a: Item A.  "

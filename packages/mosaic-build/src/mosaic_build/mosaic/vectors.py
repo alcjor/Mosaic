@@ -5,7 +5,7 @@ natively, with this exact model file, pinned by its SHA-256; kits only embed que
 
 - :data:`MODEL`: the model, its revision and its two files with their hashes;
   :func:`check_file` refuses a file with another hash, naming the file and both hashes.
-- :func:`node_text` and :func:`query_text`: the text that is embedded.
+- :func:`node_text`, :func:`first_snippet` and :func:`query_text`: the text that is embedded.
 - :func:`pool`: the first token's output divided by its Euclidean norm.
 - :func:`to_bits`: the 48 stored bytes, bit i set when dimension i is greater than 0, most
   significant bit of byte 0 first (section 3.7).
@@ -15,7 +15,7 @@ The builder reads the model files from disk and never fetches them (it uses no n
 
 import hashlib
 import math
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -114,6 +114,17 @@ def node_text(
     """
     cut = "" if snippet is None else snippet[:SNIPPET_CHARS]
     return f"{type_} {key}: {label or ''}. {summary or ''} {cut}"
+
+
+def first_snippet(snippets: Iterable[tuple[int, str]]) -> str | None:
+    """The snippet of a node's node text: the first of its own snippets in ``evid`` order.
+
+    ``snippets`` are ``(evid, text)`` of the node's own evidence rows that keep a snippet (edge
+    evidence does not count); ``None`` when there is none. Section 6 says "the snippet"; the
+    maintainer chose the first one (reading A, answer on #105).
+    """
+    first = min(snippets, default=None, key=lambda row: row[0])
+    return None if first is None else first[1]
 
 
 def query_text(query: str) -> str:
