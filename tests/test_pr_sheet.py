@@ -108,3 +108,25 @@ def test_long_words_wrap_inside_the_width() -> None:
     lines = pr_sheet.wrap("packages/mosaic-build/src/mosaic_build/mosaic/normalise.py", 13, 120)
     assert len(lines) > 1
     assert all(len(line) <= int(120 / (13 * 0.53)) for line in lines)
+
+
+def test_an_arrow_within_one_column_runs_beside_the_boxes_not_through_them() -> None:
+    sheet = {
+        **SHEET,
+        "map": {
+            "spec": [{"id": "s", "label": "§1"}],
+            "code": [{"id": "a", "label": "a.py"}, {"id": "b", "label": "b.py"}],
+            "tests": [],
+            "arrows": [["a", "b"]],
+        },
+    }
+    root = ET.fromstring(pr_sheet.render(sheet, "light"))
+    boxes = [
+        el
+        for el in root.iter(f"{SVG}rect")
+        if el.get("width") == "200.0" and el.get("stroke-width") == "1.5"
+    ]
+    code_right = max(float(b.get("x", 0)) + 200 for b in boxes)
+    arrow = next(el for el in root.iter(f"{SVG}path") if el.get("marker-end"))
+    xs = [float(v) for v in re.findall(r"[MC ](-?[\d.]+) -?[\d.]+", arrow.get("d", ""))]
+    assert min(xs) >= code_right
