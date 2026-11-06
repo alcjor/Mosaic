@@ -37,7 +37,13 @@ def fetch(dest: Path = DEST, origin: str = ORIGIN) -> Path:
         partial = target.with_name(target.name + ".part")
         url = f"{origin.rstrip('/')}/{pinned.path}"
         print(f"fetch {pinned.path} <- {url}")
-        urllib.request.urlretrieve(url, partial)
+        try:
+            urllib.request.urlretrieve(url, partial)
+        except (OSError, ValueError) as e:
+            partial.unlink(missing_ok=True)
+            raise ModelFileError(
+                f"{url}: model file {pinned.path} cannot be fetched: {e}"
+            ) from None
         try:
             check_file(partial, pinned)
         except ModelFileError as e:

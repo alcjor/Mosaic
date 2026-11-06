@@ -178,3 +178,9 @@ def test_the_node_text_takes_the_first_snippet_of_the_node_in_evid_order() -> No
 def test_a_node_without_snippets_embeds_the_empty_string() -> None:
     assert v.first_snippet([]) is None
     assert v.node_text("Item", "a", "Item A", None, v.first_snippet([])) == "Item a: Item A.  "
+
+
+def test_a_null_label_is_the_empty_string() -> None:
+    # Answer on #105: a NULL label embeds the empty string, as for summary and snippet.
+    assert v.node_text("Item", "a", None, None, "a,1,x") == "Item a: .  a,1,x"
+    assert v.node_text("Item", "a", None, None, None) == "Item a: .  "

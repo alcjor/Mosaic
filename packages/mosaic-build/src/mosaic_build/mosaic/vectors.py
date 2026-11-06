@@ -116,8 +116,9 @@ def node_text(
 ) -> str:
     """``<type> <key>: <label>. <summary> <snippet>`` (section 6).
 
-    An absent summary or snippet is the empty string, and the snippet is cut to its first 800
-    characters (code points). Nothing else is changed: no trimming, no joining of spaces.
+    An absent label (answer on #105), summary or snippet is the empty string, and the snippet
+    is cut to its first 800 characters (code points). Nothing else is changed: no trimming, no
+    joining of spaces.
     """
     cut = "" if snippet is None else snippet[:SNIPPET_CHARS]
     return f"{type_} {key}: {label or ''}. {summary or ''} {cut}"
@@ -146,7 +147,7 @@ def pool(output: Sequence[Sequence[float]]) -> list[float]:
     first = [float(x) for x in output[0]]
     if len(first) != DIMENSIONS:
         raise ValueError(f"the model's output has {len(first)} dimensions, not {DIMENSIONS}")
-    norm = math.sqrt(math.fsum(x * x for x in first))
+    norm = math.hypot(*first)  # no overflow or underflow in the squares
     if not norm > 0 or not math.isfinite(norm):
         raise ValueError(f"the first token's output has norm {norm}; it cannot be normalised")
     return [x / norm for x in first]
