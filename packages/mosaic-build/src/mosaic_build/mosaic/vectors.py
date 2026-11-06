@@ -185,7 +185,8 @@ class Embedder:
     ones (:func:`check_file`).
 
     Each text is embedded on its own, with no padding, so its vector does not depend on which
-    other texts are embedded with it.
+    other texts are embedded with it. The model runs on the CPU in one thread (ADR-005, option
+    A), so the same machine gives the same vectors.
     """
 
     def __init__(self, model_dir: Path) -> None:
@@ -196,6 +197,10 @@ class Embedder:
         self.tokenizer = load_tokenizer(tokenizer_file)
         options = onnxruntime.SessionOptions()
         options.log_severity_level = 3
+        # ADR-005, option A: CPU only, one thread, the runtime version pinned by uv.lock.
+        options.intra_op_num_threads = 1
+        options.inter_op_num_threads = 1
+        options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
         self._session: Any = onnxruntime.InferenceSession(
             str(model_file), options, providers=["CPUExecutionProvider"]
         )
