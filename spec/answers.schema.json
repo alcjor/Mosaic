@@ -81,6 +81,7 @@
             "aliases_total": { "$ref": "#/$defs/count" },
             "external_refs": {
               "type": "array",
+              "maxItems": 20,
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -92,8 +93,10 @@
                 }
               }
             },
+            "external_refs_total": { "$ref": "#/$defs/count" },
             "links": {
               "type": "array",
+              "maxItems": 20,
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -104,7 +107,8 @@
                   "count": { "type": "integer", "minimum": 1 }
                 }
               }
-            }
+            },
+            "links_total": { "$ref": "#/$defs/count" }
           }
         }
       },
@@ -216,7 +220,8 @@
                   "properties": {
                     "from": { "$ref": "#/$defs/id" },
                     "type": { "$ref": "#/$defs/edgeName" },
-                    "to": { "$ref": "#/$defs/id" }
+                    "to": { "$ref": "#/$defs/id" },
+                    "qualifier": { "type": "string", "description": "The qualifier the call gave; without one, the evidence of every edge of the type between the two nodes (decision on #110)." }
                   }
                 }
               ]

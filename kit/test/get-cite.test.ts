@@ -124,10 +124,12 @@ describe("get (section 8.1)", () => {
         { system: "historian", kind: "timeseries", locator: { series: "TMP-3" } },
         { system: "plm", kind: "document", locator: { doc: "D-1", page: 2 } },
       ],
+      external_refs_total: 2,
       links: [
         { edge: "feeds", direction: "out", count: 2 },
         { edge: "reads", direction: "in", count: 2 },
       ],
+      links_total: 2,
     });
     file.close();
   });
@@ -143,7 +145,9 @@ describe("get (section 8.1)", () => {
       aliases: [],
       aliases_total: 0,
       external_refs: [],
+      external_refs_total: 0,
       links: [{ edge: "part_of", direction: "in", count: 1 }],
+      links_total: 1,
     });
     file.close();
   });
@@ -489,6 +493,91 @@ describe("get: property objects read from the file keep every key (section 3.8 s
     const cutKey = "k".repeat(TEXT_LIMITS.summary) + CUT_MARKER;
     expect(data.props).toEqual({ [cutKey]: 1 });
     expect(data.external_refs[0]!.locator).toEqual({ [cutKey]: 2 });
+    file.close();
+  });
+});
+
+describe("decisions on #110 (A, D and H)", () => {
+  it("Q1, reading A: text §8.2 names no limit for is cut at 400 characters with the marker", async () => {
+    const note = "n".repeat(1000);
+    const locator = `file=doc.txt;section=${"s".repeat(500)}`;
+    const file = await open({
+      nodes: [{ type: "Item", key: "a", props: `{"note":"${note}"}`, evidence: [{ locator }] }],
+    });
+    expect((await got(file, { id: "Item:a" })).props).toEqual({ note: "n".repeat(400) + CUT_MARKER });
+    expect((await cited(file, { id: "Item:a" })).evidence[0]!.locator).toBe(Array.from(locator).slice(0, 400).join("") + CUT_MARKER);
+    file.close();
+  });
+
+  it("Q2, reading D: get cuts external_refs at 20, canonical order, with external_refs_total", async () => {
+    const externalRefs = Array.from({ length: 25 }, (_, i) => ({
+      system: "sys",
+      kind: "record",
+      locator: `{"n":"${String(i).padStart(2, "0")}"}`,
+    }));
+    const file = await open({ nodes: [{ type: "Item", key: "a", externalRefs }] });
+    const data = await got(file, { id: "Item:a" });
+    expect(data.external_refs.map((r) => r.locator["n"])).toEqual(
+      Array.from({ length: 20 }, (_, i) => String(i).padStart(2, "0")),
+    );
+    expect(data.external_refs_total).toBe(25);
+    file.close();
+  });
+
+  it("Q2, reading D: get cuts links at 20, in their order, with links_total", async () => {
+    const edgeTypes = Array.from({ length: 12 }, (_, i) => [`rel${String(i).padStart(2, "0")}`, "Item", "Item"] as [string, string, string]);
+    const edges = edgeTypes.flatMap(([type]) => [
+      { type, from: "Item:a", to: "Item:b" },
+      { type, from: "Item:b", to: "Item:a" },
+    ]);
+    const file = await open({ edgeTypes, nodes: [{ type: "Item", key: "a" }, { type: "Item", key: "b" }], edges });
+    const data = await got(file, { id: "Item:a" });
+    expect(data.links).toHaveLength(RESULT_LIMIT);
+    expect(data.links_total).toBe(24);
+    expect(data.links.slice(0, 2)).toEqual([
+      { edge: "rel00", direction: "out", count: 1 },
+      { edge: "rel00", direction: "in", count: 1 },
+    ]);
+    expect(data.links.at(-1)).toEqual({ edge: "rel09", direction: "in", count: 1 });
+    file.close();
+  });
+
+  it("Q2, reading D: totals of lists within the limit are their length", async () => {
+    const file = await open(SAMPLE);
+    const data = await got(file, { id: "Probe:TMP-3" });
+    expect(data.external_refs_total).toBe(2);
+    expect(data.links_total).toBe(2);
+    file.close();
+  });
+
+  it("Q3, reading H: without a qualifier, cite gives every qualifier's evidence; with one, that edge's", async () => {
+    const file = await open(SAMPLE);
+    const both = await cited(file, { from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4" });
+    expect(both.subject).toEqual({ from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4" });
+    expect(both.total).toBe(2);
+    const backup = await cited(file, { from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4", qualifier: "backup" });
+    expect(backup).toEqual({
+      subject: { from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4", qualifier: "backup" },
+      evidence: [
+        { source: "doc", source_hash: DOC_HASH, locator: "file=doc.txt;line=9", method: "inferred", confidence: 0.4, snippet: null },
+      ],
+      total: 1,
+    });
+    const plain = await cited(file, { from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4", qualifier: "" });
+    expect(plain.subject).toEqual({ from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4", qualifier: "" });
+    expect(plain.evidence.map((e) => e.method)).toEqual(["extracted"]);
+    file.close();
+  });
+
+  it("Q3, reading H: a qualifier no such edge has is unknown_edge; a qualifier on a node or not a string is bad_argument", async () => {
+    const file = await open(SAMPLE);
+    expect((await failed(file.cite({ from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4", qualifier: "other" }))).code).toBe(
+      "unknown_edge",
+    );
+    expect((await failed(file.cite({ id: "Probe:TMP-3", qualifier: "backup" }))).code).toBe("bad_argument");
+    expect((await failed(file.cite({ from: "Probe:TMP-3", type: "feeds", to: "Probe:TMP-4", qualifier: 3 }))).code).toBe(
+      "bad_argument",
+    );
     file.close();
   });
 });
