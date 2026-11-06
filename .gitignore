@@ -28,6 +28,9 @@ build-report.json
 # The invalid files of the conformance suite are committed (section 11, #9)
 !conformance/invalid/files/*.mosaic
 !conformance/invalid/files/*.tessera
+# So are the reading cases, which the Python reader and the kit both read (M2.1)
+!conformance/reading/*.mosaic
+!conformance/reading/*.tessera
 
 # Editors and OS
 .DS_Store
