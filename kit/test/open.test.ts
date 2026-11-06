@@ -30,6 +30,8 @@ const NAMES: Record<RefusalRule, string> = {
   format_version: "format version",
   schema: "schema",
   header: "header",
+  knowledge_hash: "knowledge hash mismatch",
+  vector_hash: "vector hash mismatch",
 };
 
 async function refusal(bytes: Uint8Array, name: string): Promise<FileRefusedError> {
@@ -48,7 +50,13 @@ describe("conformance/reading: the kit opens or refuses each file as cases.json 
   it("covers every refusal rule and both kinds of file", () => {
     const rules = new Set(Object.values(CASES).map((c) => c.rule));
     expect([...rules].filter((r) => r !== null).sort()).toEqual([...REFUSAL_RULES].sort());
-    expect(names.filter((n) => CASES[n]!.opens)).toEqual(["mosaic.mosaic", "stat4.mosaic", "tessera.tessera", "wal.mosaic"]);
+    expect(names.filter((n) => CASES[n]!.opens)).toEqual([
+      "mosaic.mosaic",
+      "non-ascii.mosaic",
+      "stat4.mosaic",
+      "tessera.tessera",
+      "wal.mosaic",
+    ]);
   });
 
   for (const name of names) {
@@ -75,7 +83,7 @@ describe("conformance/reading: the kit opens or refuses each file as cases.json 
   }
 });
 
-describe("conformance/invalid/files: the kit refuses the files that break 3.8 step 2", () => {
+describe("conformance/invalid/files: the kit refuses the files that break 3.8 steps 2 and 3", () => {
   const invalid = JSON.parse(readFileSync(conformance("invalid/files/cases.json"), "utf8")) as Record<
     string,
     { rules: string[] }
@@ -84,6 +92,8 @@ describe("conformance/invalid/files: the kit refuses the files that break 3.8 st
     "container.tessera": { rule: "application_id", checker: "container" },
     "inv-1-no-header.tessera": { rule: "header", checker: "inv-1" },
     "inv-1-version.tessera": { rule: "format_version", checker: "inv-1" },
+    "inv-6-hash.tessera": { rule: "knowledge_hash", checker: "inv-6" },
+    "inv-14-vector-hash.mosaic": { rule: "vector_hash", checker: "inv-14" },
   };
 
   for (const [name, { rule, checker }] of Object.entries(step2)) {

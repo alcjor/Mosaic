@@ -3,9 +3,17 @@
     "opens": false,
     "rule": "application_id"
   },
+  "edge-changed.mosaic": {
+    "opens": false,
+    "rule": "knowledge_hash"
+  },
   "empty.mosaic": {
     "opens": false,
     "rule": "application_id"
+  },
+  "evidence-changed.mosaic": {
+    "opens": false,
+    "rule": "knowledge_hash"
   },
   "format-version.mosaic": {
     "opens": false,
@@ -18,6 +26,10 @@
   "header-kind.mosaic": {
     "opens": false,
     "rule": "header"
+  },
+  "mention-changed.tessera": {
+    "opens": false,
+    "rule": "knowledge_hash"
   },
   "mosaic.mosaic": {
     "header": {
@@ -43,6 +55,27 @@
   "no-header.mosaic": {
     "opens": false,
     "rule": "header"
+  },
+  "node-changed.mosaic": {
+    "opens": false,
+    "rule": "knowledge_hash"
+  },
+  "non-ascii.mosaic": {
+    "header": {
+      "ai_model": null,
+      "embed_model": "invented-model@ca56847038f3f329524caec5a86e14865f49918d68094c90dd021a5e67b927f6",
+      "format_version": "0.1",
+      "kind": "mosaic",
+      "knowledge_hash": "f9f179b8bd121b8be9a4687517af6c5a7be6f56f36777e7a916afcebb8449e4b",
+      "one": 1,
+      "pattern_hash": "1e6e00537430ab86faa88c51480ec1a48285f1e86b1c2e26f1282d5ecd4ecb5a",
+      "producer": "make-invalid-files/0.1",
+      "settings": "{}",
+      "target": "all",
+      "vector_hash": "6016e66de04f9b26bb35ffff59fed8df7223ce07185afe1b8626a01534f34db9"
+    },
+    "opens": true,
+    "rule": null
   },
   "not-sqlite.mosaic": {
     "opens": false,
@@ -97,6 +130,10 @@
   "utf-16.mosaic": {
     "opens": false,
     "rule": "encoding"
+  },
+  "vector-changed.mosaic": {
+    "opens": false,
+    "rule": "vector_hash"
   },
   "wal.mosaic": {
     "header": {

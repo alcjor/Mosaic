@@ -1,0 +1,162 @@
+{
+  "invalid/files/canonical-json.tessera": {
+    "knowledge_hash": "5a47011f2a769d5aed3c93277c3113c0ad5a87514d84cd3fc0bc829a196f6e4e",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/constraint.tessera": {
+    "knowledge_hash": "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/evidence-duplicate.mosaic": {
+    "knowledge_hash": "ca54b1993c5d28ff36be9a1cf017006bf44fcc003900dd261532a1eaf18e1e2c",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-10-id-form.mosaic": {
+    "knowledge_hash": "c12a58662a1e53079a2fdab67938cbd7e9d1b10ef144627bf56e7f4f07ba82ac",
+    "opens": true,
+    "vector_hash": "30a26f6fd393c9fd1c6e1c7e674dac4924ca643f821bc5842de6b909d8a63fe3"
+  },
+  "invalid/files/inv-11-piece-hash.mosaic": {
+    "knowledge_hash": "70bc145c9e45ef84ee3a6d5cc9c0a0e6e98d3c4a33d2436e2a12ce0b55efe61b",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-12-piece-source.mosaic": {
+    "knowledge_hash": "9735897d1670f7f06b79d4350f35aac5b971175ab624952dc2b6de4fccb2d1a2",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-13-link-count.mosaic": {
+    "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-14-vector-hash.mosaic": {
+    "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+    "opens": false,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-15-notice.mosaic": {
+    "knowledge_hash": "17857423b81716284399be8bcf5d74a1d51fdc1d40175f7d10caa09526a2e042",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-15-piece.tessera": {
+    "knowledge_hash": "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/inv-2-no-evidence.tessera": {
+    "knowledge_hash": "df6c01925c33ff7f998138dd8913eaad4344ed06404e4d9a65962b1d554da714",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/inv-3-extracted-confidence.tessera": {
+    "knowledge_hash": "8aa6eab262a9281c31815cb915048b88b9b7a50c7d5d7192673a319cc00e991e",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/inv-4-edge-ends.tessera": {
+    "knowledge_hash": "328b291f6d1be66769e8d849d928051be1eb30f5a0b89f39de9dc0f0b907acae",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/inv-5-dangling-edge.tessera": {
+    "knowledge_hash": "1568dd6d661428838366bbfdf927c7cf7f51a5e20a0f5ee95129f6aba32d9960",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/inv-6-hash.tessera": {
+    "knowledge_hash": "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f",
+    "opens": false,
+    "vector_hash": null
+  },
+  "invalid/files/inv-6-order.mosaic": {
+    "knowledge_hash": "f9b655b6ce49743a1faaf6843696bbc82bfb6d6dc1f29dc760eaa74979a46650",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "invalid/files/inv-7-two-sources.tessera": {
+    "knowledge_hash": "ea9e822a25145245dfed9416c8161a0fbbf797194013a85f0d66c2d843d23da5",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/inv-8-via.tessera": {
+    "knowledge_hash": "6c7e63c5cf7ddb82543d0142850769e14e09962a169ea5ddd928b2b61df378f1",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/profile.tessera": {
+    "knowledge_hash": "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/search.tessera": {
+    "knowledge_hash": "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/text-nul.tessera": {
+    "knowledge_hash": "3c90e57494e7b5ba0831ff9b4178217446c34d16a6f65b77a5627b1762ab1d06",
+    "opens": true,
+    "vector_hash": null
+  },
+  "invalid/files/type-props.tessera": {
+    "knowledge_hash": "1fb4ce377712aea873a60337f8abd386478e2758a76c381a726fef6e0f818247",
+    "opens": true,
+    "vector_hash": null
+  },
+  "reading/edge-changed.mosaic": {
+    "knowledge_hash": "248bea4053e9682d8aa693676695d3f220cc1805b367e00a28fa05afc17cad60",
+    "opens": false,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "reading/evidence-changed.mosaic": {
+    "knowledge_hash": "5ccabab6c709abbeb45c505947b9c393a11e99b3a400b3f8e4178e1b63163585",
+    "opens": false,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "reading/mention-changed.tessera": {
+    "knowledge_hash": "e85790fb07d6f3e505476f248dcc83e2beb35ecf8deff6e02e80a2b16eff092b",
+    "opens": false,
+    "vector_hash": null
+  },
+  "reading/mosaic.mosaic": {
+    "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "reading/node-changed.mosaic": {
+    "knowledge_hash": "1c89568dae356dc7aaaf742212156c9809d4fca0b3a29983b3275b935d761557",
+    "opens": false,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "reading/non-ascii.mosaic": {
+    "knowledge_hash": "f9f179b8bd121b8be9a4687517af6c5a7be6f56f36777e7a916afcebb8449e4b",
+    "opens": true,
+    "vector_hash": "6016e66de04f9b26bb35ffff59fed8df7223ce07185afe1b8626a01534f34db9"
+  },
+  "reading/stat4.mosaic": {
+    "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  },
+  "reading/tessera.tessera": {
+    "knowledge_hash": "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f",
+    "opens": true,
+    "vector_hash": null
+  },
+  "reading/vector-changed.mosaic": {
+    "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+    "opens": false,
+    "vector_hash": "30e19f039abb06423f22460f4909d912556150fffcb69f702b841d9c76bf5adc"
+  },
+  "reading/wal.mosaic": {
+    "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+    "opens": true,
+    "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+  }
+}
