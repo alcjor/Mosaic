@@ -55,6 +55,15 @@ the push on failure; a Stop hook runs it again before you finish.
   again. Follow-up work starts a new branch from `main`.
 - Never push to `main` directly. Delete the branch after merge.
 
+## Who decides what
+
+- **The maintainer owns the what**: the needs, written in the spec as observable
+  behaviour (what a reader of a mosaic, a CLI user or another implementation can see),
+  formats, constraints, and each milestone's "Done when". **The pair owns the how**:
+  everything that cannot be observed from outside, chosen in the PR and logged.
+- The maintainer is never asked to choose an implementation. A question for the
+  maintainer asks what behaviour is required, never which design is preferred.
+
 ## Rules for every change
 
 - **One slice, one PR.** Branch `slice-m<n>-<k>-<slug>`, PR title starts with the slice
@@ -74,10 +83,15 @@ the push on failure; a Stop hook runs it again before you finish.
   - **Escalate**: anything a reader or another implementation can observe, or that
     changes what the spec means: file contents, canonical order, hashes, schemas, the
     build report, CLI flags and exit codes, the kit's tools, a contradiction between
-    spec text and a normative file or an ADR, a missing design token. Put the question,
-    the options and your recommendation at the top of the slice's draft PR, add the
-    label `needs-decision`, and **park** it (see "Work plan").
-  - In doubt, it is **Escalate**.
+    spec text and a normative file or an ADR. Ask it as a need, at the top of the
+    slice's draft PR: the spec section, the question about required behaviour, and for
+    each possible reading one example input with the output a reader would observe
+    (a small diagram, see "Pull request bodies"), then the reading you would expect and
+    why. Never list implementation options. Add the label `needs-decision` and **park**
+    the slice (see "Work plan").
+  - In doubt, it is **Escalate**; the reviewer then confirms it (Pair loop, step 5).
+  - A missing design token is not a question: use the nearest existing token and log it
+    under Assumptions.
 - Fixture and hash checks (`-m slow`) run in the agent environment, not in CI. The
   verifier runs them and the PR shows its command and output (hashes, sizes, timings).
 - Keep code portable and deterministic: no dependence on dict/set order,
@@ -105,6 +119,9 @@ in the repository, so every run can see where things stand.
   Status: todo | done (#<PR>)
   ```
 
+  The file opens with the slices' diagram (see "Pull request bodies"); a PR that
+  changes a slice's status updates its class in the diagram too.
+
   A slice is one PR's worth of work: one behaviour or one part of the spec, a few
   hundred lines at most. Slices together must cover every item of the milestone's
   "Done when", and each of those items is named in a slice.
@@ -120,6 +137,10 @@ in the repository, so every run can see where things stand.
   written in that slice's own PR so it lands at merge. In flight: your own open PRs on
   `slice-*` branches. Parked: those PRs labelled `needs-decision`.
 - **Pick the next slice.** In this order:
+  0. Findings from CI. Read the `Claude review` summaries on PRs merged since the
+     plan last changed. A blocking finding that `main` still has, and that no slice in
+     the plan cites, becomes the next slice (`M<n>.<k> Fix: <finding>`), which adds
+     itself to the plan in its own PR and cites the finding's link.
   1. Your own open draft PR on a `slice-*` branch, not labelled `needs-decision`: the
      oldest one, from its branch and its progress note.
   2. Your own PR labelled `needs-decision` that the maintainer has answered (a comment
@@ -175,14 +196,46 @@ only the slice id and the branch, never your reasoning or a summary of your chan
    answer a finding once, in the next review request, with the spec section you rely on.
    Each round runs a **new** reviewer (fresh context) and gives it the previous findings
    to check. Re-run the verifier when a fix changes behaviour.
-5. **Cap.** After three review rounds without `PASS`, or when the reviewer escalates an
-   assumption, escalate the slice (two tiers, above) with the open findings and park it.
-6. **Log.** Before marking the PR ready, add a **Pair log** to its body: verifier tests
-   added (names), the slow-test command and output, each review round's verdict in one
-   line, and the final Assumptions list. The maintainer reads this instead of the code.
+5. **Escalate through the reviewer.** Before parking, run a new reviewer on the drafted
+   question. It confirms the question is about required, observable behaviour; if it is
+   really an implementation choice, it sends it back and you decide and log it instead.
+   After three review rounds without `PASS`, or when the reviewer escalates an
+   assumption, escalate the same way with the open findings, and park.
+6. **Log.** Before marking the PR ready, add the **Pair log** to its body (format in
+   "Pull request bodies"). The maintainer reads this instead of the code.
 
 The `Claude review` workflow in CI stays as a second opinion on the finished PR. It does
-not block; if it raises a finding the pair missed, the maintainer adds a slice to the plan.
+not block; a finding the pair missed comes back as a slice (Work plan, step 0).
+
+## Pull request bodies: diagrams, not long text
+
+The maintainer reads PRs to see what changed and why, not to read prose. GitHub strips
+HTML and scripts from PR bodies but renders Mermaid, so diagrams are Mermaid blocks.
+
+Every PR body, in this order:
+
+1. **Summary**: at most three lines. What the slice adds, in the spec's words.
+2. **Change map**: one Mermaid `flowchart LR` from the spec sections the slice covers
+   to the modules it changes and the tests that prove them. At most 15 nodes.
+3. **Done when**: the slice's checklist, each item ticked with a test name or command.
+4. **Pair log**: a table with one row per round: round, verifier (tests added, gate,
+   slow tests), reviewer verdict, findings fixed.
+5. **Assumptions**: a table: decision, spec section it fills, reviewer ruling.
+6. **Details**, inside `<details><summary>…</summary>` blocks, closed by default: the
+   slow-test command and output, the verifier's test names, `Next step:` while a draft.
+
+An escalated slice puts the **question** first, above the summary: the section, one
+line of question, and a Mermaid diagram with one branch per reading, each ending in
+the output a reader would observe.
+
+Plan PRs (`M<n>.0`) and plan files show the slices as a Mermaid `flowchart TD` at the
+top of `plan/M<n>.md`: one node per slice, `After` as arrows, and classes `done`,
+`todo` and `parked`.
+
+Mermaid rules: short plain-text labels (no HTML, no Markdown inside nodes), quoted when
+they contain punctuation, at most 15 nodes per diagram, no colours except the three
+status classes. Prefer two small diagrams to one large one; if a diagram would
+not fit those rules, the slice is too big.
 
 ## Design system
 
@@ -190,7 +243,7 @@ The viewer follows `design/` (tokens, brand book section 6 "App", component guid
 Use tokens only: `var(--…)` for colours, spacing, radii and fonts, and the type-style
 classes from `viewer/src/design/tokens.css` (generated: never edit it). Stylelint and
 `tests/test_design.py` reject anything else. Need a value that has no token? Don't
-invent one: escalate it on the slice's PR (`needs-decision`).
+invent one: use the nearest existing token and log it under Assumptions.
 
 ## Style
 

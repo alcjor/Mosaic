@@ -48,10 +48,22 @@ Read-only commands only: `git diff`, `git log`, `git show`,
    order, keep `After` honest, and stay one PR's worth each? Is a change to the plan
    explained in the Pair log?
 7. **Viewer changes**: tokens only, no raw colours or lengths.
+8. **PR body**: follows "Pull request bodies" in `CLAUDE.md`. The change map matches
+   the diff (no module changed that it omits, none shown that the diff does not touch),
+   the plan diagram matches the slices' statuses, and long output sits in closed
+   `<details>` blocks. A body that misleads is blocking; untidy is a `(note)`.
 
 Skip style that ruff, ty, Stylelint or tsc already enforce. Report only real problems.
 
 ## Rulings
+
+- **Escalation check** (when the builder gives you a drafted question instead of a
+  round to review): the question must ask what behaviour the spec requires, observable
+  by a reader of a mosaic, a CLI user or another implementation, with one example per
+  reading and no implementation options. Return `ESCALATE` if it is, or `DECIDE` with
+  one line on why it is an implementation choice the pair should make and log. A
+  question that is right in substance but phrased as a design choice: `ESCALATE` with
+  the rewording.
 
 - **Assumptions**: for each entry in the PR's Assumptions list, rule `accept` or
   `escalate`. Escalate when the choice can be observed by a reader of a mosaic or by
@@ -66,7 +78,7 @@ Skip style that ruff, ty, Stylelint or tsc already enforce. Report only real pro
 ## What to return
 
 ```
-VERDICT: PASS | BLOCKING
+VERDICT: PASS | BLOCKING | ESCALATE | DECIDE
 Findings:
 1. <file>:<line> — what is wrong — why (spec section or rule) — what would fix it
 Assumptions:
