@@ -165,8 +165,8 @@ def to_bits(vector: Sequence[float]) -> bytes:
 
 
 def load_tokenizer(path: Path) -> Tokenizer:
-    """The tokenizer in ``path``, truncating at 256 tokens (its special tokens included), with
-    no padding: each text is embedded on its own."""
+    """The tokenizer in ``path``, truncating at 256 tokens with its special tokens counted
+    (answer on #105), and with no padding: each text is embedded on its own."""
     from tokenizers import Tokenizer
 
     tokenizer = Tokenizer.from_file(str(path))
