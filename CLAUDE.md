@@ -238,16 +238,19 @@ uv run python scripts/pr_sheet.py sheet.json --out /tmp/pr-<n>-<sha7>
 git fetch origin pr-sheets && git worktree add /tmp/pr-sheets origin/pr-sheets
 mkdir -p /tmp/pr-sheets/pr-<n> && cp /tmp/pr-<n>-<sha7>-*.svg /tmp/pr-sheets/pr-<n>/
 git -C /tmp/pr-sheets add -A && git -C /tmp/pr-sheets commit -m "Sheet for #<n> at <sha7>"
-git -C /tmp/pr-sheets push origin HEAD:pr-sheets && git worktree remove /tmp/pr-sheets
+git -C /tmp/pr-sheets push origin HEAD:pr-sheets && git -C /tmp/pr-sheets rev-parse HEAD
+git worktree remove /tmp/pr-sheets
 ```
 
 Name each file by the commit it shows (`<sha7>`), never overwrite one, and never put a
-sheet or its JSON on a slice branch. The PR body opens with:
+sheet or its JSON on a slice branch. Link the files by the `pr-sheets` commit that holds
+them (`<sheets-sha>`, printed above), not by the branch name: GitHub caches a branch link
+for minutes, a commit link never goes stale. The PR body opens with:
 
 ```
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/alcjor/Mosaic/pr-sheets/pr-<n>/<sha7>-dark.svg">
-  <img alt="<slice> overview" src="https://raw.githubusercontent.com/alcjor/Mosaic/pr-sheets/pr-<n>/<sha7>-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/alcjor/Mosaic/<sheets-sha>/pr-<n>/<sha7>-dark.svg">
+  <img alt="<slice> overview" src="https://raw.githubusercontent.com/alcjor/Mosaic/<sheets-sha>/pr-<n>/<sha7>-light.svg">
 </picture>
 ```
 
