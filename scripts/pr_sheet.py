@@ -270,14 +270,21 @@ def change_map(c: Canvas, m: dict) -> None:
             raise ValueError(f"arrow {n} names a box that is not in the map: {a} -> {b}")
         ax, ay, aw, ah = boxes[a]
         bx, by, _, bh = boxes[b]
-        x1, y1, x2, y2 = ax + aw, ay + ah / 2, bx - 6, by + bh / 2
-        mid = (x1 + x2) / 2
+        if ax == bx:
+            # Same column: leave and re-enter on the right side, bowing out into the gap.
+            x1, y1, x2, y2 = ax + aw, ay + ah / 2, bx + aw + 6, by + bh / 2
+            bow = x1 + col_gap * 0.6
+            p1, p2 = (bow, y1), (bow, y2)
+        else:
+            x1, y1, x2, y2 = ax + aw, ay + ah / 2, bx - 6, by + bh / 2
+            mid = (x1 + x2) / 2
+            p1, p2 = (mid, y1), (mid, y2)
         c.add(
-            f'<path d="M{x1:.1f} {y1:.1f} C{mid:.1f} {y1:.1f} {mid:.1f} {y2:.1f} {x2:.1f} '
-            f'{y2:.1f}" fill="none" stroke="{c.theme["muted"]}" stroke-width="1.5" '
+            f'<path d="M{x1:.1f} {y1:.1f} C{p1[0]:.1f} {p1[1]:.1f} {p2[0]:.1f} {p2[1]:.1f} '
+            f'{x2:.1f} {y2:.1f}" fill="none" stroke="{c.theme["muted"]}" stroke-width="1.5" '
             f'marker-end="url(#arrow)"/>'
         )
-        cx, cy = _label_spot((x1, y1), (mid, y1), (mid, y2), (x2, y2), placed)
+        cx, cy = _label_spot((x1, y1), p1, p2, (x2, y2), placed)
         placed.append((cx, cy))
     for n, (cx, cy) in enumerate(placed, start=1):
         c.add(
