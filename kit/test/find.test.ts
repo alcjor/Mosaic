@@ -506,3 +506,26 @@ describe("find: bounded time and result size (section 3.8 step 4, section 10)", 
     other.close();
   });
 });
+
+describe("find: decisions on #109 (several words, a query with no words)", () => {
+  const nodes: NodeSpec[] = [
+    { type: "Item", key: "a", label: "alpha beta" },
+    { type: "Item", key: "b", label: "alpha" },
+  ];
+
+  it("Q1, reading A: a full-text hit holds every word of the query, in any order", async () => {
+    const file = await open({ nodes });
+    expect(tiers(await found(file, { query: "alpha zzz" }))).toEqual([]);
+    expect(tiers(await found(file, { query: "beta alpha" }))).toEqual(["text Item:a"]);
+    expect(tiers(await found(file, { query: "alpha beta" }))).toEqual(["text Item:a"]);
+    file.close();
+  });
+
+  it("Q2, reading D: a query with no words is an empty success", async () => {
+    const file = await open({ nodes });
+    for (const query of ["", "   ", "..."]) {
+      expect(await found(file, { query })).toEqual({ results: [], total: 0 });
+    }
+    file.close();
+  });
+});

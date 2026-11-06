@@ -11,8 +11,9 @@
  * as text (section 10): every whitespace-separated word becomes one quoted FTS5 string, which
  * the index's own tokenizer splits, so quotes, `*`, `OR`, `NEAR`, `:`, `^` and brackets are
  * characters, never operators. A node is a full-text hit when it holds every word of the query,
- * in any order and column (FTS5's implicit AND); a word with no letters or digits, such as `*`,
- * adds nothing. `type` keeps the nodes of that node type; `limit` (default and at most 20) cuts
+ * in any order and column (FTS5's implicit AND; decision A on #109); a word with no letters or
+ * digits, such as `*`, adds nothing, and a query with no words is an empty success (decision D).
+ * `type` keeps the nodes of that node type; `limit` (default and at most 20) cuts
  * the list, and `total` counts every node either tier matched.
  */
 import type { Database } from "@sqlite.org/sqlite-wasm";
