@@ -1,8 +1,9 @@
 """The target a build makes (Specification 0.1, sections 3.3 and 5.4).
 
 Each entry of the pattern's ``mosaics`` is one target, and defaults apply to omitted fields. A
-pattern without ``mosaics`` has one target, named ``default``, with every default; building a
-target the pattern does not define fails with ``invalid_input`` (decision Q7 on #16).
+pattern without targets (no ``mosaics``, or an empty one) has one target, named ``default``, with
+every default; building a target the pattern does not define fails with ``invalid_input``
+(decision Q7 on #16; an empty ``mosaics`` follows the review of #90).
 
 The header's ``settings`` are the target's entry with every default filled in, as canonical
 JSON, with ``budget`` only when it is given (section 3.3, decision Q6 on #16).
@@ -23,7 +24,7 @@ from mosaic_format.canonical_json import canonical_json
 from mosaic_build.mosaic.errors import BuildError
 
 DEFAULT_TARGET = "default"
-"""The name of the one target of a pattern without ``mosaics`` (section 5.4)."""
+"""The name of the one target of a pattern without targets (section 5.4)."""
 
 DEFAULTS: Mapping[str, Any] = {
     "types": "all",
@@ -98,7 +99,8 @@ class Target:
 
 def target(pattern: Mapping[str, Any], name: str) -> Target:
     """The target ``name`` of a checked pattern, or the build fails with ``invalid_input``."""
-    mosaics: Mapping[str, Any] = pattern.get("mosaics", {DEFAULT_TARGET: {}})
+    # No targets, `mosaics` absent or empty, means the one `default` target (section 5.4).
+    mosaics: Mapping[str, Any] = pattern.get("mosaics") or {DEFAULT_TARGET: {}}
     if name not in mosaics:
         defined = ", ".join(repr(n) for n in mosaics) or "none"
         raise BuildError(
