@@ -48,10 +48,11 @@ Read-only commands only: `git diff`, `git log`, `git show`,
    order, keep `After` honest, and stay one PR's worth each? Is a change to the plan
    explained in the Pair log?
 7. **Viewer changes**: tokens only, no raw colours or lengths.
-8. **PR body**: follows "Pull request bodies" in `CLAUDE.md`. The change map matches
-   the diff (no module changed that it omits, none shown that the diff does not touch),
-   the plan diagram matches the slices' statuses, and long output sits in closed
-   `<details>` blocks. A body that misleads is blocking; untidy is a `(note)`.
+8. **PR body and sheet**: follow "Pull request bodies" in `CLAUDE.md`. Open the sheet
+   SVG for the PR's latest commit (Read works on SVG files). Its change map matches the
+   diff (no module changed that it omits, none shown that the diff does not touch), its
+   ticks match the proofs, and the plan diagram matches the slices' statuses. A sheet
+   that misleads, or is missing or stale, is blocking; untidy is a `(note)`.
 
 Skip style that ruff, ty, Stylelint or tsc already enforce. Report only real problems.
 
