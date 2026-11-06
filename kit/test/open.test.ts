@@ -24,6 +24,7 @@ const CASES = JSON.parse(readFileSync(conformance("reading/cases.json"), "utf8")
 /** What the error message names for each rule, so a person can tell what failed. */
 const NAMES: Record<RefusalRule, string> = {
   sqlite: "SQLite",
+  encoding: "text encoding",
   application_id: "application_id",
   user_version: "user_version",
   format_version: "format version",
@@ -47,7 +48,7 @@ describe("conformance/reading: the kit opens or refuses each file as cases.json 
   it("covers every refusal rule and both kinds of file", () => {
     const rules = new Set(Object.values(CASES).map((c) => c.rule));
     expect([...rules].filter((r) => r !== null).sort()).toEqual([...REFUSAL_RULES].sort());
-    expect(names.filter((n) => CASES[n]!.opens)).toEqual(["mosaic.mosaic", "tessera.tessera", "wal.mosaic"]);
+    expect(names.filter((n) => CASES[n]!.opens)).toEqual(["mosaic.mosaic", "stat4.mosaic", "tessera.tessera", "wal.mosaic"]);
   });
 
   for (const name of names) {
@@ -105,7 +106,7 @@ describe("SQLite header settings that section 3.8 step 2 does not check", () => 
     expect(bytes).toEqual(before);
   });
 
-  it("refuses a file whose text encoding is UTF-16, naming the encoding", async () => {
+  it("refuses a file flagged UTF-16, naming the encoding (3.1, decision B on #104)", async () => {
     for (const [code, label] of [
       [2, "UTF-16le"],
       [3, "UTF-16be"],
@@ -113,7 +114,7 @@ describe("SQLite header settings that section 3.8 step 2 does not check", () => 
       const bytes = read("reading/mosaic.mosaic");
       new DataView(bytes.buffer, bytes.byteOffset).setUint32(56, code);
       const error = await refusal(bytes, "utf16.mosaic");
-      expect(error.rule).toBe("sqlite");
+      expect(error.rule).toBe("encoding");
       expect(error.message).toContain(`text encoding ${label}`);
     }
   });

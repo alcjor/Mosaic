@@ -15,8 +15,10 @@ file breaks only its one rule. `mosaic check` passes the files that open (`mosai
 | `tessera.tessera` | opens | The conforming tessera |
 | `mosaic.mosaic` | opens | The conforming mosaic, with vectors, whose first piece is `tessera.tessera` |
 | `wal.mosaic` | opens | The conforming mosaic in WAL mode (bytes 18 and 19 of the SQLite header are 2), with no write-ahead log beside it: a single SQLite 3 database file (section 3.1) |
+| `stat4.mosaic` | opens | The conforming mosaic holding `sqlite_stat4`, one of SQLite's statistics tables (section 3.1, decision C on #104) |
 | `empty.mosaic` | `application_id` | An empty file, which SQLite opens as an empty database |
 | `not-sqlite.mosaic` | `sqlite` | A text file, not a SQLite database |
+| `utf-16.mosaic` | `encoding` | The conforming mosaic's rows in a file whose text is stored as UTF-16le |
 | `application-id.mosaic` | `application_id` | `application_id` is 0 |
 | `user-version.mosaic` | `user_version` | `user_version` is 2 |
 | `format-version.mosaic` | `format_version` | The header's `format_version` is `0.2` |
@@ -30,6 +32,7 @@ file breaks only its one rule. `mosaic check` passes the files that open (`mosai
 Rules:
 
 - `sqlite`: The file is not a SQLite 3 database (section 3.1)
+- `encoding`: The text is stored as UTF-16, not UTF-8 (section 3.1, decision B on #104)
 - `application_id`: `PRAGMA application_id` is not `0x4D4F5341` (MOSA) (section 3.1)
 - `user_version`: `PRAGMA user_version` is not 1, that of format 0.1 (sections 3.1 and 9)
 - `format_version`: The header's `format_version` is one the reader does not implement, a newer minor version included (sections 3.8 step 2 and 9)

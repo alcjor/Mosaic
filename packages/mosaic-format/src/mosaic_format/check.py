@@ -61,7 +61,10 @@ INVARIANTS: Mapping[int, str] = {
 
 RULES: Mapping[str, tuple[str, str]] = {
     **{f"inv-{n}": ("3.9", text) for n, text in INVARIANTS.items()},
-    "container": ("3.1", "application_id, user_version and schema are those of format.sql"),
+    "container": (
+        "3.1",
+        "text is UTF-8; application_id, user_version and schema are those of format.sql",
+    ),
     "constraint": ("3.1", "rows satisfy format.sql's CHECK, NOT NULL and foreign keys"),
     "text-nul": ("3.1", "text values do not contain U+0000"),
     "canonical-json": ("3.1", "JSON text is in RFC 8785 canonical form and is I-JSON"),
@@ -205,6 +208,10 @@ class _Checker:
     # --- section 3.1: container and constraints ---------------------------------------------
 
     def container(self) -> None:
+        (encoding,) = self.con.execute("PRAGMA encoding").fetchone()
+        if encoding != "UTF-8":
+            self.add("container", "file", "", f"text encoding {encoding} is not UTF-8")
+            raise _Stop
         (application_id,) = self.con.execute("PRAGMA application_id").fetchone()
         if application_id != APPLICATION_ID:
             self.add(

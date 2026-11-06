@@ -27,6 +27,7 @@ from pathlib import Path
 from types import ModuleType
 
 from mosaic_format import seal
+from mosaic_format.schema import format_sql
 
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "conformance" / "reading"
@@ -49,6 +50,7 @@ PIECE = "tessera.tessera"
 
 RULES: dict[str, str] = {
     "sqlite": "The file is not a SQLite 3 database (section 3.1)",
+    "encoding": "The text is stored as UTF-16, not UTF-8 (section 3.1, decision B on #104)",
     "application_id": "`PRAGMA application_id` is not `0x4D4F5341` (MOSA) (section 3.1)",
     "user_version": "`PRAGMA user_version` is not 1, that of format 0.1 (sections 3.1 and 9)",
     "format_version": (
@@ -87,6 +89,67 @@ def _wal_flagged(path: Path, piece_hash: str) -> None:
     path.write_bytes(bytes(data))
 
 
+def _utf16(path: Path, piece_hash: str) -> None:
+    """The conforming mosaic's rows, in a file made from ``format.sql`` with UTF-16le text.
+
+    The values, and so both hashes, are those of the conforming mosaic: only how its text is
+    stored differs.
+    """
+    utf8 = path.with_name(path.name + ".utf8")
+    seal(utf8, mif.mosaic(piece_hash))
+    src = sqlite3.connect(utf8)
+    dst = sqlite3.connect(path, isolation_level=None)
+    try:
+        dst.execute("PRAGMA encoding = 'UTF-16le'")
+        dst.executescript(format_sql())
+        dst.execute("PRAGMA foreign_keys = OFF")
+        tables = src.execute(
+            "SELECT name FROM sqlite_schema WHERE type = 'table' AND sql LIKE 'CREATE TABLE %' "
+            "AND name NOT LIKE 'sqlite_%' ORDER BY rowid"
+        ).fetchall()
+        for (table,) in tables:
+            rows = src.execute(f'SELECT * FROM "{table}"').fetchall()
+            if rows:
+                marks = ", ".join("?" * len(rows[0]))
+                dst.executemany(f'INSERT OR REPLACE INTO "{table}" VALUES ({marks})', rows)
+        dst.execute("ANALYZE")
+        dst.execute("VACUUM")
+    finally:
+        src.close()
+        dst.close()
+        utf8.unlink()
+
+
+STAT4 = "CREATE TABLE sqlite_stat4(tbl,idx,neq,nlt,ndlt,sample)"
+"""How SQLite, built with ``SQLITE_ENABLE_STAT4``, declares the table ``ANALYZE`` writes."""
+
+
+def _with_stat4(path: Path, piece_hash: str) -> None:
+    """The conforming mosaic holding an empty ``sqlite_stat4``, declared as SQLite declares it.
+
+    SQLite reserves ``sqlite_`` names, and the Python build here has no ``SQLITE_ENABLE_STAT4``,
+    so the table is made under another name and renamed in ``sqlite_schema``.
+    """
+    seal(path, mif.mosaic(piece_hash))
+    con = sqlite3.connect(path, isolation_level=None)
+    try:
+        con.execute(STAT4.replace("sqlite_stat4", "stat4_placeholder"))
+        con.execute("PRAGMA writable_schema = ON")
+        con.execute(
+            "UPDATE sqlite_schema SET name = 'sqlite_stat4', tbl_name = 'sqlite_stat4', sql = ? "
+            "WHERE name = 'stat4_placeholder'",
+            (STAT4,),
+        )
+        con.execute("PRAGMA writable_schema = OFF")
+    finally:
+        con.close()
+    con = sqlite3.connect(path, isolation_level=None)
+    try:
+        con.execute("VACUUM")
+    finally:
+        con.close()
+
+
 def _mosaic(before: list[str] | None = None, after: list[str] | None = None):
     return mif._changed(mif.mosaic, before or [], after or [])
 
@@ -107,6 +170,13 @@ CASES: tuple[Case, ...] = (
         _wal_flagged,
     ),
     Case(
+        "stat4.mosaic",
+        None,
+        "The conforming mosaic holding `sqlite_stat4`, one of SQLite's statistics tables "
+        "(section 3.1, decision C on #104)",
+        _with_stat4,
+    ),
+    Case(
         "empty.mosaic",
         "application_id",
         "An empty file, which SQLite opens as an empty database",
@@ -117,6 +187,12 @@ CASES: tuple[Case, ...] = (
         "sqlite",
         "A text file, not a SQLite database",
         _bytes(b"This is not a SQLite database.\n" * 200),
+    ),
+    Case(
+        "utf-16.mosaic",
+        "encoding",
+        "The conforming mosaic's rows in a file whose text is stored as UTF-16le",
+        _utf16,
     ),
     Case(
         "application-id.mosaic",

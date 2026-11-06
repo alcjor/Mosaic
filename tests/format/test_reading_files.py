@@ -22,6 +22,7 @@ CASES: dict[str, dict[str, object]] = json.loads((FILES / "cases.json").read_tex
 
 MESSAGE = {
     "sqlite": "not a readable SQLite 3 database",
+    "encoding": "text encoding UTF-16",
     "application_id": "application_id 0x",
     "user_version": "user_version ",
     "format_version": "format version ",
@@ -69,13 +70,29 @@ def test_mosaic_check_passes_the_files_that_open_and_fails_the_others(name: str)
 def test_every_rule_has_a_file_and_both_kinds_open() -> None:
     assert {c["rule"] for c in CASES.values()} == {None, *mrf.RULES}
     opening = sorted(n for n, c in CASES.items() if c["opens"])
-    assert opening == ["mosaic.mosaic", "tessera.tessera", "wal.mosaic"]
+    assert opening == ["mosaic.mosaic", "stat4.mosaic", "tessera.tessera", "wal.mosaic"]
     for name in opening:
         assert CASES[name]["rule"] is None
         header = CASES[name]["header"]
         assert isinstance(header, dict)
         assert header["kind"] == name.rsplit(".", 1)[1]
     assert CASES["wal.mosaic"]["header"] == CASES["mosaic.mosaic"]["header"]
+    assert CASES["stat4.mosaic"]["header"] == CASES["mosaic.mosaic"]["header"]
+
+
+def test_the_utf_16_file_holds_the_conforming_mosaic_stored_as_utf_16() -> None:
+    import sqlite3
+
+    def rows(name: str, encoding: str) -> list[tuple[object, ...]]:
+        uri = (FILES / name).resolve().as_uri() + "?mode=ro&immutable=1"
+        con = sqlite3.connect(uri, uri=True)
+        try:
+            assert con.execute("PRAGMA encoding").fetchone() == (encoding,)
+            return con.execute("SELECT * FROM v_node ORDER BY id").fetchall()
+        finally:
+            con.close()
+
+    assert rows("utf-16.mosaic", "UTF-16le") == rows("mosaic.mosaic", "UTF-8")
 
 
 def test_the_files_are_exactly_what_the_script_writes(tmp_path: Path) -> None:

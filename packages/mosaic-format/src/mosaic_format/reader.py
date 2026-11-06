@@ -4,7 +4,8 @@
 
 1. the file is opened read-only and immutable, and no journal or write-ahead log lies beside
    it (section 3.1);
-2. ``application_id`` and ``user_version`` are those of format 0.1, the header's
+2. text is stored as UTF-8 (section 3.1, decision B on #104: a file in UTF-16 is refused);
+   ``application_id`` and ``user_version`` are those of format 0.1, the header's
    ``format_version`` is one this reader implements (only ``0.1``; a newer minor version is
    refused too, section 9), the schema holds exactly the objects of ``format.sql`` with the same
    definitions (``sqlite_stat1`` and ``sqlite_stat4`` may be present), and the header is one row
@@ -226,7 +227,18 @@ def _connect(path: Path) -> sqlite3.Connection:
     return con
 
 
+def _check_encoding(path: Path, con: sqlite3.Connection) -> None:
+    """Text is stored as UTF-8 (section 3.1, decision B on #104)."""
+    (encoding,) = con.execute("PRAGMA encoding").fetchone()
+    if encoding != "UTF-8":
+        raise _refuse(
+            path,
+            f"text encoding {encoding}: a tessera or mosaic stores its text as UTF-8 (section 3.1)",
+        )
+
+
 def _verify(path: Path, con: sqlite3.Connection) -> dict[str, object]:
+    _check_encoding(path, con)
     (application_id,) = con.execute("PRAGMA application_id").fetchone()
     if application_id != APPLICATION_ID:
         raise _refuse(

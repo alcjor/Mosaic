@@ -5,7 +5,8 @@
  *
  * 1. The bytes are copied into SQLite WebAssembly and opened read-only; the caller's bytes are
  *    never written (step 1). The page has no file system, so no journal can lie beside it.
- * 2. `application_id` and `user_version` are those of format 0.1. The header's
+ * 2. Text is stored as UTF-8 (section 3.1, decision B on #104). `application_id` and
+ *    `user_version` are those of format 0.1. The header's
  *    `format_version` is one this kit implements: only `0.1`, so a newer minor version is
  *    refused too (section 9). The schema holds exactly the objects of `format.sql`, with the
  *    same definitions (SQLite's statistics tables may be present). The header is exactly one
@@ -44,6 +45,7 @@ const STATISTICS: Readonly<Record<string, string>> = {
 /** Why a file was refused; `conformance/reading/cases.json` uses the same names. */
 export const REFUSAL_RULES = [
   "sqlite",
+  "encoding",
   "application_id",
   "user_version",
   "format_version",
@@ -161,9 +163,10 @@ function isSqliteHeader(bytes: Uint8Array): boolean {
 }
 
 /**
- * Refuse a database whose text is stored as UTF-16: the SQLite WebAssembly the kit runs on is
- * built without UTF-16 (`SQLITE_OMIT_UTF16`), so it cannot read one. Bytes 56–59 of the
- * SQLite header hold the text encoding: 1 for UTF-8, 2 for UTF-16le, 3 for UTF-16be.
+ * Refuse a file whose text is stored as UTF-16: a tessera or mosaic stores its text as UTF-8
+ * (section 3.1, decision B on #104). Bytes 56–59 of the SQLite header hold the text encoding:
+ * 1 for UTF-8, 2 for UTF-16le, 3 for UTF-16be. The check reads the bytes, before SQLite: the
+ * SQLite WebAssembly the kit runs on is built without UTF-16 and could not read the file.
  */
 function refuseUtf16(bytes: Uint8Array, name: string): void {
   if (!isSqliteHeader(bytes)) return;
@@ -172,8 +175,8 @@ function refuseUtf16(bytes: Uint8Array, name: string): void {
     const label = encoding === 2 ? "UTF-16le" : "UTF-16be";
     throw new FileRefusedError(
       name,
-      "sqlite",
-      `text encoding ${label}: this kit reads SQLite databases whose text is UTF-8 only (section 3.1)`,
+      "encoding",
+      `text encoding ${label}: a tessera or mosaic stores its text as UTF-8 (section 3.1)`,
     );
   }
 }

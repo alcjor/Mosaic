@@ -56,6 +56,23 @@
     "opens": false,
     "rule": "schema"
   },
+  "stat4.mosaic": {
+    "header": {
+      "ai_model": null,
+      "embed_model": "invented-model@ca56847038f3f329524caec5a86e14865f49918d68094c90dd021a5e67b927f6",
+      "format_version": "0.1",
+      "kind": "mosaic",
+      "knowledge_hash": "8adae50b32ad4398c94b9044c51c57cc1893b02be5cb7c70da56d3b964fc389b",
+      "one": 1,
+      "pattern_hash": "1e6e00537430ab86faa88c51480ec1a48285f1e86b1c2e26f1282d5ecd4ecb5a",
+      "producer": "make-invalid-files/0.1",
+      "settings": "{}",
+      "target": "all",
+      "vector_hash": "6a819fa866221e4f17d864c44e235c20b58823889d682cf77ff465d2a9c802eb"
+    },
+    "opens": true,
+    "rule": null
+  },
   "tessera.tessera": {
     "header": {
       "ai_model": null,
@@ -76,6 +93,10 @@
   "user-version.mosaic": {
     "opens": false,
     "rule": "user_version"
+  },
+  "utf-16.mosaic": {
+    "opens": false,
+    "rule": "encoding"
   },
   "wal.mosaic": {
     "header": {

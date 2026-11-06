@@ -285,19 +285,25 @@ describe("untrusted, truncated and corrupt files are refused, never a crash (3.8
     }
   });
 
-  it("refuses a rollback-journal file's header flags set to WAL, or opens it, without another error", async () => {
+  it("opens a file whose header flags say WAL, with no write-ahead log beside it (3.1)", async () => {
     const bytes = read(TESSERA);
     bytes[18] = 2;
     bytes[19] = 2;
-    await opensOrRefused(bytes, "wal.tessera");
+    expect(await opensOrRefused(bytes, "wal.tessera")).toBe("opened");
   });
 
-  it("refuses a file whose text encoding flag says UTF-16 or opens it, without another error", async () => {
-    for (const enc of [2, 3, 7]) {
+  it("refuses a file whose text encoding flag says UTF-16, for encoding (3.1, decision B on #104)", async () => {
+    for (const enc of [2, 3]) {
       const bytes = read(TESSERA);
       bytes[59] = enc;
-      await opensOrRefused(bytes, `enc-${enc}.tessera`);
+      await expectRule(bytes, `enc-${enc}.tessera`, "encoding");
     }
+  });
+
+  it("opens or cleanly refuses a file whose text encoding flag is no SQLite encoding", async () => {
+    const bytes = read(TESSERA);
+    bytes[59] = 7;
+    await opensOrRefused(bytes, "enc-7.tessera");
   });
 });
 
@@ -396,6 +402,7 @@ describe("the error names the file and what failed (3.8 step 2, M2.1)", () => {
   it("gives a different message for each rule", async () => {
     const files: Record<RefusalRule, string> = {
       sqlite: "not-sqlite.mosaic",
+      encoding: "utf-16.mosaic",
       application_id: "application-id.mosaic",
       user_version: "user-version.mosaic",
       format_version: "format-version.mosaic",
@@ -426,7 +433,7 @@ describe("the error names the file and what failed (3.8 step 2, M2.1)", () => {
   it("has one distinct rule name per refusal rule", () => {
     expect(new Set(REFUSAL_RULES).size).toBe(REFUSAL_RULES.length);
     expect([...REFUSAL_RULES].sort()).toEqual(
-      ["application_id", "format_version", "header", "schema", "sqlite", "user_version"].sort(),
+      ["application_id", "encoding", "format_version", "header", "schema", "sqlite", "user_version"].sort(),
     );
   });
 });
