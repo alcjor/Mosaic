@@ -267,9 +267,10 @@ class Assembly:
     edges: dict[EdgeKey, Linked] = field(default_factory=dict)
     """Canonical edges in build order (step 5); their evidence is in :attr:`evidence`."""
     mentions: list[MentionReport] = field(default_factory=list)
-    """Unmatched and ambiguous mentions, by piece and locator (UTF-8 bytes)."""
+    """Unmatched and ambiguous mentions, by piece, locator, role, text, status and candidates
+    (UTF-8 bytes, section 7.3)."""
     stale_references: list[StaleReference] = field(default_factory=list)
-    """Names that resolve to nothing, by piece and locator (UTF-8 bytes)."""
+    """Names that resolve to nothing, by piece, locator, type and name (UTF-8 bytes, 7.3)."""
     proposals: list[ProposalStatus] = field(default_factory=list)
     """Outdated proposals in file order, then those that no longer apply, in file order."""
 

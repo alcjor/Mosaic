@@ -638,6 +638,55 @@ def test_mentions_and_stale_references_sort_by_piece_and_locator(tmp_path: Path)
     assert [s["locator"] for s in report["stale_references"]] == ["line=1", "line=2", "line=3"]
 
 
+TIES = {
+    **DOCS,
+    "Zone": {"key": "z", "from": {"list.Z": {"z": "key"}}},
+    "Valve": {"key": "v", "from": {"list.V": {"v": "key"}}},
+}
+
+
+def tied(tmp_path: Path, edges: dict[str, Any]) -> dict[str, Any]:
+    """One mention ``t`` at ``line=1``, resolved by each rule of ``edges``.
+
+    ``t`` names no Zone, the Valves 1 and 2, and the Sensors T-1 and T-2 (aliases).
+    """
+    rows = [node(i, i.split(":")[1]) for i in ("Row:T-1", "Row:T-2", "Z:1", "V:1", "V:2")]
+    aliases = [Alias("t", n, "source") for n in ("Row:T-1", "Row:T-2", "V:1", "V:2")]
+    _, report = run(
+        tmp_path, [("list", rows, {"aliases": aliases}), procedure(("t", "verify.x"))], TIES, edges
+    )
+    return report
+
+
+def test_ties_sort_stale_references_by_type(tmp_path: Path) -> None:
+    # §7.3 (review of #93): stale references by piece, locator, `type` and name. One mention
+    # gives one entry per rule, so ties differ in the rule's `to` type.
+    edges = {
+        "zones": {"from": "Step", "to": "Zone", "mentions": "verify.*"},
+        "steps": {"from": "Step", "to": "Step", "mentions": "verify.*"},
+    }
+    report = tied(tmp_path, edges)
+    assert [(s["type"], s["name"]) for s in report["stale_references"]] == [
+        ("Step", "t"),
+        ("Zone", "t"),
+    ]
+
+
+def test_ties_sort_mentions_by_status_then_candidates(tmp_path: Path) -> None:
+    # §7.3 (review of #93): mentions by piece, locator, role, text, status, then candidates.
+    edges = {
+        "zones": {"from": "Step", "to": "Zone", "mentions": "verify.*"},
+        "valves": {"from": "Step", "to": "Valve", "mentions": "verify.*"},
+        "reads": {"from": "Step", "to": "Sensor", "mentions": "verify.*"},
+    }
+    report = tied(tmp_path, edges)
+    assert [(m["status"], m["candidates"]) for m in report["mentions"]] == [
+        ("ambiguous", ["Sensor:T-1", "Sensor:T-2"]),
+        ("ambiguous", ["Valve:1", "Valve:2"]),
+        ("unmatched", []),
+    ]
+
+
 # --- Q6: counts ---------------------------------------------------------------------------------
 
 

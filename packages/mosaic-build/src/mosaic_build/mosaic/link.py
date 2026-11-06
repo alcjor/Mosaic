@@ -414,8 +414,16 @@ def _proposed_edges(inputs: Inputs, a: Assembly, linker: _Linker) -> None:
         )
 
 
-def _by_piece_and_locator(piece: str, locator: str) -> tuple[bytes, bytes]:
-    return piece.encode("utf-8"), locator.encode("utf-8")
+def _mention_order(m: MentionReport) -> tuple[bytes | tuple[bytes, ...], ...]:
+    """Section 7.3: piece, locator, role, text, status, then candidates id by id (a list that
+    is a prefix of another first), every text by its UTF-8 bytes."""
+    texts = (m.piece, m.locator, m.role, m.text, m.status)
+    return (*(t.encode("utf-8") for t in texts), tuple(c.encode("utf-8") for c in m.candidates))
+
+
+def _stale_order(s: StaleReference) -> tuple[bytes, ...]:
+    """Section 7.3: piece, locator, ``type`` and name, by UTF-8 bytes."""
+    return tuple(t.encode("utf-8") for t in (s.piece, s.locator, s.type, s.name))
 
 
 def link(inputs: Inputs, a: Assembly) -> None:
@@ -424,5 +432,5 @@ def link(inputs: Inputs, a: Assembly) -> None:
     _map_edges(inputs, a, linker)
     _mention_edges(inputs, a, linker)
     _proposed_edges(inputs, a, linker)
-    a.mentions.sort(key=lambda m: _by_piece_and_locator(m.piece, m.locator))
-    a.stale_references.sort(key=lambda s: _by_piece_and_locator(s.piece, s.locator))
+    a.mentions.sort(key=_mention_order)
+    a.stale_references.sort(key=_stale_order)

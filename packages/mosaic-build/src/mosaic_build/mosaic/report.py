@@ -9,8 +9,10 @@ fails. It is valid against ``spec/build-report.schema.json``:
   property; label and summary clashes only when the target is strict (section 7.3). A value is
   the JSON value itself.
 - **Alias conflicts**, by node and winning spelling.
-- **Stale references** and **mentions**, by piece and locator: only of rules whose edge type the
-  target declares, and not of mentions whose containing node step 6 drops (Q5).
+- **Stale references** (by piece, locator, ``type`` and name) and **mentions** (by piece,
+  locator, role, text, status, then candidates id by id), every text by UTF-8 bytes: only of
+  rules whose edge type the target declares, and not of mentions whose containing node step 6
+  drops (Q5).
 - **Weak ids**, by type: the mosaic's nodes, after step 6, that a weak-keyed piece node maps to;
   a type with none is not listed (Q1).
 - **Proposals**: the outdated ones in file order, then those that no longer apply, in file
