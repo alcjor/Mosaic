@@ -4,7 +4,8 @@
 
 1. the file is opened read-only and immutable, and no journal or write-ahead log lies beside
    it (section 3.1);
-2. ``application_id`` and ``user_version`` are those of format 0.1, the header's
+2. text is stored as UTF-8 (section 3.1, decision B on #104: a file in UTF-16 is refused);
+   ``application_id`` and ``user_version`` are those of format 0.1, the header's
    ``format_version`` is one this reader implements (only ``0.1``; a newer minor version is
    refused too, section 9), the schema holds exactly the objects of ``format.sql`` with the same
    definitions (``sqlite_stat1`` and ``sqlite_stat4`` may be present), and the header is one row
@@ -166,11 +167,14 @@ def _has_stored_format_version(con: sqlite3.Connection) -> bool:
 
 def _read_header(path: Path, con: sqlite3.Connection) -> dict[str, object]:
     """The one header row (section 3.3), with a kind this reader knows."""
-    cursor = con.execute("SELECT * FROM header")
+    # CHECK (one = 1) is not enforced on read, so a crafted header can hold any number of rows:
+    # read at most two, so it costs nothing to refuse (section 10).
+    cursor = con.execute("SELECT * FROM header LIMIT 2")
     names = [d[0] for d in cursor.description]
     rows = cursor.fetchall()
     if len(rows) != 1:
-        raise _refuse(path, f"header has {len(rows)} rows; it must hold exactly one (section 3.3)")
+        found = "0 rows" if not rows else "2 rows or more"
+        raise _refuse(path, f"header has {found}; it must hold exactly one (section 3.3)")
     header = dict(zip(names, rows[0], strict=True))
     if header["one"] != 1:
         raise _refuse(path, f"header row has one = {header['one']!r}, not 1 (section 3.3)")
@@ -226,7 +230,43 @@ def _connect(path: Path) -> sqlite3.Connection:
     return con
 
 
+SQLITE_MAGIC = b"SQLite format 3\x00"
+"""The 16 bytes that open every SQLite 3 database file."""
+
+_UTF16 = {2: "UTF-16le", 3: "UTF-16be"}
+"""Text encodings of the SQLite header (bytes 56 to 59) other than UTF-8 (1)."""
+
+
+def _check_encoding_bytes(path: Path) -> None:
+    """Refuse a file whose SQLite header says its text is UTF-16, before SQLite reads it.
+
+    The kit reads these bytes too, so both readers name the encoding even when the rest of the
+    file does not match its header (section 3.1, decision B on #104).
+    """
+    with path.open("rb") as f:
+        head = f.read(100)
+    if len(head) == 100 and head.startswith(SQLITE_MAGIC):
+        encoding = _UTF16.get(int.from_bytes(head[56:60], "big"))
+        if encoding is not None:
+            raise _refuse(
+                path,
+                f"text encoding {encoding}: a tessera or mosaic stores its text as UTF-8 "
+                f"(section 3.1)",
+            )
+
+
+def _check_encoding(path: Path, con: sqlite3.Connection) -> None:
+    """Text is stored as UTF-8 (section 3.1, decision B on #104)."""
+    (encoding,) = con.execute("PRAGMA encoding").fetchone()
+    if encoding != "UTF-8":
+        raise _refuse(
+            path,
+            f"text encoding {encoding}: a tessera or mosaic stores its text as UTF-8 (section 3.1)",
+        )
+
+
 def _verify(path: Path, con: sqlite3.Connection) -> dict[str, object]:
+    _check_encoding(path, con)
     (application_id,) = con.execute("PRAGMA application_id").fetchone()
     if application_id != APPLICATION_ID:
         raise _refuse(
@@ -352,6 +392,7 @@ def open(path: str | Path, *, limits: Limits | None = None) -> SealedFile:
                 f"{sidecar.name} lies beside it; a sealed file has no journal or "
                 f"write-ahead log (section 3.1)",
             )
+    _check_encoding_bytes(target)
     con = _connect(target)
     try:
         header = _verify(target, con)

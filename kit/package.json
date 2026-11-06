@@ -17,5 +17,8 @@
     "typescript": "~6.0.3",
     "vitest": "^5.1.0",
     "@types/bun": "^1.4.4"
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "3.54.1-build1"
   }
 }
