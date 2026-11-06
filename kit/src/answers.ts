@@ -26,6 +26,60 @@ export interface FindAnswer {
   readonly data: { readonly results: readonly FindResult[]; readonly total: number };
 }
 
+export interface GetData {
+  readonly id: string;
+  readonly type: string;
+  /** Cut at 120 characters with the marker; null when the node has none. */
+  readonly label: string | null;
+  /** Cut at 400 characters with the marker; null when the node has none. */
+  readonly summary: string | null;
+  /** The node's property object, text values cut at 400 characters; null when it has none. */
+  readonly props: Readonly<Record<string, unknown>> | null;
+  /** At most 20, in alias order, each cut at 120 characters. */
+  readonly aliases: readonly string[];
+  /** How many aliases the node has. */
+  readonly aliases_total: number;
+  readonly external_refs: readonly {
+    readonly system: string;
+    readonly kind: string;
+    readonly locator: Readonly<Record<string, unknown>>;
+  }[];
+  /** Edges per edge type and direction. */
+  readonly links: readonly { readonly edge: string; readonly direction: "out" | "in"; readonly count: number }[];
+}
+
+export interface GetAnswer {
+  readonly tool: "get";
+  readonly mosaic: string;
+  readonly data: GetData;
+}
+
+/** One evidence row as `cite` gives it. */
+export interface CiteEvidence {
+  /** The source's id. */
+  readonly source: string;
+  readonly source_hash: string;
+  readonly locator: string;
+  readonly method: "extracted" | "inferred";
+  /** Present exactly on inferred rows. */
+  readonly confidence: number | null;
+  /** Cut at 600 characters with the marker; null when the file keeps none. */
+  readonly snippet: string | null;
+  /** The knowledge hashes of the mosaics the evidence passed through, innermost first. */
+  readonly via?: readonly string[];
+}
+
+export interface CiteAnswer {
+  readonly tool: "cite";
+  readonly mosaic: string;
+  readonly data: {
+    /** The node's id, or the edge as from, type and to. */
+    readonly subject: string | { readonly from: string; readonly type: string; readonly to: string };
+    readonly evidence: readonly CiteEvidence[];
+    readonly total: number;
+  };
+}
+
 /** The error codes of `answers.schema.json`. */
 export type ErrorCode =
   | "unknown_id"
@@ -46,7 +100,7 @@ export interface ErrorAnswer {
   };
 }
 
-export type Answer = FindAnswer | ErrorAnswer;
+export type Answer = FindAnswer | GetAnswer | CiteAnswer | ErrorAnswer;
 
 /** The longest error message `answers.schema.json` allows. */
 const MESSAGE_LIMIT = 400;
