@@ -86,8 +86,8 @@ the push on failure; a Stop hook runs it again before you finish.
     spec text and a normative file or an ADR. Ask it as a need, at the top of the
     slice's draft PR: the spec section, the question about required behaviour, and for
     each possible reading one example input with the output a reader would observe
-    (a small diagram, see "Pull request bodies"), then the reading you would expect and
-    why. Never list implementation options. Add the label `needs-decision` and **park**
+    (the sheet's question panel, see "Pull request bodies"), then the reading you would
+    expect and why. Never list implementation options. Add the label `needs-decision` and **park**
     the slice (see "Work plan").
   - In doubt, it is **Escalate**; the reviewer then confirms it (Pair loop, step 5).
   - A missing design token is not a question: use the nearest existing token and log it
@@ -207,35 +207,59 @@ only the slice id and the branch, never your reasoning or a summary of your chan
 The `Claude review` workflow in CI stays as a second opinion on the finished PR. It does
 not block; a finding the pair missed comes back as a slice (Work plan, step 0).
 
-## Pull request bodies: diagrams, not long text
+## Pull request bodies: a sheet, not long text
 
-The maintainer reads PRs to see what changed and why, not to read prose. GitHub strips
-HTML and scripts from PR bodies but renders Mermaid, so diagrams are Mermaid blocks.
+The maintainer reads PRs to see what changed and why, not to read prose. Every PR opens
+with an **overview sheet**: one picture, in panels, drawn by `scripts/pr_sheet.py` from a
+small JSON file you fill in. GitHub shows SVG files as images but strips HTML and scripts
+from PR bodies, so the sheet is an SVG hosted on the `pr-sheets` branch.
 
-Every PR body, in this order:
+**The sheet's panels**, all from the JSON (`scripts/pr_sheet.py` and its test show the
+fields):
 
-1. **Summary**: at most three lines. What the slice adds, in the spec's words.
-2. **Change map**: one Mermaid `flowchart LR` from the spec sections the slice covers
-   to the modules it changes and the tests that prove them. At most 15 nodes.
-3. **Done when**: the slice's checklist, each item ticked with a test name or command.
-4. **Pair log**: a table with one row per round: round, verifier (tests added, gate,
-   slow tests), reviewer verdict, findings fixed.
-5. **Assumptions**: a table: decision, spec section it fills, reviewer ruling.
-6. **Details**, inside `<details><summary>…</summary>` blocks, closed by default: the
-   slow-test command and output, the verifier's test names, `Next step:` while a draft.
+1. **Title block**: slice id, title, status (`draft`, `ready`, `parked`), and a summary of
+   at most two lines in the spec's words.
+2. **Question**, for a parked slice only, above everything else: the section, the
+   question, and one branch per reading, each ending in what a reader would observe.
+3. **Change map**: spec sections → code → tests, with arrows numbered in the order the
+   change flows. Real file and section names, at most 6 boxes per column; more means the
+   slice is too big.
+4. **Done when**: each item with a tick or a cross and its proof (test name or command).
+5. **Pair loop**: one node per round with the verifier's and reviewer's result, then the
+   verdict.
+6. **Assumptions**: decision, section, ruling.
+7. **Numbers**: up to five figures that matter for this slice (tests added, lines, sizes,
+   timings, a knowledge hash prefix).
 
-An escalated slice puts the **question** first, above the summary: the section, one
-line of question, and a Mermaid diagram with one branch per reading, each ending in
-the output a reader would observe.
+**Publishing it**, after every step that changes what the sheet shows:
 
-Plan PRs (`M<n>.0`) and plan files show the slices as a Mermaid `flowchart TD` at the
-top of `plan/M<n>.md`: one node per slice, `After` as arrows, and classes `done`,
-`todo` and `parked`.
+```
+uv run python scripts/pr_sheet.py sheet.json --out /tmp/pr-<n>-<sha7>
+git fetch origin pr-sheets && git worktree add /tmp/pr-sheets origin/pr-sheets
+mkdir -p /tmp/pr-sheets/pr-<n> && cp /tmp/pr-<n>-<sha7>-*.svg /tmp/pr-sheets/pr-<n>/
+git -C /tmp/pr-sheets add -A && git -C /tmp/pr-sheets commit -m "Sheet for #<n> at <sha7>"
+git -C /tmp/pr-sheets push origin HEAD:pr-sheets && git worktree remove /tmp/pr-sheets
+```
 
-Mermaid rules: short plain-text labels (no Markdown, no HTML except `<br/>` for a line break), quoted when
-they contain punctuation, at most 15 nodes per diagram, no colours except the three
-status classes. Prefer two small diagrams to one large one; if a diagram would
-not fit those rules, the slice is too big.
+Name each file by the commit it shows (`<sha7>`), never overwrite one, and never put a
+sheet or its JSON on a slice branch. The PR body opens with:
+
+```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/alcjor/Mosaic/pr-sheets/pr-<n>/<sha7>-dark.svg">
+  <img alt="<slice> overview" src="https://raw.githubusercontent.com/alcjor/Mosaic/pr-sheets/pr-<n>/<sha7>-light.svg">
+</picture>
+```
+
+**Below the sheet**, only text that must stay searchable or copyable, in closed
+`<details><summary>…</summary>` blocks: the "Done when" checklist with its proofs, the
+Pair log, the Assumptions, the slow-test command and output, and `Next step:` while a
+draft. Nothing in the text that the sheet does not show.
+
+**Plan files** (`plan/M<n>.md`) open with the slices as a Mermaid `flowchart TD`, which
+GitHub renders in Markdown files: one node per slice, `After` as arrows, and classes
+`done`, `todo` and `parked`. Short plain-text labels (no Markdown, no HTML except `<br/>`
+for a line break), at most 15 nodes; split by area if the milestone has more.
 
 ## Design system
 
