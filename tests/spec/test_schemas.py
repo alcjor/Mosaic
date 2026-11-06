@@ -346,3 +346,35 @@ def test_a_conflict_names_a_node_or_an_edge_but_not_both() -> None:
     assert not _validator("build-report").is_valid(report), "neither node nor edge"
     report["conflicts"] = [on_edge | {"edge": {k: v for k, v in edge.items() if k != "qualifier"}}]
     assert not _validator("build-report").is_valid(report), "edge without qualifier"
+
+
+def _failed_report(reason: str) -> dict[str, Any]:
+    """The documented report as section 7.3 describes it for a build that failed with `reason`."""
+    report = _load("build-report.json")
+    report["outcome"] = "failed"
+    report["reason"] = reason
+    if reason == "over_budget":  # sealed, then removed: hashes, size, counts and lists stay
+        return report
+    report["knowledge_hash"] = report["vector_hash"] = report["file_size"] = None
+    if reason == "strict":  # steps 1-7 ran, nothing was sealed: counts and lists stay
+        return report
+    report["pattern_hash"] = None  # step 1: the pattern file may not even be readable
+    report["counts"] = {"nodes": {}, "edges": {}}
+    for name in (
+        "conflicts",
+        "alias_conflicts",
+        "stale_references",
+        "mentions",
+        "weak_ids",
+        "proposals",
+        "notices",
+    ):
+        report[name] = []
+    return report
+
+
+@pytest.mark.parametrize("reason", ["invalid_input", "piece_mismatch", "strict", "over_budget"])
+def test_failed_reports_as_section_7_3_describes_them_validate(reason: str) -> None:
+    """Decision Q2 on #17: what a failed build's report holds fits build-report.schema.json."""
+    report = _failed_report(reason)
+    assert list(_validator("build-report").iter_errors(report)) == []

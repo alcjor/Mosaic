@@ -1641,19 +1641,20 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 | Entry | Content |
 | --- | --- |
 | Outcome | `built` or `failed`, with the reason |
-| Hashes and size | Knowledge hash, vector hash, file size, node and edge counts per type |
+| Hashes and size | Knowledge hash, vector hash, file size, node and edge counts per type: every type the mosaic declares (section 7.1 step 7), 0 when it has no rows |
 | Conflicts | Node or edge, property, winning value and piece, losing values and pieces; clashes on label and summary only when the target is strict |
 | Alias conflicts | Node, kept alias spelling and its piece, lost spellings and their pieces (`proposals.yaml` for a proposal); only aliases equal under `NOCASE` but spelled differently (section 7.1 step 3) |
-| Stale references | Names that resolve to nothing, with the piece and locator that use them; no new-key hint in 0.1. In 0.1 these are the unmatched mentions (section 5.3), one entry per mention and edge rule, with the rule's `to` type |
-| Mentions | Unmatched and ambiguous mentions, by role, with locator |
-| Weak ids | Types whose keys came from position rather than a natural key |
+| Stale references | Names that resolve to nothing, with the piece and locator that use them; no new-key hint in 0.1. In 0.1 these are the unmatched mentions (section 5.3), one entry per mention and edge rule, with the rule's `to` type; like mentions, only for what the mosaic holds |
+| Mentions | Unmatched and ambiguous mentions, by role, with locator; only of rules whose edge type the target declares, and not of mentions whose containing node step 6 drops |
+| Weak ids | Types whose keys came from position rather than a natural key: a piece node is weak-keyed when its key comes from the piece node's `key` and its piece type's `key_prop` is NULL. `count` is the mosaic's nodes of the type, after step 6, that a weak-keyed piece node maps to; a type with none is not listed |
 | Proposals | Outdated proposals, and accepted proposals that no longer apply |
-| Notices | The notices of every piece |
+| Notices | The notices of every piece in `pieces`, whatever the target: one entry per distinct piece name and notice text |
 
 #### 7.3 Decisions (1 November 2026)
 
 - **Label and summary clashes** are resolved by piece order like any property, and reported only when the target is `strict`. Clashes on other properties are always reported.
-- **Strict mode:** a target with `strict: true` fails on any conflict, alias conflict or unmatched mention, and writes the build report but no mosaic. Off by default.
+- **Strict mode:** a target with `strict: true` fails on any conflict, alias conflict or unmatched mention, and writes the build report but no mosaic. Off by default. It is checked after step 7 and before step 8, so a strict target that would also be over budget fails as `strict`.
+- **A failed build's report.** When step 1 fails (`invalid_input`, `piece_mismatch`, or a target the pattern does not define), `pattern_hash` is the SHA-256 of the pattern file's bytes if it could be read, else NULL; the hashes and `file_size` are NULL, `counts` is empty and every list is empty. When the target is `strict`, the lists and `counts` describe the selected content and the hashes and `file_size` are NULL, since nothing was sealed. When the mosaic is over budget, the report gives the removed file's hashes and `file_size`, with `counts` and lists filled.
 - **`text: full`** keeps snippets plus the entire text of each text source, once per source, in `source_text` (section 3.2, part of the knowledge hash in section 3.6). `cite` still returns the snippet; a kit MAY return a wider passage from `source_text` using the evidence locator's `chars` range.
 - **Stale references** get no new-key hint in 0.1; the report lists the stale name, the piece and the locator.
 - **The build report** is JSON, valid against `build-report.schema.json` (draft 2020-12), a fourth normative file. Its shape:
@@ -1679,7 +1680,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 }
 ```
 
-`outcome` is `built` or `failed`; `reason` is NULL when built, otherwise one of `invalid_input`, `piece_mismatch`, `over_budget`, `strict`. A mention's `status` is `unmatched` or `ambiguous`, with the matching node ids in `candidates` when ambiguous. A proposal's `status` is `outdated` or `no_longer_applies`. A conflict names a `node` by its id or an `edge` by its `type`, `from` and `to` ids and `qualifier`. Lists are sorted (conflicts on nodes first, by node and property, then conflicts on edges, by `from`, `type`, `to`, `qualifier` and property; alias conflicts by node and winning spelling, the rest by piece and locator, and each entry's `losers` in build order) so the same build gives the same report.
+`outcome` is `built` or `failed`; `reason` is NULL when built, otherwise one of `invalid_input`, `piece_mismatch`, `over_budget`, `strict`. A mention's `status` is `unmatched` or `ambiguous`, with the matching node ids in `candidates` when ambiguous. A proposal's `status` is `outdated` or `no_longer_applies`. A conflict names a `node` by its id or an `edge` by its `type`, `from` and `to` ids and `qualifier`. Lists are sorted (conflicts on nodes first, by node and property, then conflicts on edges, by `from`, `type`, `to`, `qualifier` and property; alias conflicts by node and winning spelling, stale references and mentions by piece and locator, weak ids by type, proposals with the outdated ones first and each group in the order of the proposals file, notices by piece and then text, and each entry's `losers` in build order) so the same build gives the same report.
 
 ### 8. Kit interface
 
