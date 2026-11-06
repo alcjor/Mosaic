@@ -30,3 +30,13 @@ export function cut(text: string, limit: number): string {
   const chars = Array.from(text);
   return chars.length <= limit ? text : chars.slice(0, limit).join("") + CUT_MARKER;
 }
+
+export {
+  FileRefusedError,
+  IMPLEMENTED_VERSIONS,
+  REFUSAL_RULES,
+  openFile,
+  type Header,
+  type RefusalRule,
+  type SealedFile,
+} from "./open.js";
