@@ -1,0 +1,62 @@
+# Pattern for the Netflix titles fixture (docs/spec-0.1.md section 11; plan M1.2).
+# The piece is the tessera that settings.yaml makes from the pinned netflix_titles.csv.
+format: "0.1"
+pieces:
+  - netflix@2f7f44f69cdd027ce1ab352a1eec7e1f705ddf19a2976a8fb6b9d2be7fbde9d5
+
+types:
+  Title:
+    key: show_id
+    describe: A movie or TV show in the catalogue
+    from:
+      netflix.Title:
+        show_id: key
+        type: type
+        date_added: date_added
+        release_year: release_year
+        rating: rating
+        duration: duration
+        duration_unit: duration_unit
+  Person:
+    key: name
+    describe: A director or cast member of a title
+    from:
+      netflix.Director: {name: key, label: key}
+      netflix.CastMember: {name: key, label: key}
+  Country:
+    key: name
+    describe: A country where a title was produced
+    from:
+      netflix.Country: {name: key, label: key}
+  Genre:
+    key: name
+    describe: A category a title is listed in
+    from:
+      netflix.Genre: {name: key, label: key}
+  Year:
+    key: year
+    describe: A release year
+    from:
+      netflix.Year: {year: key, label: key}
+
+edges:
+  directed_by:
+    from: Title
+    to: Person
+    map: [netflix.directed_by]
+  features:
+    from: Title
+    to: Person
+    map: [netflix.features]
+  made_in:
+    from: Title
+    to: Country
+    map: [netflix.made_in]
+  listed_in:
+    from: Title
+    to: Genre
+    map: [netflix.listed_in]
+  released_in:
+    from: Title
+    to: Year
+    map: [netflix.released_in]

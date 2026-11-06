@@ -1,0 +1,21 @@
+# CSV import settings for the Netflix titles fixture (docs/spec-0.1.md section 11; plan M1.2).
+# mosaic import csv netflix_titles.csv --settings settings.yaml -o netflix.tessera
+type: Title
+key: show_id
+label: title
+summary: description
+props: [type, date_added, release_year, rating, duration]
+convert:
+  date_added: {kind: date, formats: ["%B %d, %Y"]}
+  release_year: {kind: integer}
+  duration:
+    kind: quantity
+    number: duration
+    unit: duration_unit
+    units: {min: minute, Season: season, Seasons: season}
+links:
+  director: {type: Director, edge: directed_by, separator: ","}
+  cast: {type: CastMember, edge: features, separator: ","}
+  country: {type: Country, edge: made_in, separator: ","}
+  listed_in: {type: Genre, edge: listed_in, separator: ","}
+  release_year: {type: Year, edge: released_in}
