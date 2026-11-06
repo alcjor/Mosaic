@@ -1,6 +1,6 @@
 # Work plan
 
-Current milestone: M1
+Current milestone: M2
 
 One file per milestone, `M<n>.md`, written and kept by the agents' pair loop from the
 milestones in `docs/design.md`. See "Work plan" in `CLAUDE.md` for the format and rules.
