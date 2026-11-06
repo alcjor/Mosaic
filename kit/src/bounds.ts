@@ -45,19 +45,29 @@ export class Deadline {
     );
   }
 
+  /** The `limit_exceeded` error of a tool call that ran past the bound. */
+  exceeded(tool: string): ToolError {
+    return new ToolError(
+      "limit_exceeded",
+      `${tool} stopped: it ran past the kit's time bound of ${this.limitMs} ms (section 3.8 step 4)`,
+    );
+  }
+
+  /** Throws, as SQLite would stop, once the bound has passed: for work outside SQLite. */
+  checkpoint(): void {
+    if (performance.now() <= this.until) return;
+    this.stopped = true;
+    throw new Error("deadline passed");
+  }
+
   /** Run `work` under the bound; past it, SQLite stops and a `limit_exceeded` error says so. */
-  run<T>(tool: string, work: () => T): T {
-    this.until = performance.now() + this.limitMs;
+  run<T>(tool: string, work: () => T, startedAt: number = performance.now()): T {
+    this.until = startedAt + this.limitMs;
     this.stopped = false;
     try {
       return work();
     } catch (e) {
-      if (this.stopped) {
-        throw new ToolError(
-          "limit_exceeded",
-          `${tool} stopped: it ran past the kit's time bound of ${this.limitMs} ms (section 3.8 step 4)`,
-        );
-      }
+      if (this.stopped) throw this.exceeded(tool);
       throw e;
     } finally {
       this.until = Number.POSITIVE_INFINITY;

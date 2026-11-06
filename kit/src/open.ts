@@ -30,7 +30,8 @@ import { type CiteAnswer, type ErrorAnswer, type FindAnswer, type GetAnswer, Too
 import { Deadline, TIME_LIMIT_MS } from "./bounds.js";
 import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION, type ToolName } from "./constants.js";
 import { cite } from "./cite.js";
-import { find } from "./find.js";
+import { DIMENSIONS, type QueryEmbedder } from "./embed.js";
+import { find, findArgs, hasWords } from "./find.js";
 import { FORMAT_SQL } from "./format-sql.js";
 import { get } from "./get.js";
 import { UnhashableError, knowledgeHash, vectorHash } from "./hashes.js";
@@ -97,6 +98,12 @@ export interface Header {
 export interface OpenOptions {
   /** The time bound of one tool call, in milliseconds; {@link TIME_LIMIT_MS} by default. */
   readonly timeLimitMs?: number;
+  /**
+   * What embeds queries for `find`'s vector tier ({@link loadEmbedder}). Used only for a mosaic
+   * with vectors whose `embed_model` is the embedder's model; any other file is searched by
+   * names and full text only (section 3.8).
+   */
+  readonly embedder?: QueryEmbedder;
 }
 
 /** A tessera or mosaic that passed the reading rules, open read-only. */
@@ -106,6 +113,11 @@ export interface SealedFile {
   readonly header: Header;
   /** The time bound of one tool call, in milliseconds (section 3.8 step 4). */
   readonly timeLimitMs: number;
+  /**
+   * True when `find` has its vector tier: the file holds vectors, and its `embed_model` is the
+   * model of the embedder it was opened with (sections 3.8 and 6).
+   */
+  readonly vectorSearch: boolean;
   /**
    * `find` (sections 8.1 and 8.5): nodes matching `args.query`, exact matches first, then
    * full-text hits, or an error answer. `args` is taken as untrusted input and checked.
@@ -157,7 +169,7 @@ export async function openFile(bytes: Uint8Array, name: string, options: OpenOpt
   }
   try {
     const header = verify(db, name, expected);
-    return sealedFile(db, name, header, new Deadline(s, db, timeLimitMs));
+    return sealedFile(db, name, header, new Deadline(s, db, timeLimitMs), options.embedder);
   } catch (e) {
     db.close();
     throw refused(name, e);
@@ -451,14 +463,47 @@ function readHeader(db: Database, name: string): Header {
   return Object.freeze({ ...row }) as unknown as Header;
 }
 
-function sealedFile(db: Database, name: string, header: Header, deadline: Deadline): SealedFile {
+/** Why an embedding was not used: the vector tier is left out, as for an unsupported model. */
+class NoVector extends Error {}
+
+/**
+ * The vector of `query`, or a `NoVector` when the embedder fails or gives anything but
+ * {@link DIMENSIONS} finite numbers, or a `limit_exceeded` error once `limitMs` has passed.
+ */
+async function embedded(embedder: QueryEmbedder, query: string, limitMs: number, late: () => ToolError): Promise<Float32Array> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(late()), limitMs);
+  });
+  try {
+    const vector = await Promise.race([
+      embedder.embedQuery(query).then(
+        (v) => v,
+        () => {
+          throw new NoVector();
+        },
+      ),
+      timeout,
+    ]);
+    if (!(vector instanceof Float32Array) || vector.length !== DIMENSIONS || !vector.every(Number.isFinite)) {
+      throw new NoVector();
+    }
+    return Float32Array.from(vector);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function sealedFile(db: Database, name: string, header: Header, deadline: Deadline, embedder?: QueryEmbedder): SealedFile {
   let open = true;
   const mosaic = header.knowledge_hash;
+  const vectorSearch =
+    embedder !== undefined && header.vector_hash !== null && header.embed_model === embedder.model;
   /** Run one tool call under the time bound; a failed call is an error answer. */
-  function answer<T>(tool: ToolName, work: () => T): T | ErrorAnswer {
+  function answer<T>(tool: ToolName, work: () => T, startedAt?: number): T | ErrorAnswer {
     if (!open) throw new Error(`${name} is closed`);
     try {
-      return deadline.run(tool, work);
+      return deadline.run(tool, work, startedAt);
     } catch (e) {
       if (e instanceof ToolError) return errorAnswer(tool, mosaic, e);
       throw e;
@@ -468,7 +513,25 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
     name,
     header,
     timeLimitMs: deadline.limitMs,
-    find: async (args) => answer("find", () => find(db, mosaic, args)),
+    vectorSearch,
+    find: async (args) => {
+      const startedAt = performance.now();
+      if (!vectorSearch) return answer("find", () => find(db, mosaic, args));
+      // Arguments find refuses are refused before the model runs.
+      const checked = answer("find", () => findArgs(db, args));
+      if ("error" in checked) return checked;
+      let vector: Float32Array | undefined;
+      if (hasWords(checked.query)) {
+        try {
+          vector = await embedded(embedder!, checked.query, deadline.limitMs, () => deadline.exceeded("find"));
+        } catch (e) {
+          if (e instanceof ToolError) return errorAnswer("find", mosaic, e);
+          if (!(e instanceof NoVector)) throw e;
+        }
+      }
+      const vq = vector && { vector, checkpoint: () => deadline.checkpoint() };
+      return answer("find", () => find(db, mosaic, args, vq), startedAt);
+    },
     get: async (args) => answer("get", () => get(db, mosaic, args)),
     cite: async (args) => answer("cite", () => cite(db, mosaic, args)),
     close() {
