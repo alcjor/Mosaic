@@ -13,7 +13,8 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   have one target, such as the ``default`` of a pattern without ``mosaics`` (section 5.4). The
   available pieces (section 5.1) are the SQLite files directly in ``--pieces DIR`` and the files
   the pieces' own ``path`` names; ``proposals.yaml`` beside the pattern is the build's proposals
-  file (section 5). The report's path is printed, also when the build fails.
+  file (section 5). The report's path is printed, also when the build fails. The report in
+  ``DIR`` is that of the last build there; build each target into its own ``DIR`` to keep both.
 - ``mosaic check <file> [--pieces DIR]`` checks a tessera or mosaic (an SQLite file) by section
   3.9, or else a pattern, with ``proposals.yaml`` beside it, by sections 5 and 5.6. It prints
   one line per violation, or ``<file>: ok``, and lists on standard error the rules it could not
@@ -260,6 +261,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     except _Usage as e:
         _error(args.command, e)
         return 2
+    except OSError as e:  # an input that cannot be read; the message names the file
+        _error(args.command, e)
+        return 1
 
 
 if __name__ == "__main__":

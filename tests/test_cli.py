@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sysconfig
 from pathlib import Path
+from typing import Any
 
 import pytest
 from mosaic_build.cli import main
@@ -474,6 +475,29 @@ def test_check_every_invalid_file_fails_on_its_rules(
 def test_check_a_missing_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["check", str(tmp_path / "nothing.tessera")]) == 1
     assert "nothing.tessera" in capsys.readouterr().err
+
+
+def test_an_unreadable_input_is_named_not_a_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A file that cannot be opened exits 1 with a message naming it."""
+    locked = tmp_path / "locked.tessera"
+    locked.write_bytes(b"SQLite format 3\x00")
+    real_open = Path.open
+
+    def refuse(self: Path, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
+        if self.name == "locked.tessera":
+            raise PermissionError(13, "Permission denied", str(self))
+        return real_open(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", refuse)
+    assert main(["check", str(locked)]) == 1
+    assert str(locked) in capsys.readouterr().err
+    pattern = write_pattern(tmp_path, "ab" * 32)
+    assert main(["check", str(pattern), "--pieces", str(tmp_path)]) == 1
+    assert str(locked) in capsys.readouterr().err
+    assert main(["build", str(pattern), "--pieces", str(tmp_path), "-o", str(tmp_path / "o")]) == 1
+    assert str(locked) in capsys.readouterr().err
 
 
 # --- the command itself -----------------------------------------------------------------------
