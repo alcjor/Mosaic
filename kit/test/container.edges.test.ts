@@ -5,6 +5,7 @@
 // headers whose values have the wrong storage type (3.3). Files are made here with SQLite
 // WebAssembly from the conformance files, so each differs from a valid file in one thing.
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -56,6 +57,19 @@ const addStat4 = (): string[] => [
   "PRAGMA writable_schema = 0",
 ];
 
+/**
+ * The knowledge hash of a tessera holding nothing but its header (section 3.6): every part is
+ * its heading alone, the header part its one row. Since M2.2 the kit checks it on open.
+ */
+const EMPTY_TESSERA_HASH = createHash("sha256")
+  .update(
+    "#header\n'0.1','tessera'\n" +
+      ["source", "type", "node", "edge", "alias", "evidence", "snippet", "mention", "source_text", "external_ref"]
+        .map((part) => `#${part}\n`)
+        .join(""),
+  )
+  .digest("hex");
+
 /** A file built from `spec/format.sql` as it is (UTF-8), with a header row. */
 async function fromFormatSql(): Promise<Uint8Array> {
   const sqlite3 = await sqlite3InitModule();
@@ -64,7 +78,7 @@ async function fromFormatSql(): Promise<Uint8Array> {
     db.exec(readFileSync(repo("spec/format.sql"), "utf8"));
     db.exec(
       `INSERT INTO header (one, format_version, kind, producer, knowledge_hash)
-       VALUES (1, '0.1', 'tessera', 'tool/1', '${"0".repeat(64)}')`,
+       VALUES (1, '0.1', 'tessera', 'tool/1', '${EMPTY_TESSERA_HASH}')`,
     );
     return new Uint8Array(sqlite3.capi.sqlite3_js_db_export(db.pointer!));
   } finally {

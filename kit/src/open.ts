@@ -13,17 +13,22 @@
  *    row of a known kind (step 2). The version is read before the schema is compared whenever
  *    `header` is a plain table with a stored `format_version` column, so a newer minor version
  *    that adds a column to `header` is refused for its version, not its schema.
+ * 3. The knowledge hash (section 3.6) and, if the file holds vectors, the vector hash (section
+ *    3.7) are recomputed and equal the header's (step 3). A file whose vectors the header does
+ *    not name, or whose header names vectors it does not hold, is a vector hash mismatch.
  *
  * Anything else is refused with {@link FileRefusedError}, naming the file and what failed.
  * The same files open or are refused for the same rule as in the Python reader:
  * `conformance/reading/` holds the cases both read.
  *
- * Every value in the file is untrusted data (step 4, section 10). Opening reads the schema and
- * at most two header rows, however many the file holds; the tools bound their own queries.
+ * Every value in the file is untrusted data (step 4, section 10). Opening reads the schema, at
+ * most two header rows however many the file holds, and each hashed row once, in a time that
+ * grows with the file's size alone; the tools bound their own queries.
  */
 import sqlite3InitModule, { type Database, type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION } from "./constants.js";
 import { FORMAT_SQL } from "./format-sql.js";
+import { UnhashableError, knowledgeHash, vectorHash } from "./hashes.js";
 
 /** Format versions this kit implements (section 9). */
 export const IMPLEMENTED_VERSIONS: readonly string[] = [FORMAT_VERSION];
@@ -46,6 +51,8 @@ export const REFUSAL_RULES = [
   "format_version",
   "schema",
   "header",
+  "knowledge_hash",
+  "vector_hash",
 ] as const;
 
 export type RefusalRule = (typeof REFUSAL_RULES)[number];
@@ -222,7 +229,48 @@ function verify(db: Database, name: string, expected: Schema): Header {
   }
   checkVersion(db, name);
   checkSchema(db, name, expected);
-  return readHeader(db, name);
+  const header = readHeader(db, name);
+  checkHashes(db, name, header);
+  return header;
+}
+
+/** A header value as the messages show it. */
+function shown(value: string | null): string {
+  return value === null ? "null" : `'${value}'`;
+}
+
+/** Recompute both hashes and compare them with the header's (section 3.8 step 3). */
+function checkHashes(db: Database, name: string, header: Header): void {
+  const knowledge = hashed(name, "knowledge_hash", "3.6", () => knowledgeHash(db));
+  if (knowledge !== header.knowledge_hash) {
+    throw new FileRefusedError(
+      name,
+      "knowledge_hash",
+      `knowledge hash mismatch: the header says ${shown(header.knowledge_hash)}, ` +
+        `the content gives ${shown(knowledge)} (section 3.6)`,
+    );
+  }
+  const vectors = hashed(name, "vector_hash", "3.7", () => vectorHash(db));
+  if (vectors !== header.vector_hash) {
+    throw new FileRefusedError(
+      name,
+      "vector_hash",
+      `vector hash mismatch: the header says ${shown(header.vector_hash)}, ` +
+        `the vectors give ${shown(vectors)} (section 3.7)`,
+    );
+  }
+}
+
+/** `compute()`, with a value the hash cannot take refused for `rule`. */
+function hashed<T>(name: string, rule: RefusalRule, section: string, compute: () => T): T {
+  try {
+    return compute();
+  } catch (e) {
+    if (e instanceof UnhashableError) {
+      throw new FileRefusedError(name, rule, `${e.message} (section ${section})`);
+    }
+    throw e;
+  }
 }
 
 function implemented(): string {

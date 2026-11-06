@@ -408,6 +408,8 @@ describe("the error names the file and what failed (3.8 step 2, M2.1)", () => {
       format_version: "format-version.mosaic",
       schema: "schema-extra-table.mosaic",
       header: "no-header.mosaic",
+      knowledge_hash: "node-changed.mosaic",
+      vector_hash: "vector-changed.mosaic",
     };
     const messages = new Set<string>();
     for (const rule of REFUSAL_RULES) {
@@ -433,7 +435,17 @@ describe("the error names the file and what failed (3.8 step 2, M2.1)", () => {
   it("has one distinct rule name per refusal rule", () => {
     expect(new Set(REFUSAL_RULES).size).toBe(REFUSAL_RULES.length);
     expect([...REFUSAL_RULES].sort()).toEqual(
-      ["application_id", "encoding", "format_version", "header", "schema", "sqlite", "user_version"].sort(),
+      [
+        "application_id",
+        "encoding",
+        "format_version",
+        "header",
+        "knowledge_hash",
+        "schema",
+        "sqlite",
+        "user_version",
+        "vector_hash",
+      ].sort(),
     );
   });
 });

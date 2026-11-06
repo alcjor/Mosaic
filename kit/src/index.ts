@@ -16,3 +16,5 @@ export {
   type RefusalRule,
   type SealedFile,
 } from "./open.js";
+
+export { PARTS, VECTOR_BYTES, encodeKnowledge, knowledgeHash, vectorHash } from "./hashes.js";
