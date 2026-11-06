@@ -230,6 +230,38 @@ def test_a_wrong_link_setting_names_the_file_the_line_and_the_setting(
     assert "links.makers" in message and words in message
 
 
+MAKERS = "  makers: {type: Maker, edge: made_by}\n"
+SAME_TYPE = MAKERS + "  shelf:\n    edge: holds\n    type: Maker\n"
+SAME_EDGE = MAKERS + "  shelf:\n    type: Shelf\n    edge: made_by\n"
+
+
+@pytest.mark.parametrize(
+    ("links", "line", "words"),
+    [
+        ("  makers: {type: Book, edge: made_by}\n", 4, "'Book' is already the type of the rows"),
+        (
+            SAME_TYPE,
+            7,
+            "links.shelf: type 'Maker' is already the type of links.makers",
+        ),
+        (
+            SAME_EDGE,
+            7,
+            "links.shelf: edge 'made_by' is already the edge of links.makers",
+        ),
+    ],
+)
+def test_colliding_links_in_a_settings_file_name_the_file_the_line_and_the_setting(
+    tmp_path: Path, links: str, line: int, words: str
+) -> None:
+    path = tmp_path / "settings.yaml"
+    path.write_text(f"type: Book\nkey: code\nlinks:\n{links}", encoding="utf-8")
+    with pytest.raises(ValueError) as e:
+        read(path)
+    assert str(e.value).startswith(f"{path}:{line}: settings: ")
+    assert words in str(e.value)
+
+
 @pytest.mark.parametrize(
     ("links", "words"),
     [

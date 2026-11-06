@@ -186,7 +186,13 @@ def read(path: str | os.PathLike[str]) -> Settings:
     doc = load(text, str(file))  # YamlError names the file and line
     try:
         settings = from_json(doc.data)
-        check_settings(settings)
+        try:
+            check_settings(settings)
+        except LinkError as e:
+            if e.column is None:
+                raise
+            where = ("links", e.column) if e.field is None else ("links", e.column, e.field)
+            raise SettingsError(where, str(e).removeprefix("settings: ")) from None
     except SettingsError as e:
         line = doc.line(e.where)
         at = str(file) if line is None else f"{file}:{line}"

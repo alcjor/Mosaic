@@ -112,12 +112,13 @@ DIRECTIONS = ("out", "in")
 
 
 class LinkError(ValueError):
-    """A link setting the builder refuses; ``field`` names the link's field at fault, or None
-    for the link as a whole."""
+    """A link setting the builder refuses: ``column`` names the link, ``field`` its field at
+    fault, or None for the link as a whole."""
 
-    def __init__(self, message: str, field: str | None = None) -> None:
+    def __init__(self, message: str, field: str | None = None, column: str | None = None) -> None:
         super().__init__(message)
         self.field = field
+        self.column = column
 
 
 @dataclass(frozen=True)
@@ -142,12 +143,7 @@ class Link:
     def values(self, cell: str) -> list[str]:
         """The cell's distinct values, trimmed, in the order written; empty ones dropped."""
         parts = [cell] if self.separator is None else cell.split(self.separator)
-        values: list[str] = []
-        for part in parts:
-            value = trim(part)
-            if value and value not in values:
-                values.append(value)
-        return values
+        return [v for v in dict.fromkeys(trim(part) for part in parts) if v]
 
 
 @dataclass(frozen=True)
@@ -379,14 +375,18 @@ def check_links(settings: Settings) -> None:
         check_link(column, link)
         at = f"settings: links.{column}"
         if link.type in node_types:
-            raise ValueError(
+            raise LinkError(
                 f"{at}: type {link.type!r} is already the type of {node_types[link.type]}; "
-                f"each link has its own type"
+                f"each link has its own type",
+                "type",
+                column,
             )
         if link.edge in edge_types:
-            raise ValueError(
+            raise LinkError(
                 f"{at}: edge {link.edge!r} is already the edge of {edge_types[link.edge]}; "
-                f"each link has its own edge type"
+                f"each link has its own edge type",
+                "edge",
+                column,
             )
         node_types[link.type] = f"links.{column}"
         edge_types[link.edge] = f"links.{column}"
