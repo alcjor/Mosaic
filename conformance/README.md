@@ -13,5 +13,5 @@ the two languages meet.
 
 **Expected values are the contract.** Files named `expected*` and the manifest are
 listed in `.github/CODEOWNERS`. An agent never edits them to
-make a test pass; if an expected value looks wrong, it opens an issue labelled
-`needs-decision`.
+make a test pass; if an expected value looks wrong, it escalates the slice
+(`needs-decision`, see the work plan in `CLAUDE.md`).
