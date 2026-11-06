@@ -107,6 +107,18 @@ def _entries(pattern: Mapping[str, Any]) -> list[tuple[str, str, str | None, str
     return entries
 
 
+def piece_paths(pattern_path: Path, pattern: Mapping[str, Any]) -> list[Path]:
+    """The files that the pieces' own ``path`` names, relative to the pattern file, that exist.
+
+    ``pattern`` is the pattern's data, valid against its schema (section 5.1).
+    """
+    return [
+        pattern_path.parent / path
+        for _, _, _, path in _entries(pattern)
+        if path is not None and (pattern_path.parent / path).is_file()
+    ]
+
+
 def _open_all(paths: Sequence[Path]) -> list[SealedFile]:
     """Open every available file once, by the reading rules; a refusal stops the build."""
     opened: list[SealedFile] = []
@@ -184,10 +196,7 @@ def check(
     ):
         built_from = previous_path
 
-    available = list(given)
-    for _, _, _, path in entries:
-        if path is not None and (pattern_path.parent / path).is_file():
-            available.append(pattern_path.parent / path)
+    available = [*given, *piece_paths(pattern_path, data)]
 
     files = _open_all(available)
     chosen: dict[Path, SealedFile] = {}

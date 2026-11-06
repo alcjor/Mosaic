@@ -66,6 +66,7 @@ __all__ = [
     "Report",
     "Settings",
     "build",
+    "check_settings",
     "content",
     "read",
 ]
@@ -158,7 +159,7 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
     """The tessera's content for the CSV file ``source`` and the builder's report on it."""
     path = Path(source)
     name = path.name
-    _check_settings(settings)
+    check_settings(settings)
     if ";" in name:
         raise ValueError(
             f"{name!r}: a file name with ';' cannot be a locator value (section 3.5); rename it"
@@ -251,7 +252,8 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
     return made, report
 
 
-def _check_settings(settings: Settings) -> None:
+def check_settings(settings: Settings) -> None:
+    """Refuse settings that cannot make a tessera, naming the setting at fault."""
     if NODE_TYPE.fullmatch(settings.type) is None:
         raise ValueError(
             f"settings: type {settings.type!r} is not a node type name ^[A-Z][A-Za-z0-9]*$ (3.4)"
