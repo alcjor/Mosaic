@@ -486,6 +486,22 @@ def _rank(content: Content) -> _Ranked:
     )
 
 
+def node_snippets(content: Content) -> dict[str, list[str]]:
+    """Each node's own snippets in ``evid`` order (section 3.6), as ``search`` holds them.
+
+    The order is the one :func:`seal` gives the evidence of ``content``, so a builder can read
+    it before sealing, such as for the node text of section 6. A node without snippets has no
+    entry. Content :func:`seal` would refuse is refused with the same error.
+    """
+    _refuse_nul(content)
+    ranked = _rank(_canonical_json(content))
+    found: dict[str, list[str]] = {}
+    for nid, _, _, ev in ranked.evidence:
+        if nid is not None and ev.snippet is not None:
+            found.setdefault(ranked.nodes[nid - 1].id, []).append(ev.snippet)
+    return found
+
+
 def _insert(con: sqlite3.Connection, table: str, row: tuple[object, ...], where: str) -> None:
     marks = ", ".join("?" * len(row))
     try:

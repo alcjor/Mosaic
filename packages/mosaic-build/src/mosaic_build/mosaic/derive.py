@@ -17,8 +17,8 @@ and ``to`` are both in scope, whether or not it has rows:
   that type hold that no piece declares is ``json``. An edge type made by mentions or proposals
   declares ``{}``.
 
-Link counts and the full-text index are derived by the sealed writer. Vectors (section 6) come
-in M2: until then a target with ``vectors: true`` is built without them (decision Q5 on #16).
+Link counts and the full-text index are derived by the sealed writer; vectors (section 6), when
+the target has them on, by :func:`mosaic_build.mosaic.vectors.node_vectors` in the build.
 """
 
 import json

@@ -13,6 +13,7 @@ from typing import Any
 import mosaic_build
 import pytest
 from mosaic_build.mosaic import BuildError, Built, budget_bytes, build
+from mosaic_build.mosaic.vectors import EMBED_MODEL
 from mosaic_format.check import check_file
 from mosaic_format.file import SIDECARS
 from mosaic_format.reader import open as open_sealed
@@ -30,6 +31,7 @@ from mosaic_format.writer import (
 )
 
 from tests.mosaic.pieces import (
+    StubModel,
     edge_proposal,
     evidence,
     mosaic,
@@ -77,6 +79,7 @@ def make(
         target,
         tmp_path / out,
         pieces=paths,
+        model=StubModel(),
         proposals=proposals_path,
     )
 
@@ -553,6 +556,7 @@ def test_primary_tie_breaks_by_source_before_locator(tmp_path: Path) -> None:
         "default",
         tmp_path / "out.mosaic",
         pieces=[path],
+        model=StubModel(),
     )
     assert node_evidence(built, "Thing:A") == [(None, "two/p/a.csv", "row=9", "extracted", None)]
 
@@ -662,16 +666,16 @@ def test_sources_stay_whole_when_nothing_cites_them(tmp_path: Path) -> None:
     ]
 
 
-# --- vectors (Q5) -----------------------------------------------------------------------------
+# --- vectors (section 6; tests/mosaic/test_build_vectors.py has the rest) ----------------------
 
 
-def test_vectors_true_is_skipped_with_a_message(tmp_path: Path) -> None:
+def test_vectors_true_builds_vectors_with_no_message(tmp_path: Path) -> None:
     built = make(tmp_path, [sensors("A")], SENSOR)
-    assert built.messages == ("vectors skipped, not yet implemented",)
+    assert built.messages == ()
     h = header(built)
-    assert (h["vector_hash"], h["embed_model"]) == (None, None)
-    assert built.vector_hash is None
-    assert query(built, "SELECT count(*) FROM vector") == [(0,)]
+    assert h["embed_model"] == EMBED_MODEL
+    assert h["vector_hash"] == built.vector_hash is not None
+    assert query(built, "SELECT count(*) FROM vector") == [(1,)]
 
 
 def test_vectors_false_has_no_message(tmp_path: Path) -> None:
@@ -904,6 +908,7 @@ def test_evidence_through_a_mosaic_piece_has_via_and_passes_check_file(tmp_path:
         "default",
         outer / "out.mosaic",
         pieces=[first.path],
+        model=StubModel(),
     )
     assert query(built, "SELECT via FROM evidence") == [(json.dumps([first.knowledge_hash]),)]
     report = check_file(built.path, pieces=[first.path])

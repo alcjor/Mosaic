@@ -27,7 +27,7 @@ from jsonschema.protocols import Validator
 from mosaic_format.reader import Limits, SealedFile
 from mosaic_format.reader import open as open_sealed
 
-from tests.conftest import REPO, SPEC
+from tests.conftest import MODEL, REPO, SPEC
 from tests.test_cli import entry_point
 
 FIXTURE = REPO / "conformance" / "fixtures" / "netflix"
@@ -59,6 +59,8 @@ pytestmark = pytest.mark.slow
 def _run(
     *args: str | Path, cwd: Path, env: dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
+    if args and args[0] == "build":  # the pattern's targets have vectors on (plan M2.7)
+        args = ("build", "--model", MODEL, *args[1:])
     return subprocess.run(
         [str(entry_point()), *(str(a) for a in args)],
         cwd=cwd,
@@ -133,6 +135,14 @@ def fetched() -> None:
         check=False,
     )
     assert "ok   netflix-titles" in done.stdout, done.stdout + done.stderr
+    model = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "fetch_model.py"), "--dest", str(MODEL)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert model.returncode == 0, model.stdout + model.stderr
 
 
 @pytest.fixture(scope="module")

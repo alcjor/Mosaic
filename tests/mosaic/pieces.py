@@ -1,5 +1,6 @@
 """Seal small invented pieces for the mosaic builder's tests, and write patterns beside them."""
 
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -226,3 +227,25 @@ def edge_proposal(
     if decision != "open":
         p["decided_by"] = "ana"
     return p
+
+
+class StubModel:
+    """Stands in for the model of section 6 in fast tests, which have no model files.
+
+    ``bits`` gives 48 bytes from the SHA-256 of the text, so equal texts give equal bits and
+    the tests can tell which text each node was embedded from; ``texts`` lists every text
+    embedded, in order.
+    """
+
+    def __init__(self) -> None:
+        self.texts: list[str] = []
+
+    def bits(self, text: str) -> bytes:
+        self.texts.append(text)
+        return stub_bits(text)
+
+
+def stub_bits(text: str) -> bytes:
+    """The 48 bytes :class:`StubModel` gives for ``text``."""
+    raw = text.encode("utf-8")
+    return (hashlib.sha256(raw).digest() + hashlib.sha256(b"\x00" + raw).digest())[:48]
