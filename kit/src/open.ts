@@ -26,7 +26,10 @@
  * grows with the file's size alone; the tools bound their own queries.
  */
 import sqlite3InitModule, { type Database, type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION } from "./constants.js";
+import { type FindAnswer, type ErrorAnswer, ToolError, errorAnswer } from "./answers.js";
+import { Deadline, TIME_LIMIT_MS } from "./bounds.js";
+import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION, type ToolName } from "./constants.js";
+import { find } from "./find.js";
 import { FORMAT_SQL } from "./format-sql.js";
 import { UnhashableError, knowledgeHash, vectorHash } from "./hashes.js";
 
@@ -88,11 +91,24 @@ export interface Header {
   readonly ai_model: string | null;
 }
 
+/** How a file is opened. */
+export interface OpenOptions {
+  /** The time bound of one tool call, in milliseconds; {@link TIME_LIMIT_MS} by default. */
+  readonly timeLimitMs?: number;
+}
+
 /** A tessera or mosaic that passed the reading rules, open read-only. */
 export interface SealedFile {
   /** The name it was opened under. */
   readonly name: string;
   readonly header: Header;
+  /** The time bound of one tool call, in milliseconds (section 3.8 step 4). */
+  readonly timeLimitMs: number;
+  /**
+   * `find` (sections 8.1 and 8.5): nodes matching `args.query`, exact matches first, then
+   * full-text hits, or an error answer. `args` is taken as untrusted input and checked.
+   */
+  find(args: unknown): Promise<FindAnswer | ErrorAnswer>;
   /** Free the file's memory. Closing twice is harmless. */
   close(): void;
 }
@@ -115,7 +131,11 @@ function sqlite(): Promise<Sqlite3Static> {
  * Open `bytes`, a tessera or mosaic named `name`, by the reading rules of section 3.8, or
  * refuse it with a {@link FileRefusedError} naming the file and what failed.
  */
-export async function openFile(bytes: Uint8Array, name: string): Promise<SealedFile> {
+export async function openFile(bytes: Uint8Array, name: string, options: OpenOptions = {}): Promise<SealedFile> {
+  const timeLimitMs = options.timeLimitMs ?? TIME_LIMIT_MS;
+  if (!(Number.isFinite(timeLimitMs) && timeLimitMs > 0)) {
+    throw new RangeError(`timeLimitMs must be a positive number of milliseconds, not ${timeLimitMs}`);
+  }
   const [s, expected] = await Promise.all([sqlite(), referenceSchema()]);
   let db: Database;
   try {
@@ -125,7 +145,7 @@ export async function openFile(bytes: Uint8Array, name: string): Promise<SealedF
   }
   try {
     const header = verify(db, name, expected);
-    return sealedFile(db, name, header);
+    return sealedFile(db, name, header, new Deadline(s, db, timeLimitMs));
   } catch (e) {
     db.close();
     throw refused(name, e);
@@ -419,11 +439,24 @@ function readHeader(db: Database, name: string): Header {
   return Object.freeze({ ...row }) as unknown as Header;
 }
 
-function sealedFile(db: Database, name: string, header: Header): SealedFile {
+function sealedFile(db: Database, name: string, header: Header, deadline: Deadline): SealedFile {
   let open = true;
+  const mosaic = header.knowledge_hash;
+  /** Run one tool call under the time bound; a failed call is an error answer. */
+  function answer<T>(tool: ToolName, work: () => T): T | ErrorAnswer {
+    if (!open) throw new Error(`${name} is closed`);
+    try {
+      return deadline.run(tool, work);
+    } catch (e) {
+      if (e instanceof ToolError) return errorAnswer(tool, mosaic, e);
+      throw e;
+    }
+  }
   return {
     name,
     header,
+    timeLimitMs: deadline.limitMs,
+    find: async (args) => answer("find", () => find(db, mosaic, args)),
     close() {
       if (open) db.close();
       open = false;
