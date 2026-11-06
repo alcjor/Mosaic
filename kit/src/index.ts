@@ -43,3 +43,21 @@ export { type GetArgs } from "./get.js";
 export { type CiteArgs } from "./cite.js";
 
 export { ID_LIMIT } from "./lookup.js";
+
+export {
+  DIMENSIONS,
+  EMBED_MODEL,
+  MAX_TOKENS,
+  MODEL,
+  ModelFileError,
+  QUERY_PREFIX,
+  loadEmbedder,
+  pool,
+  queryText,
+  type ModelFiles,
+  type QueryEmbedder,
+} from "./embed.js";
+
+export { score } from "./vectors.js";
+
+export { TokenizerError, WordPiece, normalise, words } from "./wordpiece.js";

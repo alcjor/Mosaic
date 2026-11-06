@@ -6,7 +6,7 @@
 // one the content gives, so every file opens (section 3.8 step 3).
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import { FORMAT_SQL } from "../src/format-sql.js";
-import { knowledgeHash } from "../src/index.js";
+import { EMBED_MODEL, knowledgeHash, vectorHash } from "../src/index.js";
 
 const sqlite3 = await sqlite3InitModule();
 
@@ -73,6 +73,10 @@ export interface MosaicSpec {
   edges?: EdgeSpec[];
   /** Sources beyond `doc` (hash `a…a`), which is always there. */
   sources?: SourceSpec[];
+  /** Stored vectors (48 bytes) by node id: every node needs one when given (section 3.7). */
+  vectors?: Record<string, Uint8Array>;
+  /** The header's `embed_model` when the file holds vectors; the kit's model by default. */
+  embedModel?: string;
 }
 
 const encoder = new TextEncoder();
@@ -259,6 +263,17 @@ export function buildMosaic(spec: MosaicSpec): Uint8Array {
           bind: [i + 1, r.nid, r.system, r.kind, r.locator, r.sid],
         });
       });
+    if (spec.vectors) {
+      nodes.forEach((n, i) => {
+        const bits = spec.vectors![n.id];
+        if (!bits) throw new Error(`no vector for ${n.id}`);
+        db.exec({ sql: "INSERT INTO vector (nid, bits) VALUES (?, ?)", bind: [i + 1, bits] });
+      });
+      db.exec({
+        sql: "UPDATE header SET vector_hash = ?, embed_model = ?",
+        bind: [vectorHash(db), spec.embedModel ?? EMBED_MODEL],
+      });
+    }
     db.exec({ sql: "UPDATE header SET knowledge_hash = ?", bind: [knowledgeHash(db)] });
     return sqlite3.capi.sqlite3_js_db_export(db);
   } finally {
