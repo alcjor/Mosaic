@@ -375,6 +375,17 @@ def _failed_report(reason: str) -> dict[str, Any]:
 
 @pytest.mark.parametrize("reason", ["invalid_input", "piece_mismatch", "strict", "over_budget"])
 def test_failed_reports_as_section_7_3_describes_them_validate(reason: str) -> None:
-    """Decision Q2 on #17: what a failed build's report holds fits build-report.schema.json."""
+    """Decision Q2 on #17: a schema-fit check that each failed report §7.3 describes is a valid
+    report. Whether a builder writes these reports is #17's own tests' job."""
     report = _failed_report(reason)
     assert list(_validator("build-report").iter_errors(report)) == []
+
+
+def test_the_schema_refuses_what_section_7_2_and_7_3_rule_out() -> None:
+    """A weak-ids entry with count 0 is not listed (§7.2, #17 Q1); a built report has hashes."""
+    weak = _load("build-report.json")
+    weak["weak_ids"] = [{"type": "Section", "count": 0}]
+    assert not _validator("build-report").is_valid(weak)
+    built = _load("build-report.json")
+    built["knowledge_hash"] = None
+    assert not _validator("build-report").is_valid(built)

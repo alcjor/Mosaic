@@ -251,7 +251,7 @@ Each entry is one target. Defaults apply to omitted fields.
 | `vectors` | `true`, `false` | `true` | Whether the vector layer is built |
 | `evidence` | `primary`, `all` | `primary` | One evidence row per fact (the highest-priority piece) or every row |
 | `budget` | Size such as `20 MB` | none | The build fails when the mosaic is larger |
-| `strict` | `true, false` | `false` | The build fails on any conflict or unmatched mention, and label and summary clashes are reported |
+| `strict` | `true, false` | `false` | The build fails on any conflict, alias conflict or unmatched mention, and label and summary clashes are reported |
 
 A pattern without `mosaics` has one target, named `default`, with every default above; building a target the pattern does not define fails with `invalid_input`. A `budget` is in decimal units (1 KB = 1,000 bytes, so `20 MB` is 20,000,000 bytes), rounded down to whole bytes, and is compared with the size of the sealed file. Under `evidence: primary`, a fact is one subject (node or edge) and one `prop`, a row without `prop` being a fact of its own. Its primary row comes from the highest-priority piece: piece order, where a mention edge's row has the priority of the piece holding the mention and `proposals.yaml` comes after every piece; among that piece's rows, the first in canonical order (section 3.6) wins.
 
@@ -321,7 +321,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 | Hashes and size | Knowledge hash, vector hash, file size, node and edge counts per type: every type the mosaic declares (section 7.1 step 7), 0 when it has no rows |
 | Conflicts | Node or edge, property, winning value and piece, losing values and pieces; clashes on label and summary only when the target is strict |
 | Alias conflicts | Node, kept alias spelling and its piece, lost spellings and their pieces (`proposals.yaml` for a proposal); only aliases equal under `NOCASE` but spelled differently (section 7.1 step 3) |
-| Stale references | Names that resolve to nothing, with the piece and locator that use them; no new-key hint in 0.1. In 0.1 these are the unmatched mentions (section 5.3), one entry per mention and edge rule, with the rule's `to` type; like mentions, only for what the mosaic holds |
+| Stale references | Names that resolve to nothing, with the piece and locator that use them; no new-key hint in 0.1. In 0.1 these are the unmatched mentions (section 5.3), one entry per mention and edge rule, with the rule's `to` type; the same unmatched mentions as in Mentions |
 | Mentions | Unmatched and ambiguous mentions, by role, with locator; only of rules whose edge type the target declares, and not of mentions whose containing node step 6 drops |
 | Weak ids | Types whose keys came from position rather than a natural key: a piece node is weak-keyed when its key comes from the piece node's `key` and its piece type's `key_prop` is NULL. `count` is the mosaic's nodes of the type, after step 6, that a weak-keyed piece node maps to; a type with none is not listed |
 | Proposals | Outdated proposals, and accepted proposals that no longer apply |
@@ -357,7 +357,7 @@ Every build writes `build-report.json` beside the mosaic, also when it fails. It
 }
 ```
 
-`outcome` is `built` or `failed`; `reason` is NULL when built, otherwise one of `invalid_input`, `piece_mismatch`, `over_budget`, `strict`. A mention's `status` is `unmatched` or `ambiguous`, with the matching node ids in `candidates` when ambiguous. A proposal's `status` is `outdated` or `no_longer_applies`. A conflict names a `node` by its id or an `edge` by its `type`, `from` and `to` ids and `qualifier`. Lists are sorted (conflicts on nodes first, by node and property, then conflicts on edges, by `from`, `type`, `to`, `qualifier` and property; alias conflicts by node and winning spelling, stale references and mentions by piece and locator, weak ids by type, proposals with the outdated ones first and each group in the order of the proposals file, notices by piece and then text, and each entry's `losers` in build order) so the same build gives the same report.
+`outcome` is `built` or `failed`; `reason` is NULL when built, otherwise one of `invalid_input`, `piece_mismatch`, `over_budget`, `strict`. A mention's `status` is `unmatched` or `ambiguous`, with the matching node ids in `candidates` when ambiguous. A proposal's `status` is `outdated` or `no_longer_applies`. A conflict names a `node` by its id or an `edge` by its `type`, `from` and `to` ids and `qualifier`. Lists are sorted (conflicts on nodes first, by node and property, then conflicts on edges, by `from`, `type`, `to`, `qualifier` and property; alias conflicts by node and winning spelling, stale references by piece, locator, `type` and name, mentions by piece, locator, role, text, status and then candidates, every text by its UTF-8 bytes, weak ids by type, proposals with the outdated ones first and each group in the order of the proposals file, notices by piece and then text, and each entry's `losers` in build order) so the same build gives the same report.
 
 ### 8. Kit interface
 
