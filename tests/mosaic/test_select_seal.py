@@ -151,6 +151,14 @@ def test_no_mosaics_is_one_target_named_default_with_every_default(tmp_path: Pat
     assert built.target == "default"
 
 
+def test_an_empty_mosaics_is_one_target_named_default_too(tmp_path: Path) -> None:
+    """Section 5.4: a pattern with no targets, `mosaics` absent or `{}`, gets `default`."""
+    built = make(tmp_path, [sensors("A")], SENSOR, mosaics={})
+    h = header(built)
+    assert h["target"] == "default"
+    assert json.loads(h["settings"]) == DEFAULTS
+
+
 def test_undefined_target_fails_with_invalid_input(tmp_path: Path) -> None:
     with pytest.raises(BuildError) as e:
         make(tmp_path, [sensors("A")], SENSOR, target="ops")
