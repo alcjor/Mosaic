@@ -9,8 +9,11 @@ natively, with this exact model file, pinned by its SHA-256; kits only embed que
 - :func:`pool`: the first token's output divided by its Euclidean norm.
 - :func:`to_bits`: the 48 stored bytes, bit i set when dimension i is greater than 0, most
   significant bit of byte 0 first (section 3.7).
+- :class:`Embedder`: runs the model natively with ONNX Runtime, on text truncated at 256 tokens
+  by the pinned tokenizer.
 
-The builder reads the model files from disk and never fetches them (it uses no network).
+The builder reads the model files from a directory and never fetches them (it uses no network);
+``scripts/fetch_model.py`` fills that directory.
 """
 
 import hashlib
@@ -18,6 +21,10 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from tokenizers import Tokenizer
 
 
 @dataclass(frozen=True)
@@ -154,3 +161,56 @@ def to_bits(vector: Sequence[float]) -> bytes:
         if x > 0:
             out[i // 8] |= 0x80 >> (i % 8)
     return bytes(out)
+
+
+def load_tokenizer(path: Path) -> Tokenizer:
+    """The tokenizer in ``path``, truncating at 256 tokens (its special tokens included), with
+    no padding: each text is embedded on its own."""
+    from tokenizers import Tokenizer
+
+    tokenizer = Tokenizer.from_file(str(path))
+    tokenizer.enable_truncation(MAX_TOKENS)
+    tokenizer.no_padding()
+    return tokenizer
+
+
+class Embedder:
+    """The model of section 6, run natively from ``model_dir``, whose files must be the pinned
+    ones (:func:`check_file`).
+
+    Each text is embedded on its own, with no padding, so its vector does not depend on which
+    other texts are embedded with it.
+    """
+
+    def __init__(self, model_dir: Path) -> None:
+        import onnxruntime
+
+        model_file = check_file(model_dir / MODEL.model_file.path, MODEL.model_file)
+        tokenizer_file = check_file(model_dir / MODEL.tokenizer.path, MODEL.tokenizer)
+        self.tokenizer = load_tokenizer(tokenizer_file)
+        options = onnxruntime.SessionOptions()
+        options.log_severity_level = 3
+        self._session: Any = onnxruntime.InferenceSession(
+            str(model_file), options, providers=["CPUExecutionProvider"]
+        )
+
+    def embed(self, text: str) -> list[float]:
+        """The normalised embedding of ``text`` (section 6)."""
+        import numpy as np
+
+        encoding = self.tokenizer.encode(text)
+        inputs = {
+            "input_ids": np.array([encoding.ids], dtype=np.int64),
+            "attention_mask": np.array([encoding.attention_mask], dtype=np.int64),
+            "token_type_ids": np.array([encoding.type_ids], dtype=np.int64),
+        }
+        (hidden,) = self._session.run(["last_hidden_state"], inputs)
+        return pool(hidden[0].tolist())
+
+    def bits(self, text: str) -> bytes:
+        """The 48 stored bytes of ``text``, a node text (sections 3.7 and 6)."""
+        return to_bits(self.embed(text))
+
+    def query(self, query: str) -> list[float]:
+        """The normalised embedding of a query, with the prefix of section 6."""
+        return self.embed(query_text(query))
