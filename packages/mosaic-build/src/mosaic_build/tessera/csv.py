@@ -24,6 +24,17 @@ columns and the columns that become props, and they are recorded in ``header.set
   dropped) and parsed with Python's ``csv`` module, strict quoting, ``"`` as the quote and
   doubled quotes as escapes. A quoted line break stays inside its cell; a blank line is no
   row. A row with a different number of fields than the header is refused.
+- **Linked columns** (``Settings.links``, plan M1.1) turn a column into linked things. Each
+  cell is split on the link's separator, if it has one, and each value is trimmed of Unicode
+  ``White_Space`` (section 5.2's set); an empty value makes nothing. Each distinct value is one
+  node of the link's own type, keyed by the value (id ``<type>:<value>``, the type's
+  ``key_prop`` the column, no label, summary or props), and each row and value pair is one
+  edge of the link's type: from the row to the value (``out``, the default) or from the value
+  to the row (``in``). The node and the edge get one evidence row per row and column they come
+  from, ``file=<name>;row=<n>;field=<column>``, method ``extracted``; a value twice in one cell
+  is one edge. Each link has its own node type and edge type, neither shared with the rows or
+  another link, so the tessera stays in the source's own vocabulary and the pattern maps and
+  merges them (section 4).
 - **JSON text** (``settings``, ``props``) is in the canonical form of RFC 8785 (section 3.1).
 
 Errors name the file and the row, line or column at fault. The source is only read.
@@ -41,9 +52,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from mosaic_format.canonical_json import canonical_json
-from mosaic_format.writer import Content, Evidence, Header, Node, Sealed, Source, Type, seal
+from mosaic_format.writer import (
+    Content,
+    Edge,
+    EdgeKey,
+    Evidence,
+    Header,
+    Node,
+    Sealed,
+    Source,
+    Type,
+    seal,
+)
 
 from mosaic_build import __version__
+from mosaic_build.mosaic.normalise import trim
 from mosaic_build.tessera.convert import (
     Boolean,
     Conversion,
@@ -61,11 +84,13 @@ __all__ = [
     "Conversion",
     "Date",
     "Integer",
+    "Link",
     "Number",
     "Quantity",
     "Report",
     "Settings",
     "build",
+    "check_link",
     "check_settings",
     "content",
     "read",
@@ -76,6 +101,40 @@ PRODUCER = f"mosaic-csv/{__version__}"
 
 NODE_TYPE = re.compile(r"[A-Z][A-Za-z0-9]*")
 """Node type names (section 3.4)."""
+EDGE_TYPE = re.compile(r"[a-z][a-z0-9_]*")
+"""Edge type names (section 3.4)."""
+DIRECTIONS = ("out", "in")
+"""A link's edge goes from the row to the value (``out``) or from the value to the row."""
+
+
+@dataclass(frozen=True)
+class Link:
+    """A column whose values become linked things: their node type, the edge type, the edge's
+    direction relative to the row (``out`` or ``in``) and the separator, None for one value per
+    cell."""
+
+    type: str
+    edge: str
+    direction: str = "out"
+    separator: str | None = None
+
+    def as_json(self) -> dict[str, object]:
+        return {
+            "type": self.type,
+            "edge": self.edge,
+            "direction": self.direction,
+            "separator": self.separator,
+        }
+
+    def values(self, cell: str) -> list[str]:
+        """The cell's distinct values, trimmed, in the order written; empty ones dropped."""
+        parts = [cell] if self.separator is None else cell.split(self.separator)
+        values: list[str] = []
+        for part in parts:
+            value = trim(part)
+            if value and value not in values:
+                values.append(value)
+        return values
 
 
 @dataclass(frozen=True)
@@ -95,11 +154,12 @@ class Settings:
     encoding: str = "utf-8"
     delimiter: str = ","
     convert: Mapping[str, Conversion] = field(default_factory=dict)
+    links: Mapping[str, Link] = field(default_factory=dict)
 
     def as_json(self) -> str:
         """The settings as canonical JSON text, for ``header.settings``.
 
-        ``convert`` is recorded only when it names a conversion: no conversions and an empty
+        ``convert`` and ``links`` are recorded only when they name something: none and an empty
         map are the same settings.
         """
         value: dict[str, object] = {
@@ -113,6 +173,8 @@ class Settings:
         }
         if self.convert:
             value["convert"] = {c: v.as_json() for c, v in self.convert.items()}
+        if self.links:
+            value["links"] = {c: v.as_json() for c, v in self.links.items()}
         return _json(value)
 
 
@@ -169,7 +231,9 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
     columns = _columns(name, header, settings)
 
     nodes: list[Node] = []
+    edges: list[Edge] = []
     evidence: list[Evidence] = []
+    linked: dict[str, Node] = {}
     seen: dict[str, int] = {}
     unconverted: dict[str, list[int]] = {c: [] for c in settings.convert}
     for n, (line, cells) in enumerate(rows, start=1):
@@ -220,15 +284,18 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
                 props=_json(props) if props else None,
             )
         )
-        evidence.append(
-            Evidence(
-                subject=node_id,
-                source=name,
-                locator=f"file={name};row={n}",
-                method="extracted",
-                producer=PRODUCER,
-            )
-        )
+        evidence.append(_evidence(node_id, name, f"file={name};row={n}"))
+        for column, link in settings.links.items():
+            locator = f"file={name};row={n};field={column}"
+            for value in link.values(cells[columns[column]]):
+                value_id = f"{link.type}:{value}"
+                if value_id not in linked:
+                    linked[value_id] = Node(id=value_id, type=link.type, key=value)
+                evidence.append(_evidence(value_id, name, locator))
+                src, dst = (node_id, value_id) if link.direction == "out" else (value_id, node_id)
+                edge = Edge(type=link.edge, src=src, dst=dst)
+                edges.append(edge)
+                evidence.append(_evidence(edge.key, name, locator))
 
     made = Content(
         header=Header(kind="tessera", producer=PRODUCER, settings=settings.as_json()),
@@ -241,15 +308,73 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
                 kind="node",
                 key_prop=settings.key,
                 props=_json(prop_kinds(settings.props, settings.convert)),
-            )
+            ),
+            *_link_types(settings),
         ],
-        nodes=nodes,
+        nodes=[*nodes, *linked.values()],
+        edges=edges,
         evidence=evidence,
     )
     report = Report(
         {c: tuple(unconverted[c]) for c in sorted(unconverted, key=lambda c: c.encode("utf-8"))}
     )
     return made, report
+
+
+def _evidence(subject: str | EdgeKey, source: str, locator: str) -> Evidence:
+    return Evidence(
+        subject=subject, source=source, locator=locator, method="extracted", producer=PRODUCER
+    )
+
+
+def _link_types(settings: Settings) -> list[Type]:
+    """Each link's node type, keyed by its column, and its edge type."""
+    types: list[Type] = []
+    for column, link in settings.links.items():
+        types.append(Type(name=link.type, kind="node", key_prop=column))
+        ends = (settings.type, link.type) if link.direction == "out" else (link.type, settings.type)
+        types.append(Type(name=link.edge, kind="edge", from_type=ends[0], to_type=ends[1]))
+    return types
+
+
+def check_link(column: str, link: Link) -> None:
+    """Refuse a link that cannot make a tessera, naming the link and the setting at fault."""
+    at = f"settings: links.{column}"
+    if ";" in column:
+        raise ValueError(f"{at}: a column name with ';' cannot be a locator value (section 3.5)")
+    if NODE_TYPE.fullmatch(link.type) is None:
+        raise ValueError(
+            f"{at}: type {link.type!r} is not a node type name ^[A-Z][A-Za-z0-9]*$ (3.4)"
+        )
+    if EDGE_TYPE.fullmatch(link.edge) is None:
+        raise ValueError(
+            f"{at}: edge {link.edge!r} is not an edge type name ^[a-z][a-z0-9_]*$ (3.4)"
+        )
+    if link.direction not in DIRECTIONS:
+        raise ValueError(f"{at}: direction {link.direction!r} is not 'out' or 'in'")
+    if link.separator == "":
+        raise ValueError(f"{at}: separator must not be empty; leave it out for one value")
+
+
+def check_links(settings: Settings) -> None:
+    """Refuse links that cannot make a tessera: each link, and types two of them would share."""
+    node_types = {settings.type: "the rows"}
+    edge_types: dict[str, str] = {}
+    for column, link in settings.links.items():
+        check_link(column, link)
+        at = f"settings: links.{column}"
+        if link.type in node_types:
+            raise ValueError(
+                f"{at}: type {link.type!r} is already the type of {node_types[link.type]}; "
+                f"each link has its own type"
+            )
+        if link.edge in edge_types:
+            raise ValueError(
+                f"{at}: edge {link.edge!r} is already the edge of {edge_types[link.edge]}; "
+                f"each link has its own edge type"
+            )
+        node_types[link.type] = f"links.{column}"
+        edge_types[link.edge] = f"links.{column}"
 
 
 def check_settings(settings: Settings) -> None:
@@ -271,6 +396,7 @@ def check_settings(settings: Settings) -> None:
     if duplicates:
         raise ValueError(f"settings: props name {duplicates[0]!r} twice")
     check_conversions(settings.props, settings.convert)
+    check_links(settings)
 
 
 def _decode(name: str, data: bytes, encoding: str) -> str:
@@ -304,7 +430,7 @@ def _columns(name: str, header: Sequence[str], settings: Settings) -> dict[str, 
     """The position of every column a setting names; refused when absent or ambiguous."""
     wanted = [c for c in (settings.key, settings.label, settings.summary) if c is not None]
     positions: dict[str, int] = {}
-    for column in [*wanted, *settings.props]:
+    for column in dict.fromkeys([*wanted, *settings.props, *settings.links]):
         found = [i for i, h in enumerate(header) if h == column]
         if not found:
             raise ValueError(f"{name}: column {column!r} is not in the header")

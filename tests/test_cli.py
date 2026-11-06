@@ -208,6 +208,29 @@ def test_import_defaults_for_omitted_settings(tmp_path: Path) -> None:
         assert sealed.query("SELECT id, props FROM node") == [("Row:1", '{"b":"2"}')]
 
 
+def test_import_turns_a_column_into_linked_things(tmp_path: Path) -> None:
+    """Linked columns from the settings file (plan M1.1): nodes, edges, header.settings."""
+    (tmp_path / "rows.csv").write_text('code,tags\nA,"x; y"\nB,y\n', encoding="utf-8")
+    (tmp_path / "s.yaml").write_text(
+        "type: Item\nkey: code\nlinks:\n  tags: {type: Tag, edge: tagged, separator: ';'}\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "rows.tessera"
+    args = ["import", "csv", str(tmp_path / "rows.csv"), "--settings", str(tmp_path / "s.yaml")]
+    assert main([*args, "-o", str(out)]) == 0
+    with open_sealed(out) as sealed:
+        assert sealed.query("SELECT src, dst FROM v_edge ORDER BY src, dst") == [
+            ("Item:A", "Tag:x"),
+            ("Item:A", "Tag:y"),
+            ("Item:B", "Tag:y"),
+        ]
+        ((settings,),) = sealed.query("SELECT settings FROM header")
+    assert json.loads(str(settings))["links"] == {
+        "tags": {"type": "Tag", "edge": "tagged", "direction": "out", "separator": ";"}
+    }
+    assert main(["check", str(out)]) == 0
+
+
 @pytest.mark.parametrize(
     ("settings", "named"),
     [
@@ -221,6 +244,9 @@ def test_import_defaults_for_omitted_settings(tmp_path: Path) -> None:
         ("convert: {born: {kind: integer, base: 8}}\nprops: [born]\n", "base"),
         ("- type\n", "mapping"),
         ("type: A\ntype: B\n", "type"),
+        ("links: {born: {type: Year}}\n", "edge"),
+        ("links: {born: {type: Year, edge: in_year, direction: sideways}}\n", "direction"),
+        ("links: {born: {type: Row, edge: in_year}}\n", "Row"),
     ],
 )
 def test_import_refuses_bad_settings_naming_the_setting(

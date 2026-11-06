@@ -1,12 +1,15 @@
 """A CSV tessera's settings, read from a settings file (issue #18).
 
 The file has the shape of the tessera's ``header.settings`` (:meth:`Settings.as_json`): a
-mapping with ``type``, ``key``, ``label``, ``summary``, ``props``, ``encoding``, ``delimiter``
-and ``convert``, each optional with :class:`Settings`'s default. ``convert`` maps a prop column
-to a conversion written as its ``as_json`` form, such as ``{kind: date, formats: [...]}``. So
-the ``header.settings`` of a tessera, as a file, rebuilds that tessera from the same source.
-In YAML a boolean conversion's keys are quoted, ``"true"`` and ``"false"``: bare, they are
-booleans, and a key must be text.
+mapping with ``type``, ``key``, ``label``, ``summary``, ``props``, ``encoding``, ``delimiter``,
+``convert`` and ``links``, each optional with :class:`Settings`'s default. ``convert`` maps a
+prop column to a conversion written as its ``as_json`` form, such as
+``{kind: date, formats: [...]}``; ``links`` maps a column to a link,
+``{type, edge, direction, separator}``, where ``type`` and ``edge`` are needed, ``direction``
+is ``out`` (the default) or ``in``, and ``separator`` is text or null (the default, one value
+per cell). So the ``header.settings`` of a tessera, as a file, rebuilds that tessera from the
+same source. In YAML a boolean conversion's keys are quoted, ``"true"`` and ``"false"``: bare,
+they are booleans, and a key must be text.
 
 The file is read as YAML 1.2 core schema, which holds JSON, with duplicate keys refused. A key
 the settings do not have, a value of the wrong kind and settings the builder refuses are errors
@@ -21,9 +24,9 @@ from typing import Any
 from mosaic_format.yaml_core import load
 
 from mosaic_build.tessera.convert import Boolean, Conversion, Date, Integer, Number, Quantity
-from mosaic_build.tessera.csv import Settings, check_settings
+from mosaic_build.tessera.csv import Link, Settings, check_link, check_settings
 
-__all__ = ["SettingsError", "conversion", "from_json", "read"]
+__all__ = ["SettingsError", "conversion", "from_json", "link", "read"]
 
 type _Where = tuple[str, ...]
 
@@ -35,6 +38,8 @@ _FIELDS: Mapping[str, tuple[str, ...]] = {
     "boolean": ("true", "false"),
 }
 """Each conversion kind and the fields it needs, besides ``kind``."""
+_LINK_FIELDS = ("type", "edge", "direction", "separator")
+"""A link's fields; ``type`` and ``edge`` are needed."""
 
 
 class SettingsError(ValueError):
@@ -108,15 +113,50 @@ def conversion(value: object, where: _Where) -> Conversion:
             )
 
 
+def link(column: str, value: object, where: _Where) -> Link:
+    """The link that ``value``, its ``as_json`` form, declares for ``column``."""
+    fields = _mapping(value, where, "a link's fields")
+    for key in fields:
+        if key not in _LINK_FIELDS:
+            raise SettingsError(
+                (*where, key), f"{_name(where)}: a link has no field {key!r}; {_LINK_FIELDS}"
+            )
+    for key in ("type", "edge"):
+        if key not in fields:
+            raise SettingsError(where, f"{_name(where)}: a link needs {key!r}")
+    made = Link(
+        type=str(_text(fields["type"], (*where, "type"))),
+        edge=str(_text(fields["edge"], (*where, "edge"))),
+        direction=str(_text(fields.get("direction", "out"), (*where, "direction"))),
+        separator=_text(fields.get("separator"), (*where, "separator"), null=True),
+    )
+    try:
+        check_link(column, made)
+    except ValueError as e:
+        raise SettingsError(where, str(e).removeprefix("settings: ")) from None
+    return made
+
+
 def from_json(value: object) -> Settings:
     """The settings that ``value``, a mapping in the shape of ``header.settings``, gives."""
     given = _mapping(value, (), "settings")
     defaults = Settings()
-    known = ("type", "key", "label", "summary", "props", "encoding", "delimiter", "convert")
+    known = (
+        "type",
+        "key",
+        "label",
+        "summary",
+        "props",
+        "encoding",
+        "delimiter",
+        "convert",
+        "links",
+    )
     for key in given:
         if key not in known:
             raise SettingsError((key,), f"{key!r} is no setting; the settings are {known}")
     convert = _mapping(given.get("convert", {}), ("convert",), "prop columns to conversions")
+    links = _mapping(given.get("links", {}), ("links",), "columns to links")
     return Settings(
         type=str(_text(given.get("type", defaults.type), ("type",))),
         key=_text(given.get("key"), ("key",), null=True),
@@ -126,6 +166,7 @@ def from_json(value: object) -> Settings:
         encoding=str(_text(given.get("encoding", defaults.encoding), ("encoding",))),
         delimiter=str(_text(given.get("delimiter", defaults.delimiter), ("delimiter",))),
         convert={c: conversion(v, ("convert", c)) for c, v in convert.items()},
+        links={c: link(c, v, ("links", c)) for c, v in links.items()},
     )
 
 
