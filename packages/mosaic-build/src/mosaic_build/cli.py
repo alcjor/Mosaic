@@ -7,14 +7,18 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   CSV file (:mod:`mosaic_build.tessera.csv`). The settings file has the shape of the tessera's
   ``header.settings`` (:mod:`mosaic_build.tessera.settings`). Values a conversion could not
   read are listed on standard error.
-- ``mosaic build <pattern.yaml> [--target T] [--pieces DIR] [-o DIR]`` builds one target into
-  ``DIR/<target>.mosaic``, with ``build-report.json`` beside it (Specification 0.1, section
-  7.2); ``DIR`` is the current directory unless given. Without ``--target`` the pattern must
+- ``mosaic build <pattern.yaml> [--target T] [--pieces DIR] [--model DIR] [-o DIR]`` builds one
+  target into ``DIR/<target>.mosaic``, with ``build-report.json`` beside it (Specification 0.1,
+  section 7.2); ``DIR`` is the current directory unless given. Without ``--target`` the pattern must
   have one target, such as the ``default`` of a pattern without ``mosaics`` (section 5.4). The
   available pieces (section 5.1) are the SQLite files directly in ``--pieces DIR`` and the files
   the pieces' own ``path`` names; ``proposals.yaml`` beside the pattern is the build's proposals
   file (section 5). The report's path is printed, also when the build fails. The report in
   ``DIR`` is that of the last build there; build each target into its own ``DIR`` to keep both.
+  A target with vectors on (the default) needs ``--model DIR``, the directory holding the model
+  files of section 6 (``scripts/fetch_model.py`` fills it); each file is checked by its
+  SHA-256, and without them the build fails with ``invalid_input``. The command never fetches
+  them: the builder uses no network (section 7).
 - ``mosaic check <file> [--pieces DIR]`` checks a tessera or mosaic (an SQLite file) by section
   3.9, or else a pattern, with ``proposals.yaml`` beside it, by sections 5 and 5.6. It prints
   one line per violation, or ``<file>: ok``, and lists on standard error the rules it could not
@@ -98,6 +102,11 @@ def make_parser() -> argparse.ArgumentParser:
         "--target", help="the target to build; needed when the pattern has several"
     )
     builder.add_argument("--pieces", type=Path, help="directory of available piece files")
+    builder.add_argument(
+        "--model",
+        type=Path,
+        help="directory of the embedding model files (section 6); needed for vectors",
+    )
     builder.add_argument(
         "-o",
         "--output",
@@ -202,7 +211,14 @@ def _build(args: argparse.Namespace) -> int:
             return 1
     pieces = _candidates(args.pieces)
     try:
-        built = build(pattern, target, out, pieces=tuple(pieces), proposals=_proposals(pattern))
+        built = build(
+            pattern,
+            target,
+            out,
+            pieces=tuple(pieces),
+            proposals=_proposals(pattern),
+            model=args.model,
+        )
     except BuildError as e:
         _error("build", f"failed: {e}")
         if e.report is not None:

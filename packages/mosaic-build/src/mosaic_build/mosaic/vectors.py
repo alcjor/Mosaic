@@ -11,6 +11,9 @@ natively, with this exact model file, pinned by its SHA-256; kits only embed que
   significant bit of byte 0 first (section 3.7).
 - :class:`Embedder`: runs the model natively with ONNX Runtime, on text truncated at 256 tokens
   by the pinned tokenizer.
+- :func:`node_vectors`: step 7's vectors (section 7.1), one per node of the content to seal,
+  each from its node text; any :class:`Embeds` makes them, so the builder's tests can stand in
+  for the model.
 
 The builder reads the model files from a directory and never fetches them (it uses no network);
 ``scripts/fetch_model.py`` fills that directory.
@@ -21,7 +24,9 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
+
+from mosaic_format.writer import Content, Vector, node_snippets
 
 if TYPE_CHECKING:
     from tokenizers import Tokenizer
@@ -215,3 +220,26 @@ class Embedder:
     def query(self, query: str) -> list[float]:
         """The normalised embedding of a query, with the prefix of section 6."""
         return self.embed(query_text(query))
+
+
+class Embeds(Protocol):
+    """What makes the stored bytes of a node text: the :class:`Embedder` in a build."""
+
+    def bits(self, text: str) -> bytes: ...
+
+
+def node_vectors(content: Content, model: Embeds) -> list[Vector]:
+    """One vector per node of ``content``, from its node text (sections 3.7 and 6).
+
+    The snippet is the first of the node's own snippets in ``evid`` order, the order the
+    sealed writer gives them (:func:`first_snippet`). Each node is embedded once, in ``nid``
+    order, so a run of the model is the same for the same content.
+    """
+    snippets = node_snippets(content)
+    nodes = sorted(content.nodes, key=lambda n: n.id.encode("utf-8"))
+    found = []
+    for n in nodes:
+        snippet = first_snippet(enumerate(snippets.get(n.id, ())))
+        text = node_text(n.type, n.key, n.label, n.summary, snippet)
+        found.append(Vector(node=n.id, bits=model.bits(text)))
+    return found

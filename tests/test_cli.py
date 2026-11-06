@@ -6,17 +6,22 @@ section 7 (report beside the mosaic, section 7.2; the targets of section 5.4) an
 sections 3.9, 5 and 5.6.
 """
 
+import importlib
 import json
 import re
 import shutil
 import subprocess
 import sysconfig
+import typing
 from pathlib import Path
 from typing import Any
 
 import pytest
 from mosaic_build.cli import main
+from mosaic_build.mosaic.vectors import EMBED_MODEL
 from mosaic_format.reader import open as open_sealed
+
+from tests.mosaic.pieces import StubModel
 
 REPO = Path(__file__).resolve().parent.parent
 INVALID_FILES = REPO / "conformance" / "invalid" / "files"
@@ -145,7 +150,8 @@ def test_import_build_check_end_to_end(tmp_path: Path) -> None:
 
 def test_end_to_end_failure_exits_non_zero_and_prints_the_report(tmp_path: Path) -> None:
     _, piece_hash = imported(tmp_path)
-    pattern = write_pattern(tmp_path, piece_hash, "mosaics:\n  tiny: {budget: 1 KB}\n")
+    mosaics = "mosaics:\n  tiny: {budget: 1 KB, vectors: false}\n"
+    pattern = write_pattern(tmp_path, piece_hash, mosaics)
     done = run("build", pattern, "--pieces", "pieces", "-o", "out", cwd=tmp_path)
     assert done.returncode != 0
     report = tmp_path / "out" / "build-report.json"
@@ -289,12 +295,16 @@ def test_import_names_the_file_and_row_of_a_bad_csv(
 # --- mosaic build -----------------------------------------------------------------------------
 
 
-def test_build_without_target_builds_the_only_target(tmp_path: Path) -> None:
+def test_build_without_target_builds_the_only_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A pattern without ``mosaics`` has the one target ``default`` (section 5.4)."""
     _, piece_hash = imported(tmp_path)
     pattern = write_pattern(tmp_path, piece_hash)
     out = tmp_path / "out"
-    assert main(["build", str(pattern), "--pieces", str(tmp_path / "pieces"), "-o", str(out)]) == 0
+    model = _stub_model(tmp_path, monkeypatch)
+    args = ["build", str(pattern), "--pieces", str(tmp_path / "pieces"), "--model", str(model)]
+    assert main([*args, "-o", str(out)]) == 0
     with open_sealed(out / "default.mosaic") as sealed:
         assert sealed.query("SELECT target FROM header") == [("default",)]
     assert json.loads((out / "build-report.json").read_text("utf-8"))["outcome"] == "built"
@@ -413,14 +423,99 @@ def test_build_refuses_to_overwrite_a_mosaic(
     assert (out / "one.mosaic").read_bytes() == before
 
 
-def test_build_prints_messages_such_as_skipped_vectors(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+# --- mosaic build --model (section 6) ---------------------------------------------------------
+
+
+class _StubEmbedder(StubModel):
+    """Stands in for :class:`mosaic_build.mosaic.vectors.Embedder`; records its directory."""
+
+    directories: typing.ClassVar[list[Path]] = []
+
+    def __init__(self, model_dir: Path) -> None:
+        super().__init__()
+        self.directories.append(model_dir)
+
+
+def _stub_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A model directory, and the builder's model replaced by a stub that records it."""
+    model = tmp_path / "model"
+    model.mkdir()
+    _StubEmbedder.directories.clear()
+    # The package exports the function `build`, so the module is taken by its import name.
+    module = importlib.import_module("mosaic_build.mosaic.build")
+    monkeypatch.setattr(module, "Embedder", _StubEmbedder)
+    return model
+
+
+def test_build_with_model_builds_vectors_from_that_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _, piece_hash = imported(tmp_path)
     pattern = write_pattern(tmp_path, piece_hash)  # default target: vectors on
     out = tmp_path / "out"
-    assert main(["build", str(pattern), "--pieces", str(tmp_path / "pieces"), "-o", str(out)]) == 0
-    assert "vectors skipped" in capsys.readouterr().err
+    model = _stub_model(tmp_path, monkeypatch)
+    args = ["build", str(pattern), "--pieces", str(tmp_path / "pieces"), "--model", str(model)]
+    assert main([*args, "-o", str(out)]) == 0
+    assert _StubEmbedder.directories == [model]
+    with open_sealed(out / "default.mosaic") as sealed:
+        ((vector_hash, embed_model),) = sealed.query("SELECT vector_hash, embed_model FROM header")
+        ((vectors, nodes),) = sealed.query(
+            "SELECT (SELECT count(*) FROM vector), (SELECT count(*) FROM node)"
+        )
+    assert embed_model == EMBED_MODEL
+    assert isinstance(nodes, int)
+    assert vectors == nodes > 0
+    report = json.loads((out / "build-report.json").read_text("utf-8"))
+    assert report["vector_hash"] == vector_hash is not None
+    assert "skipped" not in capsys.readouterr().err
+
+
+def test_build_with_vectors_on_and_no_model_fails_with_invalid_input(tmp_path: Path) -> None:
+    _, piece_hash = imported(tmp_path)
+    pattern = write_pattern(tmp_path, piece_hash)  # default target: vectors on
+    done = run("build", pattern, "--pieces", "pieces", "-o", "out", cwd=tmp_path)
+    assert done.returncode == 1
+    assert "vectors" in done.stderr and "model" in done.stderr
+    assert "invalid_input" in done.stderr
+    report = tmp_path / "out" / "build-report.json"
+    assert str(report) in done.stdout
+    assert json.loads(report.read_text(encoding="utf-8"))["reason"] == "invalid_input"
+    assert not (tmp_path / "out" / "default.mosaic").exists()
+
+
+def test_build_with_a_model_directory_missing_its_files_fails_naming_the_file(
+    tmp_path: Path,
+) -> None:
+    _, piece_hash = imported(tmp_path)
+    pattern = write_pattern(tmp_path, piece_hash)
+    (tmp_path / "model").mkdir()
+    done = run(
+        "build", pattern, "--pieces", "pieces", "--model", "model", "-o", "out", cwd=tmp_path
+    )
+    assert done.returncode == 1
+    assert "onnx/model_quantized.onnx" in done.stderr
+    assert json.loads((tmp_path / "out" / "build-report.json").read_text("utf-8"))["reason"] == (
+        "invalid_input"
+    )
+    assert not (tmp_path / "out" / "default.mosaic").exists()
+
+
+def test_build_with_vectors_off_needs_no_model(tmp_path: Path) -> None:
+    _, piece_hash = imported(tmp_path)
+    pattern = write_pattern(tmp_path, piece_hash, "mosaics:\n  plain: {vectors: false}\n")
+    done = run("build", pattern, "--pieces", "pieces", "-o", "out", cwd=tmp_path)
+    assert done.returncode == 0, done.stderr
+    with open_sealed(tmp_path / "out" / "plain.mosaic") as sealed:
+        assert sealed.query("SELECT vector_hash, embed_model FROM header") == [(None, None)]
+    assert "skipped" not in done.stderr
+
+
+def test_build_help_documents_model() -> None:
+    done = subprocess.run(
+        [str(entry_point()), "build", "--help"], capture_output=True, text=True, check=False
+    )
+    assert done.returncode == 0
+    assert "--model" in done.stdout and "section 6" in done.stdout
 
 
 # --- mosaic check -----------------------------------------------------------------------------

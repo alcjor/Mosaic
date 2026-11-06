@@ -1,6 +1,6 @@
 """The mosaic builder (Specification 0.1, section 7).
 
-A build runs eight steps (section 7.1). Implemented so far:
+A build runs eight steps (section 7.1):
 
 1. **Check** (:mod:`mosaic_build.mosaic.pieces`): check the pattern and proposals, resolve and
    open the pieces;
@@ -15,7 +15,8 @@ A build runs eight steps (section 7.1). Implemented so far:
 6. **Select** (:mod:`mosaic_build.mosaic.select`) for the target of
    :mod:`mosaic_build.mosaic.target`: types, trust, evidence and text tier;
 7. **Derive** (:mod:`mosaic_build.mosaic.derive`): the declared types (link counts and the
-   full-text index come from the sealed writer; vectors wait for #20);
+   full-text index come from the sealed writer), and the vectors of a target with them on
+   (:mod:`mosaic_build.mosaic.vectors`);
 8. **Seal** (:mod:`mosaic_build.mosaic.build`), within the target's budget.
 
 :func:`build` runs all eight and writes the build report beside the mosaic, also when it fails

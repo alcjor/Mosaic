@@ -19,6 +19,7 @@ from mosaic_format.writer import Alias, Content, Edge, Header, Mention, Source, 
 
 from tests.conftest import SPEC
 from tests.mosaic.pieces import (
+    StubModel,
     edge_proposal,
     evidence,
     identity,
@@ -66,6 +67,7 @@ def run(
             target,
             directory / out,
             pieces=paths,
+            model=StubModel(),
             proposals=proposals_path,
         )
     except BuildError as e:
@@ -181,6 +183,7 @@ def test_reports_validate_and_are_byte_identical_across_two_runs(
 def test_a_clean_build_reports_its_hashes_size_and_counts(tmp_path: Path) -> None:
     built, report = _clean(tmp_path)
     assert isinstance(built, Built)
+    assert built.vector_hash is not None  # vectors are on by default (5.4)
     pattern_hash = hashlib.sha256((tmp_path / "pattern.yaml").read_bytes()).hexdigest()
     assert report == {
         "format": "0.1",
@@ -189,7 +192,7 @@ def test_a_clean_build_reports_its_hashes_size_and_counts(tmp_path: Path) -> Non
         "target": "default",
         "pattern_hash": pattern_hash,
         "knowledge_hash": built.knowledge_hash,
-        "vector_hash": None,
+        "vector_hash": built.vector_hash,
         "file_size": built.path.stat().st_size,
         "counts": {"nodes": {"Sensor": 2}, "edges": {}},
         "conflicts": [],
@@ -546,6 +549,7 @@ def test_outdated_proposals_come_before_those_that_no_longer_apply(tmp_path: Pat
         "default",
         out,
         pieces=[path],
+        model=StubModel(),
         proposals=proposals(second, entries, built_from="f" * 64),
         previous=built.path,
     )
@@ -599,6 +603,7 @@ def test_a_mosaic_piece_lists_each_distinct_notice_once(tmp_path: Path) -> None:
         "default",
         out,
         pieces=[path],
+        model=StubModel(),
     )
     assert load(out)["notices"] == [
         {"piece": "two", "text": "A notice"},

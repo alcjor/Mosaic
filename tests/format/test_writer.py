@@ -35,6 +35,7 @@ from mosaic_format.writer import (
     Source,
     Type,
     Vector,
+    node_snippets,
     seal,
 )
 
@@ -980,3 +981,46 @@ def test_writes_header_settings_in_canonical_form(tmp_path: Path) -> None:
     with _open(sealed.path) as con:
         settings = con.execute("SELECT settings FROM header").fetchone()[0]
     assert settings == '{"a":[2],"b":1}'
+
+
+# --- node_snippets: each node's own snippets in evid order, before sealing ----------------------
+
+
+@pytest.mark.parametrize("kind", ["tessera", "mosaic"])
+def test_node_snippets_are_each_nodes_own_snippets_in_evid_order(tmp_path: Path, kind: str) -> None:
+    # The order a builder reads before sealing is the one the sealed file has (section 3.6).
+    content = shuffled(sample(kind), random.Random(3))
+    found = node_snippets(content)
+    path = tmp_path / f"x.{kind}"
+    seal(path, content)
+    con = _open(path)
+    try:
+        by_evid = con.execute(
+            "SELECT n.id, s.text FROM evidence e JOIN node n ON n.nid = e.nid "
+            "JOIN snippet s ON s.evid = e.evid ORDER BY e.evid"
+        ).fetchall()
+    finally:
+        con.close()
+    assert found, "the sample holds node snippets"
+    expected: dict[str, list[str]] = {}
+    for node, text in by_evid:
+        expected.setdefault(node, []).append(text)
+    assert found == expected
+
+
+def test_node_snippets_leave_out_edge_evidence_and_nodes_without_snippets(tmp_path: Path) -> None:
+    content = sample("mosaic")
+    edge_snippets = {e.snippet for e in content.evidence if isinstance(e.subject, EdgeKey)}
+    found = node_snippets(content)
+    assert all(text not in edge_snippets for texts in found.values() for text in texts)
+    without = {n.id for n in content.nodes} - {
+        e.subject for e in content.evidence if isinstance(e.subject, str) and e.snippet
+    }
+    assert not without & set(found)
+
+
+def test_node_snippets_refuse_what_seal_refuses() -> None:
+    content = sample("mosaic")
+    broken = dataclasses.replace(content, evidence=[*content.evidence, content.evidence[0]])
+    with pytest.raises(ValueError, match="equal in prop"):
+        node_snippets(broken)

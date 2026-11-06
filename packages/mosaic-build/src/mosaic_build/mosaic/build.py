@@ -18,9 +18,14 @@ Every build, also a failed one, writes ``build-report.json`` in the directory of
 pattern file that cannot be read fails the build with ``invalid_input`` and a null
 ``pattern_hash``.
 
-Until M2 (#20), a target with ``vectors: true`` is built without vectors: ``vector_hash`` and
-``embed_model`` are NULL, and the build returns the message ``vectors skipped, not yet
-implemented`` for the CLI to print; the build report gets nothing (decision Q5 on #16).
+A target with ``vectors: true`` (the default, section 5.4) gets one vector per node, made by
+the model of section 6 from each node's text (step 7, :mod:`mosaic_build.mosaic.vectors`), and
+its header names ``embed_model`` and the vector hash (section 3.3). The model is given as the
+directory that holds its two files, each checked by its SHA-256 in step 1, before any merging:
+a target with vectors on and no model, or a model file that is missing or has another
+hash, fails the build in step 1 with ``invalid_input``, naming what is missing or both hashes.
+A target with ``vectors: false`` needs no model and gets no vectors, with both header fields
+NULL; so does a mosaic left with no nodes, which has no vectors to name (section 3.7).
 """
 
 import hashlib
@@ -30,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from mosaic_format.file import SIDECARS
-from mosaic_format.writer import Content, Header, seal
+from mosaic_format.writer import Content, Header, Vector, seal
 
 from mosaic_build import __version__
 from mosaic_build.mosaic import report as reports
@@ -41,12 +46,13 @@ from mosaic_build.mosaic.merge import Assembly, merge
 from mosaic_build.mosaic.pieces import check
 from mosaic_build.mosaic.select import select
 from mosaic_build.mosaic.target import target as find_target
+from mosaic_build.mosaic.vectors import EMBED_MODEL, Embedder, Embeds, ModelFileError, node_vectors
+
+type ModelSource = str | os.PathLike[str] | Embeds
+"""The model of section 6: the directory holding its files, or what stands in for it."""
 
 PRODUCER = f"mosaic-build/{__version__}"
 """The header's ``producer`` of every mosaic this builder writes (section 3.3)."""
-
-VECTORS_SKIPPED = "vectors skipped, not yet implemented"
-"""What a build of a target with ``vectors: true`` says until vectors are built (#20)."""
 
 
 @dataclass(frozen=True)
@@ -63,7 +69,7 @@ class Built:
     assembly: Assembly
     """The selected content: nodes, edges, conflicts, mentions and proposals of the target."""
     messages: tuple[str, ...] = ()
-    """What the CLI prints beside the report, such as skipped vectors."""
+    """What the CLI prints beside the report."""
     report: Path | None = None
     """The build report written beside the mosaic (section 7.2)."""
 
@@ -90,14 +96,17 @@ def build(
     pieces: list[str | os.PathLike[str]] | tuple[str | os.PathLike[str], ...] = (),
     proposals: str | os.PathLike[str] | None = None,
     previous: str | os.PathLike[str] | None = None,
+    model: ModelSource | None = None,
 ) -> Built:
     """Build ``target`` of ``pattern`` into a new mosaic at ``out`` (section 7.1, steps 1-8).
 
     ``pieces`` are the available files besides each piece's ``path``; ``proposals`` and
-    ``previous`` (the previous mosaic of the target) are optional. Writes ``build-report.json``
-    beside ``out`` (section 7.2) and returns its path in :attr:`Built.report`. Raises
-    :class:`BuildError` when the build fails, leaving no file at ``out`` and the report's path
-    in the error's ``report``.
+    ``previous`` (the previous mosaic of the target) are optional. ``model`` is the directory
+    of the model files of section 6, needed when the target has vectors on, or an
+    :class:`~mosaic_build.mosaic.vectors.Embeds` that stands in for the model. Writes
+    ``build-report.json`` beside ``out`` (section 7.2) and returns its path in
+    :attr:`Built.report`. Raises :class:`BuildError` when the build fails, leaving no file at
+    ``out`` and the report's path in the error's ``report``.
     """
     pattern_path = Path(pattern)
     out_path = Path(out)
@@ -117,6 +126,7 @@ def build(
             pieces=pieces,
             proposals=proposals,
             previous=previous,
+            model=model,
         )
     except _Reported as e:
         e.error.report = reports.write(out_path.parent, e.report)
@@ -137,6 +147,7 @@ def _build(
     pieces: list[str | os.PathLike[str]] | tuple[str | os.PathLike[str], ...],
     proposals: str | os.PathLike[str] | None,
     previous: str | os.PathLike[str] | None,
+    model: ModelSource | None,
 ) -> tuple[Built, dict[str, Any]]:
     """Steps 1-8; the built mosaic and its report."""
     try:
@@ -145,6 +156,7 @@ def _build(
         raise BuildError("invalid_input", str(e)) from None
     with inputs_cm as inputs:
         t = find_target(inputs.pattern, target)
+        embedder = _model(t.name, model) if t.vectors else None
         a = merge(inputs)
         apply_identities(inputs, a)
         link(inputs, a)
@@ -180,6 +192,8 @@ def _build(
             evidence=a.evidence,
             external_refs=a.external_refs,
         )
+        if embedder is not None:
+            content = _with_vectors(content, node_vectors(content, embedder))
         sealed = seal(out_path, content)
 
     size = sealed.path.stat().st_size
@@ -210,7 +224,6 @@ def _build(
         pattern_hash=pattern_hash,
         settings=settings,
         assembly=a,
-        messages=(VECTORS_SKIPPED,) if t.vectors else (),
     )
     data = reports.report(
         target=t.name,
@@ -221,3 +234,28 @@ def _build(
         content=lists,
     )
     return built, data
+
+
+def _model(target: str, model: ModelSource | None) -> Embeds:
+    """Step 1 for a target with vectors on: the model, its files checked (section 6)."""
+    if model is None:
+        raise BuildError(
+            "invalid_input",
+            f"target {target!r} has vectors on (5.4) and no embedding model is given; "
+            "the model of section 6 is needed to build them",
+        )
+    if not isinstance(model, (str, os.PathLike)):
+        return model
+    try:
+        return Embedder(Path(model))
+    except ModelFileError as e:
+        raise BuildError("invalid_input", f"target {target!r} has vectors on (5.4): {e}") from None
+
+
+def _with_vectors(content: Content, vectors: list[Vector]) -> Content:
+    """``content`` with its vectors and, when it has any, ``embed_model`` (sections 3.3, 3.7)."""
+    if not vectors:
+        return content
+    return replace(
+        content, header=replace(content.header, embed_model=EMBED_MODEL), vectors=vectors
+    )
