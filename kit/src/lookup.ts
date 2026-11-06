@@ -9,7 +9,7 @@
  *   most 5 distinct ids.
  * - Text read from the file goes only into `data`, cut with the marker (section 8.2): labels and
  *   aliases at 120 characters, summaries at 400, snippets at 600, and every other text value
- *   (text property values, locators, source ids, external references) at 400.
+ *   (property names and text values, locators, source ids, external references) at 400.
  */
 import type { Database } from "@sqlite.org/sqlite-wasm";
 import { ToolError, shownArgument } from "./answers.js";
@@ -79,14 +79,17 @@ export function text(value: unknown, limit: number): string | null {
   return typeof value === "string" ? cut(value, limit) : null;
 }
 
-/** A JSON value read from the file, with every string in it (keys excepted) cut at `limit`. */
+/**
+ * A JSON value read from the file, with every string in it, object keys included, cut at
+ * `limit`. Keys become own properties whatever their name (`__proto__` included), so no key
+ * the file holds is lost or reaches the object's prototype; two keys that are the same once cut
+ * keep the later value.
+ */
 export function cutJson(value: unknown, limit: number): unknown {
   if (typeof value === "string") return cut(value, limit);
   if (Array.isArray(value)) return value.map((v) => cutJson(v, limit));
   if (typeof value === "object" && value !== null) {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) out[k] = cutJson(v, limit);
-    return out;
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [cut(k, limit), cutJson(v, limit)]));
   }
   return value;
 }
