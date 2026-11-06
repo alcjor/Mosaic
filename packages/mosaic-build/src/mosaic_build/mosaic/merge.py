@@ -90,6 +90,9 @@ class MentionReport:
     locator: str
     candidates: tuple[str, ...]
     edge_type: str
+    nodes: tuple[str, ...] = field(default=(), compare=False)
+    """The rule's ``from`` nodes the containing node maps to: where the mention sits, which
+    step 6 may drop (decision Q5 on #17)."""
 
 
 @dataclass(frozen=True)
@@ -101,6 +104,10 @@ class StaleReference:
     type: str
     piece: str
     locator: str
+    edge_type: str = field(default="", compare=False)
+    """The rule whose mention it is."""
+    nodes: tuple[str, ...] = field(default=(), compare=False)
+    """Where the mention sits, as for :class:`MentionReport`."""
 
 
 @dataclass(frozen=True)
@@ -176,6 +183,8 @@ class Merged:
     """Property (``label``, ``summary`` or a key of ``props``) → the values given."""
     aliases: list[Given] = field(default_factory=list)
     """Every alias given, before ``NOCASE`` duplicates are merged."""
+    weak: bool = False
+    """Whether a weak-keyed piece node maps to it (section 7.2, decision Q1 on #17)."""
 
     def give(self, prop: str, value: Any, piece: Piece) -> None:
         self.values.setdefault(prop, []).append(Given(value, piece.name, piece.rank))
@@ -258,9 +267,10 @@ class Assembly:
     edges: dict[EdgeKey, Linked] = field(default_factory=dict)
     """Canonical edges in build order (step 5); their evidence is in :attr:`evidence`."""
     mentions: list[MentionReport] = field(default_factory=list)
-    """Unmatched and ambiguous mentions, by piece and locator (UTF-8 bytes)."""
+    """Unmatched and ambiguous mentions, by piece, locator, role, text, status and candidates
+    (UTF-8 bytes, section 7.3)."""
     stale_references: list[StaleReference] = field(default_factory=list)
-    """Names that resolve to nothing, by piece and locator (UTF-8 bytes)."""
+    """Names that resolve to nothing, by piece, locator, type and name (UTF-8 bytes, 7.3)."""
     proposals: list[ProposalStatus] = field(default_factory=list)
     """Outdated proposals in file order, then those that no longer apply, in file order."""
 
@@ -432,6 +442,7 @@ def merge(inputs: Inputs, mapped: Iterable[Mapped] | None = None) -> Assembly:
             node = nodes.get(m.id)
             if node is None:
                 node = nodes[m.id] = Merged(id=m.id, type=m.type, key=m.key)
+            node.weak = node.weak or m.weak
             ids = targets.setdefault(m.nid, [])
             if m.id not in ids:
                 ids.append(m.id)

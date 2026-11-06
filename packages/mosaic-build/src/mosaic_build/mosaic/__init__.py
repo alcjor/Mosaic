@@ -18,7 +18,8 @@ A build runs eight steps (section 7.1). Implemented so far:
    full-text index come from the sealed writer; vectors wait for #20);
 8. **Seal** (:mod:`mosaic_build.mosaic.build`), within the target's budget.
 
-:func:`build` runs all eight.
+:func:`build` runs all eight and writes the build report beside the mosaic, also when it fails
+(:mod:`mosaic_build.mosaic.report`, sections 7.2 and 7.3). A strict target is checked after step 7.
 
 The builder uses no AI and no network, and the same inputs give the same result.
 """
@@ -37,10 +38,12 @@ from mosaic_build.mosaic.merge import (
     merge,
 )
 from mosaic_build.mosaic.pieces import Inputs, check
+from mosaic_build.mosaic.report import REPORT
 from mosaic_build.mosaic.select import select
 from mosaic_build.mosaic.target import Target, budget_bytes, target
 
 __all__ = [
+    "REPORT",
     "Assembly",
     "BuildError",
     "Built",
