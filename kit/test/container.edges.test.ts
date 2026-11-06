@@ -57,7 +57,6 @@ const addStat4 = (): string[] => [
   "PRAGMA writable_schema = 0",
 ];
 
-/** A file built from `spec/format.sql` as it is (UTF-8), with a header row. */
 /**
  * The knowledge hash of a tessera holding nothing but its header (section 3.6): every part is
  * its heading alone, the header part its one row. Since M2.2 the kit checks it on open.
@@ -71,6 +70,7 @@ const EMPTY_TESSERA_HASH = createHash("sha256")
   )
   .digest("hex");
 
+/** A file built from `spec/format.sql` as it is (UTF-8), with a header row. */
 async function fromFormatSql(): Promise<Uint8Array> {
   const sqlite3 = await sqlite3InitModule();
   const db = new sqlite3.oo1.DB(":memory:", "c");

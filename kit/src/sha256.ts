@@ -15,7 +15,9 @@ const K = new Uint32Array([
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
-const INITIAL = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+const INITIAL = [
+  0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+];
 
 /** A running SHA-256: {@link update} with bytes in order, then {@link hex} once. */
 export class Sha256 {
@@ -68,7 +70,8 @@ export class Sha256 {
     const w = this.words;
     for (let t = 0; t < 16; t++) {
       const j = offset + t * 4;
-      w[t] = ((bytes[j]! << 24) | (bytes[j + 1]! << 16) | (bytes[j + 2]! << 8) | bytes[j + 3]!) >>> 0;
+      const word = (bytes[j]! << 24) | (bytes[j + 1]! << 16) | (bytes[j + 2]! << 8) | bytes[j + 3]!;
+      w[t] = word >>> 0;
     }
     for (let t = 16; t < 64; t++) {
       const a = w[t - 15]!;

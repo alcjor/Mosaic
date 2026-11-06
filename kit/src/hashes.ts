@@ -31,18 +31,37 @@ export const PARTS: readonly Part[] = [
     columns: ["name", "kind", "description", "key_prop", "from_type", "to_type", "props"],
     order: "name",
   },
-  { name: "node", columns: ["nid", "id", "type", "key", "label", "summary", "props"], order: "nid" },
+  {
+    name: "node",
+    columns: ["nid", "id", "type", "key", "label", "summary", "props"],
+    order: "nid",
+  },
   { name: "edge", columns: ["eid", "type", "src", "dst", "qualifier", "props"], order: "eid" },
   { name: "alias", columns: ["text", "nid", "origin"], order: "text COLLATE NOCASE, nid" },
   {
     name: "evidence",
-    columns: ["evid", "nid", "eid", "prop", "sid", "locator", "method", "producer", "confidence", "via"],
+    columns: [
+      "evid",
+      "nid",
+      "eid",
+      "prop",
+      "sid",
+      "locator",
+      "method",
+      "producer",
+      "confidence",
+      "via",
+    ],
     order: "evid",
   },
   { name: "snippet", columns: ["evid", "text"], order: "evid" },
   { name: "mention", columns: ["mid", "text", "locator", "nid", "role", "kind"], order: "mid" },
   { name: "source_text", columns: ["sid", "text"], order: "sid" },
-  { name: "external_ref", columns: ["xid", "nid", "system", "kind", "locator", "sid"], order: "xid" },
+  {
+    name: "external_ref",
+    columns: ["xid", "nid", "system", "kind", "locator", "sid"],
+    order: "xid",
+  },
 ];
 
 /** The one column hashed as a rounded integer rather than with plain `quote()`. */
@@ -61,7 +80,9 @@ function isConfidence(part: Part, column: string): boolean {
 }
 
 function encoded(part: Part, column: string): string {
-  return isConfidence(part, column) ? `quote(CAST(round(${column}*1000000) AS INTEGER))` : `quote(${column})`;
+  return isConfidence(part, column)
+    ? `quote(CAST(round(${column}*1000000) AS INTEGER))`
+    : `quote(${column})`;
 }
 
 /** The first column of a row the hash cannot encode, or NULL. */
@@ -76,7 +97,8 @@ function unhashable(part: Part): string {
 
 function partQuery(part: Part): string {
   const line = `${part.columns.map((c) => encoded(part, c)).join(" || ',' || ")} || char(10)`;
-  return `SELECT CAST(${line} AS BLOB), ${unhashable(part)} FROM ${part.name} ORDER BY ${part.order}`;
+  const bad = unhashable(part);
+  return `SELECT CAST(${line} AS BLOB), ${bad} FROM ${part.name} ORDER BY ${part.order}`;
 }
 
 const QUERIES: readonly string[] = PARTS.map(partQuery);
@@ -122,7 +144,8 @@ export function knowledgeHash(db: Database): string {
 export function vectorHash(db: Database): string | null {
   const digest = new Sha256();
   const stmt = db.prepare(
-    "SELECT n.id, typeof(v.bits), length(v.bits), v.bits FROM vector AS v LEFT JOIN node AS n ON n.nid = v.nid ORDER BY v.nid",
+    "SELECT n.id, typeof(v.bits), length(v.bits), v.bits " +
+      "FROM vector AS v LEFT JOIN node AS n ON n.nid = v.nid ORDER BY v.nid",
   );
   let count = 0;
   try {
@@ -133,7 +156,8 @@ export function vectorHash(db: Database): string | null {
         const shown = type === "blob" ? `${String(length)}-byte blob` : String(type);
         const named = typeof node === "string" ? `'${node}'` : "null";
         throw new UnhashableError(
-          `vector of node ${named} (row ${count} in nid order): bits is a ${shown}, not a ${VECTOR_BYTES}-byte blob`,
+          `vector of node ${named} (row ${count} in nid order): ` +
+            `bits is a ${shown}, not a ${VECTOR_BYTES}-byte blob`,
         );
       }
       digest.update(stmt.get(3) as Uint8Array);
