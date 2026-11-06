@@ -44,8 +44,12 @@ export interface GetData {
     readonly kind: string;
     readonly locator: Readonly<Record<string, unknown>>;
   }[];
+  /** How many external references the node has; the list holds at most 20. */
+  readonly external_refs_total: number;
   /** Edges per edge type and direction. */
   readonly links: readonly { readonly edge: string; readonly direction: "out" | "in"; readonly count: number }[];
+  /** How many entries `links` would hold uncut; the list holds at most 20. */
+  readonly links_total: number;
 }
 
 export interface GetAnswer {
@@ -74,7 +78,9 @@ export interface CiteAnswer {
   readonly mosaic: string;
   readonly data: {
     /** The node's id, or the edge as from, type and to. */
-    readonly subject: string | { readonly from: string; readonly type: string; readonly to: string };
+    readonly subject:
+      | string
+      | { readonly from: string; readonly type: string; readonly to: string; readonly qualifier?: string };
     readonly evidence: readonly CiteEvidence[];
     readonly total: number;
   };
