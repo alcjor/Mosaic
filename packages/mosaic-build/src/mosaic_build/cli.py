@@ -29,7 +29,10 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   no page opens. Then it serves the built viewer and the file's bytes, read-only, on this
   machine (``127.0.0.1``), prints the page's address, opens it in the default browser, and
   serves until interrupted (Ctrl-C). The kit in the page answers every query; the server only
-  hands out files. The viewer must be built first (``bun run build``).
+  hands out files. The viewer must be built first (``bun run build``). With ``--model DIR``
+  (answer A on #117), it also serves the embedding model's files of section 6 from ``DIR``,
+  checked by their pinned hashes first, and the page searches by vectors as well; without it,
+  by names and full text only.
 
 Exit status: 0 when the command did what was asked (for ``view``, when it is stopped), 1 when a
 build failed, a check found violations, an input could not be read or a file could not be
@@ -138,10 +141,20 @@ def make_parser() -> argparse.ArgumentParser:
             "open the page in the default browser. The kit runs in the page; nothing is queried "
             "on a server. FILE is never written. Stop with Ctrl-C. A missing or refused file is "
             "an error naming it and what failed (exit status 1), and no page opens. The viewer "
-            "must be built first: bun run build."
+            "must be built first: bun run build. With --model DIR, the page also searches by "
+            "vectors: it gets the embedding model's files of section 6 from DIR, each checked "
+            "by its pinned SHA-256 (a file with another hash is an error naming it and both "
+            "hashes, exit status 1, and no page opens). Without it, the page searches by names "
+            "and full text only."
         ),
     )
     view_cmd.add_argument("file", type=Path, help="the tessera or mosaic to open (only read)")
+    view_cmd.add_argument(
+        "--model",
+        type=Path,
+        metavar="DIR",
+        help="directory of the embedding model files (section 6), for search by vectors",
+    )
 
     for name, milestone in PLANNED.items():
         sub.add_parser(name, help=f"not implemented yet (planned for {milestone})")
@@ -290,11 +303,12 @@ def _view(args: argparse.Namespace) -> int:
     path: Path = args.file
     try:
         data = viewer.checked_bytes(path)
+        model = None if args.model is None else viewer.checked_model(args.model)
         dist = viewer.viewer_dist()
     except viewer.ViewError as e:
         _error("view", e)
         return 1
-    server, url = viewer.serve(dist, path.name, data)
+    server, url = viewer.serve(dist, path.name, data, model=model)
     stopped = threading.Event()
     try:
         print(f"{path}: ok; viewer at {url} (Ctrl-C to stop)", flush=True)

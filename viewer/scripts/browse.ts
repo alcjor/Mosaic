@@ -5,9 +5,12 @@
  * in it.
  *
  *     bun viewer/scripts/browse.ts FILE QUERY NODE_ID
- *     bun viewer/scripts/browse.ts --url URL QUERY NODE_ID
+ *     bun viewer/scripts/browse.ts --url URL QUERY NODE_ID [--table TYPE]
  *
- * With `--url`, it serves nothing and walks the page at URL once, as `mosaic view` opens it.
+ * With `--url`, it serves nothing and walks the page at URL once, as `mosaic view` opens it;
+ * with `--table TYPE`, it then opens the table of TYPE and reads its first page. Each walk
+ * reports how long the page took to be ready, the search to list results, the node page to
+ * show, and the table to fill (`ms`).
  *
  * Twice: once with the mosaic named in the address (`?mosaic=`), once picked with the page's
  * file chooser. Each time it types QUERY in the search box and presses Enter, opens NODE_ID from
@@ -21,7 +24,10 @@ import { createRequire } from "node:module";
 import { basename, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const given = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const tableAt = argv.indexOf("--table");
+const tableType = tableAt >= 0 ? argv[tableAt + 1] : undefined;
+const given = tableAt >= 0 ? [...argv.slice(0, tableAt), ...argv.slice(tableAt + 2)] : argv;
 const pageUrl = given[0] === "--url" ? given[1] : undefined;
 const [file, query, nodeId] = pageUrl === undefined ? given : given.slice(1);
 if (!file || !query || !nodeId) {
@@ -56,21 +62,32 @@ const browser = await chromium.launch();
 
 type Page = import("playwright").Page;
 
-async function walk(page: Page) {
+async function walk(page: Page, started: number = performance.now()) {
+  const ms: Record<string, number> = {};
+  let mark = started;
+  const lap = (step: string) => {
+    const now = performance.now();
+    ms[step] = Math.round(now - mark);
+    mark = now;
+  };
   const box = page.getByRole("searchbox", { name: "Search the mosaic" });
   await box.waitFor({ state: "visible" });
-  await page.waitForFunction(() => !(document.querySelector('input[type="search"]') as HTMLInputElement).disabled);
+  await page.waitForFunction(() => !(document.querySelector('input[type="search"]') as HTMLInputElement).disabled, null, { timeout: 120_000 });
+  lap("ready");
   const header = (await page.locator("header").innerText()).split("\n").map((s) => s.trim()).filter(Boolean);
   await box.fill(query!);
   await box.press("Enter");
   const rows = page.locator('nav[aria-label="Results"] a[data-id]');
   await rows.first().waitFor();
+  lap("search");
   const results = await rows.evaluateAll((as) =>
     as.map((a) => ({ id: a.getAttribute("data-id"), match: a.getAttribute("data-match"), text: (a as HTMLElement).innerText })),
   );
   await page.locator(`nav[aria-label="Results"] a[data-id="${nodeId}"]`).click();
   const card = page.locator(`article[aria-label="${nodeId}"]`);
   await card.waitFor();
+  await page.locator('aside[aria-label="Links and sources"]').waitFor();
+  lap("node");
   const cardText = await card.innerText();
   const context = page.locator('aside[aria-label="Links and sources"]');
   const links = await context.locator("a[data-id]").evaluateAll((as) => as.map((a) => a.getAttribute("data-id")));
@@ -82,7 +99,21 @@ async function walk(page: Page) {
     await page.locator(`article[aria-label="${first}"]`).waitFor();
     opened = first;
   }
-  return { header, results, card: cardText, links, sources, opened, hash: new URL(page.url()).hash };
+  const banners = await page.locator('[role="alert"]').allInnerTexts();
+  return { header, results, card: cardText, links, sources, opened, hash: new URL(page.url()).hash, banners, ms };
+}
+
+/** The first page of the table of `type`: its column headers, row ids, pager, and time to fill. */
+async function glance(page: Page, type: string) {
+  const started = performance.now();
+  await page.locator(`a[data-type="${type}"]`).click();
+  const table = page.locator(`section[aria-label="Table ${type}"]`);
+  await table.locator("tbody a[data-id]").first().waitFor();
+  const ms = Math.round(performance.now() - started);
+  const headers = await table.locator("thead th").allInnerTexts();
+  const rows = await table.locator("tbody a[data-id]").evaluateAll((as) => as.map((a) => a.getAttribute("data-id")));
+  const pager = await table.locator('nav[aria-label="Pages"]').innerText();
+  return { type, headers, rows, pager, ms };
 }
 
 /** The tables: open a type's table, sort it both ways, filter it, then open a row's node page. */
@@ -141,8 +172,11 @@ if (pageUrl !== undefined) {
     const page = await browser.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    const started = performance.now();
     await page.goto(pageUrl);
-    console.log(JSON.stringify({ named: await walk(page), errors }));
+    const named = await walk(page, started);
+    const table = tableType === undefined ? undefined : await glance(page, tableType);
+    console.log(JSON.stringify({ named, table, errors }));
   } finally {
     await browser.close();
     server.stop(true);
