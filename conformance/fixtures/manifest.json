@@ -26,7 +26,7 @@
       "sha256": null,
       "licence": "ODbL (notice carried)",
       "licence_confirmed": false,
-      "milestone": "M4"
+      "milestone": "M5"
     },
     {
       "name": "px4",
@@ -35,7 +35,7 @@
       "sha256": null,
       "licence": "BSD-3-Clause code, CC BY 4.0 docs, MIT MAVLink XML",
       "licence_confirmed": false,
-      "milestone": "M5"
+      "milestone": "M6"
     }
   ]
 }
