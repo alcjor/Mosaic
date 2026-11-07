@@ -12,7 +12,10 @@ if git diff --quiet HEAD -- 2>/dev/null && [ -z "$(git ls-files --others --exclu
    && [ "$(git rev-list --count @{upstream}..HEAD 2>/dev/null || echo 1)" = "0" ]; then
   exit 0
 fi
-if ! out="$(./scripts/check-fast.sh 2>&1)"; then
+. .claude/hooks/gate-cache.sh
+# This exact tree already passed: nothing to check.
+gate_passed_already && exit 0
+if ! out="$(gate_run)"; then
   printf 'The fast gate (scripts/check-fast.sh) failed. Fix it before finishing; never weaken a test or edit spec/ or expected values to pass.\n\n%s\n' "$(printf '%s' "$out" | tail -60)" >&2
   exit 2
 fi
