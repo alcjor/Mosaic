@@ -1,0 +1,1669 @@
+{
+  "comment": "Kit tool cases on the Chinook mosaic (docs/spec-0.1.md sections 8 and 11): each case names a tool, its arguments and the answer the kit gives on the mosaic that conformance/fixtures/chinook builds (target default, knowledge hash in its expected-hashes.json), valid against spec/answers.schema.json. Proposed by the pair (plan M3.4) from the kit's answers, each checked against the source database; changing it needs the maintainer's review (CODEOWNERS).",
+  "fixture": "chinook",
+  "target": "default",
+  "cases": {
+    "find-exact-id": {
+      "tool": "find",
+      "arguments": {
+        "query": "Track:1"
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [
+            {
+              "id": "Track:1",
+              "type": "Track",
+              "label": "For Those About To Rock (We Salute You)",
+              "match": "exact"
+            },
+            {
+              "id": "Track:101",
+              "type": "Track",
+              "label": "Be Yourself",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1987",
+              "type": "Track",
+              "label": "School",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1957",
+              "type": "Track",
+              "label": "Kir Royal",
+              "match": "vector"
+            },
+            {
+              "id": "Track:3270",
+              "type": "Track",
+              "label": "Watching the Wheels",
+              "match": "vector"
+            },
+            {
+              "id": "Track:6",
+              "type": "Track",
+              "label": "Put The Finger On You",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1265",
+              "type": "Track",
+              "label": "Judas Be My Guide",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1065",
+              "type": "Track",
+              "label": "Balada Da Paula",
+              "match": "vector"
+            },
+            {
+              "id": "Track:2100",
+              "type": "Track",
+              "label": "Crazy Train",
+              "match": "vector"
+            },
+            {
+              "id": "Track:571",
+              "type": "Track",
+              "label": "Love Of My Life",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1471",
+              "type": "Track",
+              "label": "Move On",
+              "match": "vector"
+            },
+            {
+              "id": "Track:899",
+              "type": "Track",
+              "label": "Cocaine",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1425",
+              "type": "Track",
+              "label": "Make It Funky Pt.1",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1850",
+              "type": "Track",
+              "label": "Thorn Within",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1168",
+              "type": "Track",
+              "label": "The Garden",
+              "match": "vector"
+            },
+            {
+              "id": "Track:191",
+              "type": "Track",
+              "label": "Machine Men",
+              "match": "vector"
+            },
+            {
+              "id": "Track:3314",
+              "type": "Track",
+              "label": "One For The Road",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1851",
+              "type": "Track",
+              "label": "Ronnie",
+              "match": "vector"
+            },
+            {
+              "id": "Track:1994",
+              "type": "Track",
+              "label": "Spank Thru",
+              "match": "vector"
+            },
+            {
+              "id": "Track:681",
+              "type": "Track",
+              "label": "Commotion",
+              "match": "vector"
+            }
+          ],
+          "total": 20
+        }
+      }
+    },
+    "find-exact-key": {
+      "tool": "find",
+      "arguments": {
+        "query": "90",
+        "type": "Artist"
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [
+            {
+              "id": "Artist:90",
+              "type": "Artist",
+              "label": "Iron Maiden",
+              "match": "exact"
+            },
+            {
+              "id": "Artist:95",
+              "type": "Artist",
+              "label": "Joe Satriani",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:98",
+              "type": "Artist",
+              "label": "Judas Priest",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:88",
+              "type": "Artist",
+              "label": "Guns N' Roses",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:82",
+              "type": "Artist",
+              "label": "Faith No More",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:99",
+              "type": "Artist",
+              "label": "Legião Urbana",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:209",
+              "type": "Artist",
+              "label": "Anne-Sophie Mutter, Herbert Von Karajan & Wiener Philharmoniker",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:169",
+              "type": "Artist",
+              "label": "Black Eyed Peas",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:146",
+              "type": "Artist",
+              "label": "Titãs",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:195",
+              "type": "Artist",
+              "label": "Stereo Maracana",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:139",
+              "type": "Artist",
+              "label": "The Cult",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:94",
+              "type": "Artist",
+              "label": "Jimi Hendrix",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:92",
+              "type": "Artist",
+              "label": "Jamiroquai",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:85",
+              "type": "Artist",
+              "label": "Frank Sinatra",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:221",
+              "type": "Artist",
+              "label": "Sir Georg Solti & Wiener Philharmoniker",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:79",
+              "type": "Artist",
+              "label": "Dennis Chambers",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:190",
+              "type": "Artist",
+              "label": "Instituto",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:89",
+              "type": "Artist",
+              "label": "Incognito",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:198",
+              "type": "Artist",
+              "label": "Habib Koité and Bamada",
+              "match": "vector"
+            },
+            {
+              "id": "Artist:232",
+              "type": "Artist",
+              "label": "Sergei Prokofiev & Yuri Temirkanov",
+              "match": "vector"
+            }
+          ],
+          "total": 20
+        }
+      }
+    },
+    "find-text": {
+      "tool": "find",
+      "arguments": {
+        "query": "Iron Maiden",
+        "limit": 5
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [
+            {
+              "id": "Album:100",
+              "type": "Album",
+              "label": "Iron Maiden",
+              "match": "text"
+            },
+            {
+              "id": "Artist:90",
+              "type": "Artist",
+              "label": "Iron Maiden",
+              "match": "text"
+            },
+            {
+              "id": "Track:1222",
+              "type": "Track",
+              "label": "Iron Maiden",
+              "match": "text"
+            },
+            {
+              "id": "Track:1297",
+              "type": "Track",
+              "label": "Iron Maiden",
+              "match": "text"
+            },
+            {
+              "id": "Track:1320",
+              "type": "Track",
+              "label": "Iron Maiden",
+              "match": "text"
+            }
+          ],
+          "total": 8
+        }
+      }
+    },
+    "find-text-type": {
+      "tool": "find",
+      "arguments": {
+        "query": "symphony",
+        "type": "Track",
+        "limit": 5
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [
+            {
+              "id": "Track:3486",
+              "type": "Track",
+              "label": "Act IV, Symphony",
+              "match": "text"
+            },
+            {
+              "id": "Track:3442",
+              "type": "Track",
+              "label": "Wellington's Victory or the Battle Symphony, Op.91: 2. Symphony of Triumph",
+              "match": "text"
+            },
+            {
+              "id": "Track:3489",
+              "type": "Track",
+              "label": "Symphony No. 2: III. Allegro vivace",
+              "match": "text"
+            },
+            {
+              "id": "Track:3415",
+              "type": "Track",
+              "label": "Symphony No.5 in C Minor: I. Allegro con brio",
+              "match": "text"
+            },
+            {
+              "id": "Track:3414",
+              "type": "Track",
+              "label": "Symphony No. 104 in D Major \"London\": IV. Finale: Spiritoso",
+              "match": "text"
+            }
+          ],
+          "total": 10
+        }
+      }
+    },
+    "find-vector": {
+      "tool": "find",
+      "arguments": {
+        "query": "calm music for studying",
+        "type": "Playlist",
+        "limit": 5
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [
+            {
+              "id": "Playlist:12",
+              "type": "Playlist",
+              "label": "Classical",
+              "match": "vector"
+            },
+            {
+              "id": "Playlist:15",
+              "type": "Playlist",
+              "label": "Classical 101 - The Basics",
+              "match": "vector"
+            },
+            {
+              "id": "Playlist:4",
+              "type": "Playlist",
+              "label": "Audiobooks",
+              "match": "vector"
+            },
+            {
+              "id": "Playlist:13",
+              "type": "Playlist",
+              "label": "Classical 101 - Deep Cuts",
+              "match": "vector"
+            },
+            {
+              "id": "Playlist:1",
+              "type": "Playlist",
+              "label": "Music",
+              "match": "vector"
+            }
+          ],
+          "total": 5
+        }
+      }
+    },
+    "find-empty": {
+      "tool": "find",
+      "arguments": {
+        "query": ""
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [],
+          "total": 0
+        }
+      }
+    },
+    "find-limit-large": {
+      "tool": "find",
+      "arguments": {
+        "query": "rock",
+        "limit": 500
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "results": [
+            {
+              "id": "Genre:1",
+              "type": "Genre",
+              "label": "Rock",
+              "match": "text"
+            },
+            {
+              "id": "Track:1569",
+              "type": "Track",
+              "label": "Rock Bottom",
+              "match": "text"
+            },
+            {
+              "id": "Track:1611",
+              "type": "Track",
+              "label": "Rock & Roll",
+              "match": "text"
+            },
+            {
+              "id": "Track:1662",
+              "type": "Track",
+              "label": "Rock & Roll",
+              "match": "text"
+            },
+            {
+              "id": "Track:2430",
+              "type": "Track",
+              "label": "Rock Me",
+              "match": "text"
+            },
+            {
+              "id": "Track:2483",
+              "type": "Track",
+              "label": "Rock On",
+              "match": "text"
+            },
+            {
+              "id": "Track:2491",
+              "type": "Track",
+              "label": "Cherub Rock",
+              "match": "text"
+            },
+            {
+              "id": "Genre:5",
+              "type": "Genre",
+              "label": "Rock And Roll",
+              "match": "text"
+            },
+            {
+              "id": "Track:122",
+              "type": "Track",
+              "label": "20 Flight Rock",
+              "match": "text"
+            },
+            {
+              "id": "Track:1659",
+              "type": "Track",
+              "label": "Candy Store Rock",
+              "match": "text"
+            },
+            {
+              "id": "Track:2607",
+              "type": "Track",
+              "label": "Rock The Casbah",
+              "match": "text"
+            },
+            {
+              "id": "Track:436",
+              "type": "Track",
+              "label": "Detroit Rock City",
+              "match": "text"
+            },
+            {
+              "id": "Track:839",
+              "type": "Track",
+              "label": "Rock Of Ages",
+              "match": "text"
+            },
+            {
+              "id": "Album:108",
+              "type": "Album",
+              "label": "Rock In Rio [CD1]",
+              "match": "text"
+            },
+            {
+              "id": "Album:109",
+              "type": "Album",
+              "label": "Rock In Rio [CD2]",
+              "match": "text"
+            },
+            {
+              "id": "Album:4",
+              "type": "Album",
+              "label": "Let There Be Rock",
+              "match": "text"
+            },
+            {
+              "id": "Album:59",
+              "type": "Album",
+              "label": "Deep Purple In Rock",
+              "match": "text"
+            },
+            {
+              "id": "Track:117",
+              "type": "Track",
+              "label": "Rock 'N' Roll Music",
+              "match": "text"
+            },
+            {
+              "id": "Track:17",
+              "type": "Track",
+              "label": "Let There Be Rock",
+              "match": "text"
+            },
+            {
+              "id": "Track:2269",
+              "type": "Track",
+              "label": "We Will Rock You",
+              "match": "text"
+            }
+          ],
+          "total": 33
+        }
+      }
+    },
+    "find-unknown-type": {
+      "tool": "find",
+      "arguments": {
+        "query": "rock",
+        "type": "Song"
+      },
+      "answer": {
+        "tool": "find",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_type",
+          "message": "\"Song\" is not a node type of this mosaic",
+          "suggestions": []
+        }
+      }
+    },
+    "get-track": {
+      "tool": "get",
+      "arguments": {
+        "id": "Track:1"
+      },
+      "answer": {
+        "tool": "get",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Track:1",
+          "type": "Track",
+          "label": "For Those About To Rock (We Salute You)",
+          "summary": null,
+          "props": {
+            "bytes": 11170334,
+            "composer": "Angus Young, Malcolm Young, Brian Johnson",
+            "milliseconds": 343719,
+            "name": "For Those About To Rock (We Salute You)",
+            "unit_price": 0.99
+          },
+          "aliases": [],
+          "aliases_total": 0,
+          "external_refs": [],
+          "external_refs_total": 0,
+          "links": [
+            {
+              "edge": "contains",
+              "direction": "in",
+              "count": 3
+            },
+            {
+              "edge": "encoded_as",
+              "direction": "out",
+              "count": 1
+            },
+            {
+              "edge": "in_genre",
+              "direction": "out",
+              "count": 1
+            },
+            {
+              "edge": "on_album",
+              "direction": "out",
+              "count": 1
+            }
+          ],
+          "links_total": 4
+        }
+      }
+    },
+    "get-employee": {
+      "tool": "get",
+      "arguments": {
+        "id": "Employee:2"
+      },
+      "answer": {
+        "tool": "get",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Employee:2",
+          "type": "Employee",
+          "label": "Edwards",
+          "summary": null,
+          "props": {
+            "city": "Calgary",
+            "country": "Canada",
+            "first_name": "Nancy",
+            "hire_date": "2002-05-01 00:00:00",
+            "last_name": "Edwards",
+            "title": "Sales Manager"
+          },
+          "aliases": [],
+          "aliases_total": 0,
+          "external_refs": [],
+          "external_refs_total": 0,
+          "links": [
+            {
+              "edge": "reports_to",
+              "direction": "out",
+              "count": 1
+            },
+            {
+              "edge": "reports_to",
+              "direction": "in",
+              "count": 3
+            }
+          ],
+          "links_total": 2
+        }
+      }
+    },
+    "get-unknown": {
+      "tool": "get",
+      "arguments": {
+        "id": "Artist:Queen"
+      },
+      "answer": {
+        "tool": "get",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_id",
+          "message": "get: no node has the id \"Artist:Queen\"; see the suggestions",
+          "suggestions": [
+            "Artist:51",
+            "Track:1157",
+            "Track:2256",
+            "Track:2390",
+            "Album:331"
+          ]
+        }
+      }
+    },
+    "neighbors-album-in": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Album:1",
+        "direction": "in",
+        "edge": "on_album"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Album:1",
+          "edges": [
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:1",
+              "label": "For Those About To Rock (We Salute You)"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:10",
+              "label": "Evil Walks"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:11",
+              "label": "C.O.D."
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:12",
+              "label": "Breaking The Rules"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:13",
+              "label": "Night Of The Long Knives"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:14",
+              "label": "Spellbound"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:6",
+              "label": "Put The Finger On You"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:7",
+              "label": "Let's Get It Up"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:8",
+              "label": "Inject The Venom"
+            },
+            {
+              "edge": "on_album",
+              "direction": "in",
+              "id": "Track:9",
+              "label": "Snowballed"
+            }
+          ],
+          "total": 10
+        }
+      }
+    },
+    "neighbors-playlist-out": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Playlist:18",
+        "direction": "out"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Playlist:18",
+          "edges": [
+            {
+              "edge": "contains",
+              "direction": "out",
+              "id": "Track:597",
+              "label": "Now's The Time"
+            }
+          ],
+          "total": 1
+        }
+      }
+    },
+    "neighbors-manager": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Employee:1",
+        "edge": "reports_to",
+        "direction": "in"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Employee:1",
+          "edges": [
+            {
+              "edge": "reports_to",
+              "direction": "in",
+              "id": "Employee:2",
+              "label": "Edwards"
+            },
+            {
+              "edge": "reports_to",
+              "direction": "in",
+              "id": "Employee:6",
+              "label": "Mitchell"
+            }
+          ],
+          "total": 2
+        }
+      }
+    },
+    "neighbors-unknown-edge": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Album:1",
+        "edge": "sung_by"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_edge",
+          "message": "\"sung_by\" is not an edge type of this mosaic",
+          "suggestions": []
+        }
+      }
+    },
+    "neighbors-bad-direction": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Album:1",
+        "direction": "sideways"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "bad_argument",
+          "message": "neighbors' direction must be out, in or both, not \"sideways\"",
+          "suggestions": []
+        }
+      }
+    },
+    "table-employee": {
+      "tool": "table",
+      "arguments": {
+        "type": "Employee"
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Employee",
+          "columns": [
+            "id",
+            "label",
+            "city",
+            "country",
+            "first_name",
+            "hire_date",
+            "last_name",
+            "title"
+          ],
+          "rows": [
+            [
+              "Employee:1",
+              "Adams",
+              "Edmonton",
+              "Canada",
+              "Andrew",
+              "2002-08-14 00:00:00",
+              "Adams",
+              "General Manager"
+            ],
+            [
+              "Employee:2",
+              "Edwards",
+              "Calgary",
+              "Canada",
+              "Nancy",
+              "2002-05-01 00:00:00",
+              "Edwards",
+              "Sales Manager"
+            ],
+            [
+              "Employee:3",
+              "Peacock",
+              "Calgary",
+              "Canada",
+              "Jane",
+              "2002-04-01 00:00:00",
+              "Peacock",
+              "Sales Support Agent"
+            ],
+            [
+              "Employee:4",
+              "Park",
+              "Calgary",
+              "Canada",
+              "Margaret",
+              "2003-05-03 00:00:00",
+              "Park",
+              "Sales Support Agent"
+            ],
+            [
+              "Employee:5",
+              "Johnson",
+              "Calgary",
+              "Canada",
+              "Steve",
+              "2003-10-17 00:00:00",
+              "Johnson",
+              "Sales Support Agent"
+            ],
+            [
+              "Employee:6",
+              "Mitchell",
+              "Calgary",
+              "Canada",
+              "Michael",
+              "2003-10-17 00:00:00",
+              "Mitchell",
+              "IT Manager"
+            ],
+            [
+              "Employee:7",
+              "King",
+              "Lethbridge",
+              "Canada",
+              "Robert",
+              "2004-01-02 00:00:00",
+              "King",
+              "IT Staff"
+            ],
+            [
+              "Employee:8",
+              "Callahan",
+              "Lethbridge",
+              "Canada",
+              "Laura",
+              "2004-03-04 00:00:00",
+              "Callahan",
+              "IT Staff"
+            ]
+          ],
+          "page": 1,
+          "total": 8
+        }
+      }
+    },
+    "table-track-where": {
+      "tool": "table",
+      "arguments": {
+        "type": "Track",
+        "columns": [
+          "name",
+          "composer",
+          "milliseconds",
+          "in_genre"
+        ],
+        "where": {
+          "column": "composer",
+          "op": "contains",
+          "value": "mercury"
+        },
+        "order": {
+          "column": "milliseconds",
+          "direction": "desc"
+        }
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Track",
+          "columns": [
+            "id",
+            "name",
+            "composer",
+            "milliseconds",
+            "in_genre"
+          ],
+          "rows": [
+            [
+              "Track:2254",
+              "Bohemian Rhapsody",
+              "Mercury, Freddie",
+              358948,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2263",
+              "Somebody To Love",
+              "Mercury, Freddie",
+              297351,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:425",
+              "It's A Hard Life",
+              "Freddie Mercury",
+              249417,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:433",
+              "Friends Will Be Friends",
+              "Freddie Mercury & John Deacon",
+              248920,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2277",
+              "Get Down, Make Love",
+              "Mercury",
+              231235,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2266",
+              "Play The Game",
+              "Mercury, Freddie",
+              213368,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2260",
+              "Don't Stop Me Now",
+              "Mercury, Freddie",
+              211826,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2281",
+              "My Melancholy Blues",
+              "Mercury",
+              206471,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2258",
+              "Bicycle Race",
+              "Mercury, Freddie",
+              183823,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2272",
+              "We Are The Champions",
+              "Mercury",
+              182883,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2256",
+              "Killer Queen",
+              "Mercury, Freddie",
+              182099,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2270",
+              "We Are The Champions",
+              "Mercury, Freddie",
+              180950,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2265",
+              "Good Old-Fashioned Lover Boy",
+              "Mercury, Freddie",
+              175960,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2268",
+              "Seven Seas Of Rhye",
+              "Mercury, Freddie",
+              170553,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:2262",
+              "Crazy Little Thing Called Love",
+              "Mercury, Freddie",
+              164231,
+              [
+                "Rock"
+              ]
+            ],
+            [
+              "Track:1822",
+              "Stone Cold Crazy",
+              "Deacon/May/Mercury/Taylor",
+              137717,
+              [
+                "Metal"
+              ]
+            ]
+          ],
+          "page": 1,
+          "total": 16
+        }
+      }
+    },
+    "table-customer-country": {
+      "tool": "table",
+      "arguments": {
+        "type": "Customer",
+        "columns": [
+          "first_name",
+          "last_name",
+          "country",
+          "supported_by"
+        ],
+        "where": {
+          "column": "country",
+          "op": "=",
+          "value": "Brazil"
+        }
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Customer",
+          "columns": [
+            "id",
+            "first_name",
+            "last_name",
+            "country",
+            "supported_by"
+          ],
+          "rows": [
+            [
+              "Customer:1",
+              "Luís",
+              "Gonçalves",
+              "Brazil",
+              [
+                "Peacock"
+              ]
+            ],
+            [
+              "Customer:10",
+              "Eduardo",
+              "Martins",
+              "Brazil",
+              [
+                "Park"
+              ]
+            ],
+            [
+              "Customer:11",
+              "Alexandre",
+              "Rocha",
+              "Brazil",
+              [
+                "Johnson"
+              ]
+            ],
+            [
+              "Customer:12",
+              "Roberto",
+              "Almeida",
+              "Brazil",
+              [
+                "Peacock"
+              ]
+            ],
+            [
+              "Customer:13",
+              "Fernanda",
+              "Ramos",
+              "Brazil",
+              [
+                "Park"
+              ]
+            ]
+          ],
+          "page": 1,
+          "total": 5
+        }
+      }
+    },
+    "table-albums-by": {
+      "tool": "table",
+      "arguments": {
+        "type": "Album",
+        "columns": [
+          "title",
+          "by"
+        ],
+        "where": {
+          "column": "by",
+          "op": "contains",
+          "value": "led zeppelin"
+        }
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Album",
+          "columns": [
+            "id",
+            "title",
+            "by"
+          ],
+          "rows": [
+            [
+              "Album:127",
+              "BBC Sessions [Disc 2] [Live]",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:128",
+              "Coda",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:129",
+              "Houses Of The Holy",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:130",
+              "In Through The Out Door",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:131",
+              "IV",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:132",
+              "Led Zeppelin I",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:133",
+              "Led Zeppelin II",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:134",
+              "Led Zeppelin III",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:135",
+              "Physical Graffiti [Disc 2]",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:136",
+              "Presence",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:137",
+              "The Song Remains The Same (Disc 1)",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:138",
+              "The Song Remains The Same (Disc 2)",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:30",
+              "BBC Sessions [Disc 1] [Live]",
+              [
+                "Led Zeppelin"
+              ]
+            ],
+            [
+              "Album:44",
+              "Physical Graffiti [Disc 1]",
+              [
+                "Led Zeppelin"
+              ]
+            ]
+          ],
+          "page": 1,
+          "total": 14
+        }
+      }
+    },
+    "table-page-2": {
+      "tool": "table",
+      "arguments": {
+        "type": "Track",
+        "columns": [
+          "name",
+          "in_genre"
+        ],
+        "where": {
+          "column": "in_genre",
+          "op": "contains",
+          "value": "jazz"
+        },
+        "page": 2
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Track",
+          "columns": [
+            "id",
+            "name",
+            "in_genre"
+          ],
+          "rows": [
+            [
+              "Track:127",
+              "Stratus",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:128",
+              "The pleasant pheasant",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:129",
+              "Solo-Panhandler",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:130",
+              "Do what cha wanna",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1902",
+              "Springsville",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1903",
+              "The Maids Of Cadiz",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1904",
+              "The Duke",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1905",
+              "My Ship",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1906",
+              "Miles Ahead",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1907",
+              "Blues For Pablo",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1908",
+              "New Rhumba",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1909",
+              "The Meaning Of The Blues",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1910",
+              "Lament",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1911",
+              "I Don't Wanna Be Kissed (By Anyone But You)",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1912",
+              "Springsville (Alternate Take)",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1913",
+              "Blues For Pablo (Alternate Take)",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1914",
+              "The Meaning Of The Blues/Lament (Alternate Take)",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:1915",
+              "I Don't Wanna Be Kissed (By Anyone But You) (Alternate Take)",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:2523",
+              "Morning Dance",
+              [
+                "Jazz"
+              ]
+            ],
+            [
+              "Track:2524",
+              "Jubilee",
+              [
+                "Jazz"
+              ]
+            ]
+          ],
+          "page": 2,
+          "total": 130
+        }
+      }
+    },
+    "table-edge-equals-text": {
+      "tool": "table",
+      "arguments": {
+        "type": "Track",
+        "columns": [
+          "name",
+          "in_genre"
+        ],
+        "where": {
+          "column": "in_genre",
+          "op": "=",
+          "value": "Jazz"
+        }
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Track",
+          "columns": [
+            "id",
+            "name",
+            "in_genre"
+          ],
+          "rows": [],
+          "page": 1,
+          "total": 0
+        }
+      }
+    },
+    "table-unknown-column": {
+      "tool": "table",
+      "arguments": {
+        "type": "Track",
+        "columns": [
+          "genre"
+        ]
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_column",
+          "message": "table: \"genre\" is not a column of Track: a column is a declared property, key, label, summary or an edge type leaving Track; table on Track without columns lists the label and declared properties",
+          "suggestions": []
+        }
+      }
+    },
+    "table-bad-op": {
+      "tool": "table",
+      "arguments": {
+        "type": "Track",
+        "where": {
+          "column": "milliseconds",
+          "op": "between",
+          "value": 1
+        }
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "bad_argument",
+          "message": "table's where allows =, !=, <, <=, >, >=, contains, not \"between\"",
+          "suggestions": []
+        }
+      }
+    },
+    "cite-node": {
+      "tool": "cite",
+      "arguments": {
+        "id": "Track:1"
+      },
+      "answer": {
+        "tool": "cite",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "subject": "Track:1",
+          "evidence": [
+            {
+              "source": "chinook/Chinook_Sqlite.sqlite",
+              "source_hash": "bdf635be69850bd3be09c9a2dbeef7ddfb80036bd3ef3381383cd03b61e4a61a",
+              "locator": "file=Chinook_Sqlite.sqlite;table=Track;row=1",
+              "method": "extracted",
+              "confidence": null,
+              "snippet": null
+            }
+          ],
+          "total": 1
+        }
+      }
+    },
+    "cite-edge": {
+      "tool": "cite",
+      "arguments": {
+        "from": "Playlist:18",
+        "type": "contains",
+        "to": "Track:597"
+      },
+      "answer": {
+        "tool": "cite",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "subject": {
+            "from": "Playlist:18",
+            "type": "contains",
+            "to": "Track:597"
+          },
+          "evidence": [
+            {
+              "source": "chinook/Chinook_Sqlite.sqlite",
+              "source_hash": "bdf635be69850bd3be09c9a2dbeef7ddfb80036bd3ef3381383cd03b61e4a61a",
+              "locator": "file=Chinook_Sqlite.sqlite;table=PlaylistTrack;row=18/597",
+              "method": "extracted",
+              "confidence": null,
+              "snippet": null
+            }
+          ],
+          "total": 1
+        }
+      }
+    },
+    "cite-unknown": {
+      "tool": "cite",
+      "arguments": {
+        "id": "Album:0"
+      },
+      "answer": {
+        "tool": "cite",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_id",
+          "message": "cite: no node has the id \"Album:0\"; see the suggestions",
+          "suggestions": [
+            "Album:201"
+          ]
+        }
+      }
+    }
+  }
+}
