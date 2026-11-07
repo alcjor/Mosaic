@@ -5,7 +5,7 @@ mosaic inside as one HTML file that opens offline with a double-click"; View fil
 text`` (a few MB) or ``search: semantic`` (the embedding model inside, M3.9).
 
 :func:`export` checks the mosaic by the reading rules first (section 3.8, steps 1 to 3, with
-:func:`mosaic_build.view.checked_bytes`) and the view file with M3.5's reader; a refused
+:func:`mosaic_build.view.checked_bytes`) and the view file as ``mosaic view --view`` does; a refused
 file, a wrong view file or a view file whose ``search`` is ``semantic`` (not built until M3.9)
 is an :class:`ExportError` and nothing is written. Then it writes one new HTML file, never over
 an existing one: the built viewer's page (``bun run build``) with its script and stylesheet
@@ -108,14 +108,9 @@ def export(source: Path, output: Path, view: Path | None = None, dist: Path | No
     """
     try:
         data = viewer.checked_bytes(source)
+        settings = view_file.read(None).as_json() if view is None else viewer.checked_view(view)
         built = viewer.viewer_dist(dist)
-    except viewer.ViewError as e:
-        raise ExportError(str(e)) from None
-    try:
-        settings = view_file.read(view).as_json()
-    except OSError as e:
-        raise ExportError(f"{view}: view file cannot be read: {e.strerror or e}") from None
-    except ValueError as e:  # names the file, the line and the setting (M3.5)
+    except viewer.ViewError as e:  # a view file's names the file, the line and the setting (M3.5)
         raise ExportError(str(e)) from None
     if settings["search"] != "text":
         where = "the default view file" if view is None else str(view)
