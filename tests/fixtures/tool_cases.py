@@ -67,8 +67,9 @@ def argument_problem(tool: str, arguments: object) -> str | None:
 
 
 SPEC_CODES = frozenset({"unknown_id", "unknown_column"})
-"""The error codes the spec names for a case: an unknown id (section 8.1) and a column a type
-does not have (section 8.6). Any other expected error takes any code of the schema's list."""
+"""The error codes the spec names for a case: an unknown id (section 8.1, with the code
+``answers.schema.json`` gives it) and a column a type does not have (section 8.6). Any other
+expected error takes any code of the schema's list."""
 
 UNORDERED: dict[str, tuple[str, ...]] = {
     "neighbors": ("edges",),
@@ -114,7 +115,7 @@ def _error_problems(
     if want["code"] in SPEC_CODES:
         if code != want["code"]:
             problems.append(f"code {code!r}, expected {want['code']!r} (the spec names it)")
-    elif code not in _codes():
+    elif not isinstance(code, str) or code not in _codes():
         problems.append(f"code {code!r} is not a code of answers.schema.json")
     suggestions = have.get("suggestions")
     if not isinstance(suggestions, list) or len(suggestions) > SUGGESTION_LIMIT:
@@ -167,6 +168,10 @@ def differences(
             )
         elif "error" in want:
             found += [f"{name}: {p}" for p in _error_problems(want, got, node_ids)]
+        elif not isinstance(got.get("data"), dict):
+            found.append(
+                f"{name}: data is not an object: {json.dumps(got, ensure_ascii=False)[:200]}"
+            )
         elif _comparable(case["tool"], got) != _comparable(case["tool"], want):
             found.append(
                 f"{name}: expected {json.dumps(want, ensure_ascii=False)[:300]}, "
