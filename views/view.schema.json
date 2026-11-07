@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mosaic.invalid/views/view.schema.json",
+  "title": "Mosaic view file (not a normative file)",
+  "description": "Shape of a view file for `mosaic view` and `mosaic export` (docs/design.md, Implementation plan, View file; answer on #120). Every key is optional: an empty view file, or none, gives M2's viewer. Whether the named types and properties are in the mosaic is checked by the page, not by this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "search": {
+      "description": "How the search box searches. Default: semantic.",
+      "enum": ["semantic", "text"]
+    },
+    "theme": {
+      "description": "Light or dark, or auto to follow the system. Default: auto.",
+      "enum": ["auto", "light", "dark"]
+    },
+    "types": {
+      "description": "The node types that appear, in the order written. Default: every node type, by name. A type left out is absent from the type list and tables only; search and links still reach its nodes.",
+      "type": "object",
+      "propertyNames": { "minLength": 1 },
+      "additionalProperties": { "$ref": "#/$defs/typeView" }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "types": {
+          "description": "Which types an export carries. Its meaning and default are set by plan slice M3.10.",
+          "$ref": "#/$defs/names"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "label": { "type": "string", "minLength": 1 },
+    "names": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/label" }
+    },
+    "typeView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "description": "Shown instead of the type name. Default: the type name.",
+          "$ref": "#/$defs/label"
+        },
+        "columns": {
+          "description": "Its table: the node's name, then these properties. Default: every declared property.",
+          "$ref": "#/$defs/names"
+        },
+        "page": {
+          "description": "Its node page: these properties and edge types, in this order. Default: every property and every edge type.",
+          "$ref": "#/$defs/names"
+        },
+        "names": {
+          "description": "Labels for this type's property and edge type names. Default: none, the mosaic's own names.",
+          "type": "object",
+          "propertyNames": { "minLength": 1 },
+          "additionalProperties": { "$ref": "#/$defs/label" }
+        }
+      }
+    }
+  }
+}

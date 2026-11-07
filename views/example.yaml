@@ -1,0 +1,28 @@
+# Example view file, drawn for the Netflix titles mosaic (docs/design.md, Implementation plan,
+# "View file"; keys, values and defaults as answered on #120; schema: view.schema.json).
+# Every key is optional; an empty file, or none, gives the viewer M2 has.
+# mosaic view netflix.mosaic --view example.yaml
+
+search: semantic        # semantic | text. Default: semantic.
+theme: auto             # auto | light | dark. Default: auto (follows the system).
+
+types:                  # Which node types appear, in the order written here.
+                        # Default: every node type, by name. A type left out is absent from
+                        # the type list and tables only: search and links still reach it.
+  Title:
+    label: Film or show            # Shown instead of the type name. Default: the type name.
+    columns: [release_year, rating]
+                                   # Its table: the node's name, then these properties.
+                                   # Default: every declared property.
+    page: [release_year, directed_by, features, listed_in]
+                                   # Its node page: these properties and edge types, in this
+                                   # order. Default: every property and every edge type.
+    names:                         # Labels for this type's property and edge type names
+      release_year: Year           # (label renames the type itself). Default: none.
+      directed_by: Directed by
+  Person: {}
+  Genre: {}
+
+export:
+  types: [Title, Person, Genre]    # Which types an export carries. What that means, and its
+                                   # default, are set in plan slice M3.10.
