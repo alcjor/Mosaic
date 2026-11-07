@@ -7,6 +7,14 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   CSV file (:mod:`mosaic_build.tessera.csv`). The settings file has the shape of the tessera's
   ``header.settings`` (:mod:`mosaic_build.tessera.settings`). Values a conversion could not
   read are listed on standard error.
+- ``mosaic import sqlite <file> --settings <file> -o <out.tessera>`` writes one tessera from one
+  SQLite database (:mod:`mosaic_build.tessera.sqlite`). The settings file has the shape of the
+  tessera's ``header.settings`` (:mod:`mosaic_build.tessera.sqlite_settings`): the tables to
+  read and, for each, its node type, label, summary, props, conversions and the foreign keys
+  that become edges. A setting the database does not match (a table or column it does not
+  have, a foreign key it does not declare) is an error naming the settings file, the line and
+  the setting. A file that is not a SQLite database is an error naming it. Values a conversion
+  could not read are listed on standard error.
 - ``mosaic build <pattern.yaml> [--target T] [--pieces DIR] [--model DIR] [-o DIR]`` builds one
   target into ``DIR/<target>.mosaic``, with ``build-report.json`` beside it (Specification 0.1,
   section 7.2); ``DIR`` is the current directory unless given. Without ``--target`` the pattern must
@@ -54,6 +62,7 @@ from mosaic_format import FORMAT_VERSION
 from mosaic_format.check import check_file
 from mosaic_format.file import SIDECARS
 from mosaic_format.pattern import check_pattern
+from mosaic_format.writer import seal
 from mosaic_format.yaml_core import YamlError, load
 
 from mosaic_build import __version__
@@ -63,6 +72,8 @@ from mosaic_build.mosaic.pieces import piece_paths
 from mosaic_build.mosaic.target import DEFAULT_TARGET
 from mosaic_build.tessera import csv as csv_tessera
 from mosaic_build.tessera import settings as csv_settings
+from mosaic_build.tessera import sqlite_settings
+from mosaic_build.tessera.sqlite import Built
 
 PLANNED = {
     "export": "M3",
@@ -106,6 +117,31 @@ def make_parser() -> argparse.ArgumentParser:
         help="YAML file in the shape of the tessera's header.settings",
     )
     csv_cmd.add_argument(
+        "-o", "--output", type=Path, required=True, help="the new tessera file to write"
+    )
+    sqlite_cmd = kinds.add_parser(
+        "sqlite",
+        help="one SQLite database, one row per node in each table the settings name",
+        description=(
+            "Write one tessera from one SQLite database. The settings file has the shape of the "
+            "tessera's header.settings: under tables, each table to read, by its name in the "
+            "database, with its type (default: the table's name), label, summary, props, "
+            "convert and foreign_keys (a foreign key's column mapped to its edge type). Each "
+            "row is one node keyed by its primary key, and each value of a named foreign key "
+            "one edge to the row it names. The database is only read. A wrong setting, also a "
+            "table or column the database does not have or a foreign key it does not declare, "
+            "is an error naming the settings file, the line and the setting (exit status 1), "
+            "and no tessera is written; so is a file that is not a SQLite database."
+        ),
+    )
+    sqlite_cmd.add_argument("file", type=Path, help="the SQLite database (only read)")
+    sqlite_cmd.add_argument(
+        "--settings",
+        type=Path,
+        required=True,
+        help="YAML file in the shape of the tessera's header.settings",
+    )
+    sqlite_cmd.add_argument(
         "-o", "--output", type=Path, required=True, help="the new tessera file to write"
     )
 
@@ -206,22 +242,32 @@ def _only_target(pattern: Path) -> str:
     raise _Usage(f"{pattern}: the pattern has several targets ({listed}); choose one with --target")
 
 
-def _import_csv(args: argparse.Namespace) -> int:
+def _import(args: argparse.Namespace) -> int:
+    command = f"import {args.kind}"
     source: Path = args.file
     out: Path = args.output.absolute()
     try:
-        settings = csv_settings.read(args.settings)
+        settings = (csv_settings.read if args.kind == "csv" else sqlite_settings.load_file)(
+            args.settings
+        )
     except (OSError, ValueError) as e:
-        _error("import csv", e)
+        _error(command, e)
         return 1
     if out.exists():
-        _error("import csv", f"{out}: exists; a tessera is never overwritten")
+        _error(command, f"{out}: exists; a tessera is never overwritten")
         return 1
-    out.parent.mkdir(parents=True, exist_ok=True)
     try:
-        built = csv_tessera.build(source, out, settings)
+        if isinstance(settings, sqlite_settings.SettingsFile):
+            # Read the database in full first: a refused one leaves no folder behind either.
+            made, report = sqlite_settings.read_database(source, settings)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            sealed = seal(out, made)
+            built = Built(sealed.path, sealed.knowledge_hash, sealed.vector_hash, report)
+        else:
+            out.parent.mkdir(parents=True, exist_ok=True)
+            built = csv_tessera.build(source, out, settings)
     except (OSError, ValueError) as e:
-        _error("import csv", e)
+        _error(command, e)
         return 1
     print(f"tessera {built.path}")
     print(f"knowledge_hash {built.knowledge_hash}")
@@ -231,7 +277,7 @@ def _import_csv(args: argparse.Namespace) -> int:
             listed = ", ".join(str(r) for r in rows)
             kept = f"{n} value{'s' if n != 1 else ''} kept as text"
             where = f"row{'s' if n != 1 else ''} {listed}"
-            _error("import csv", f"{source.name}: column {column!r}: {kept} ({where})")
+            _error(command, f"{source.name}: column {column!r}: {kept} ({where})")
     return 0
 
 
@@ -333,7 +379,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command in PLANNED:
         _error(args.command, f"not implemented yet (planned for {PLANNED[args.command]})")
         return 2
-    run = {"import": _import_csv, "build": _build, "check": _check, "view": _view}[args.command]
+    run = {"import": _import, "build": _build, "check": _check, "view": _view}[args.command]
     try:
         return run(args)
     except _Usage as e:

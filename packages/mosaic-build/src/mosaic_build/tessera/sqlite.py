@@ -39,7 +39,11 @@ conversions, and the foreign keys that become edges. They are recorded in ``head
   ``application_id``, section 3.1), which a tessera's source never is (section 4.1, ADR-003).
 - **JSON text** (``settings``, ``props``) is in the canonical form of RFC 8785 (section 3.1).
 
-Errors name the file, and the table, row and column or the setting at fault.
+Errors name the file, and the table, row and column or the setting at fault. A setting at
+fault, alone or for this database (a table or column it does not have, a foreign key it does
+not declare), is a :class:`SettingError` that also gives the setting's place, so a settings
+file's reader can name its line (``mosaic_build.tessera.sqlite_settings``). A file that cannot
+be read is a ``ValueError`` naming it.
 """
 
 import hashlib
@@ -69,7 +73,17 @@ from mosaic_format.writer import (
 from mosaic_build import __version__
 from mosaic_build.tessera.convert import Conversion, check_conversions, prop_kinds
 
-__all__ = ["Built", "Report", "Settings", "Table", "build", "check_settings", "content", "read"]
+__all__ = [
+    "Built",
+    "Report",
+    "SettingError",
+    "Settings",
+    "Table",
+    "build",
+    "check_settings",
+    "content",
+    "read",
+]
 
 PRODUCER = f"mosaic-sqlite/{__version__}"
 """Written as the header's ``producer`` and the producer of every evidence row."""
@@ -85,6 +99,18 @@ LOGS = ("-wal", "-journal")
 
 FILE_ID = 0x4D4F5341
 """``PRAGMA application_id`` of every tessera and mosaic (section 3.1)."""
+
+
+type Where = tuple[str | int, ...]
+"""A setting's place in the settings, key by key from ``tables``; a prop by its index."""
+
+
+class SettingError(ValueError):
+    """A setting the builder refuses, alone or for this database; ``where`` is its place."""
+
+    def __init__(self, where: Where, message: str) -> None:
+        super().__init__(message)
+        self.where = where
 
 
 class _Undecodable(bytes):
@@ -215,7 +241,10 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
                 f"{name}: has a {name + log} file beside it, so its content is not the file's "
                 f"bytes alone; open it with SQLite once to finish its transactions"
             )
-    data = path.read_bytes()
+    try:
+        data = path.read_bytes()
+    except OSError as e:
+        raise ValueError(f"{path}: cannot be read ({e.strerror or e})") from None
     con = _open(name, data)
     try:
         shapes = _shapes(con, name, settings)
@@ -240,43 +269,55 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
 def check_settings(settings: Settings) -> None:
     """Refuse settings that cannot make a tessera whatever the database, naming the setting."""
     if not settings.tables:
-        raise ValueError("settings: tables names no table; name at least one")
+        raise SettingError(("tables",), "settings: tables names no table; name at least one")
     types: dict[str, str] = {}
     edges: dict[str, str] = {}
     for table, t in settings.tables.items():
         at = f"settings: tables.{table}"
         if ";" in table:
-            raise ValueError(f"{at}: a table name with ';' cannot be a locator value (3.5)")
+            raise SettingError(
+                ("tables", table), f"{at}: a table name with ';' cannot be a locator value (3.5)"
+            )
         node_type = t.type_for(table)
+        type_at: Where = ("tables", table) if t.type is None else ("tables", table, "type")
+        typed = f"{at}: type" if t.type is None else f"{at}.type: type"
         if NODE_TYPE.fullmatch(node_type) is None:
-            raise ValueError(
-                f"{at}: type {node_type!r} is not a node type name ^[A-Z][A-Za-z0-9]*$ (3.4)"
-                + ("; set type" if t.type is None else "")
+            raise SettingError(
+                type_at,
+                f"{typed} {node_type!r} is not a node type name ^[A-Z][A-Za-z0-9]*$ (3.4)"
+                + ("; set type" if t.type is None else ""),
             )
         if node_type in types:
-            raise ValueError(
-                f"{at}: type {node_type!r} is already the type of table {types[node_type]!r}"
+            raise SettingError(
+                type_at, f"{typed} {node_type!r} is already the type of table {types[node_type]!r}"
             )
         types[node_type] = table
-        duplicates = sorted({p for p in t.props if t.props.count(p) > 1})
-        if duplicates:
-            raise ValueError(f"{at}: props name {duplicates[0]!r} twice")
+        for i, p in enumerate(t.props):
+            if p in t.props[:i]:
+                raise SettingError(("tables", table, "props", i), f"{at}: props name {p!r} twice")
         try:
             check_conversions(t.props, t.convert)
         except ValueError as e:
-            raise ValueError(f"{at}: {str(e).removeprefix('settings: ')}") from None
+            raise SettingError(
+                ("tables", table, "convert"), f"{at}: {str(e).removeprefix('settings: ')}"
+            ) from None
         for column, edge in t.foreign_keys.items():
+            fk_at = ("tables", table, "foreign_keys", column)
             if ";" in column:
-                raise ValueError(f"{at}: a column name with ';' cannot be a locator value (3.5)")
+                raise SettingError(
+                    fk_at, f"{at}: a column name with ';' cannot be a locator value (3.5)"
+                )
             if EDGE_TYPE.fullmatch(edge) is None:
-                raise ValueError(
-                    f"{at}: foreign_keys.{column}: edge {edge!r} is not an edge type name "
-                    f"^[a-z][a-z0-9_]*$ (3.4)"
+                raise SettingError(
+                    fk_at,
+                    f"{at}.foreign_keys.{column}: edge {edge!r} is not an edge type name "
+                    f"^[a-z][a-z0-9_]*$ (3.4)",
                 )
             if edge in edges:
-                raise ValueError(
-                    f"{at}: foreign_keys.{column}: edge {edge!r} is already the edge of "
-                    f"{edges[edge]}; each foreign key has its own edge type"
+                raise SettingError(
+                    fk_at,
+                    f"{at}.foreign_keys.{column}: edge {edge!r} is already the edge of "
+                    f"{edges[edge]}; each foreign key has its own edge type",
                 )
             edges[edge] = f"tables.{table}.foreign_keys.{column}"
 
@@ -325,7 +366,10 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
     for table in settings.tables:
         at = f"{name}: table {table!r}"
         if table not in tables or tables[table].lstrip().upper().startswith("CREATE VIRTUAL"):
-            raise ValueError(f"{at} is not a table of the database (settings: tables.{table})")
+            raise SettingError(
+                ("tables", table),
+                f"{at} is not a table of the database (settings: tables.{table})",
+            )
         columns, key = _columns(con, table)
         if not key:
             raise ValueError(f"{at} has no primary key; a row's key is its primary key")
@@ -339,38 +383,47 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
     for table, t in settings.tables.items():
         at = f"{name}: table {table!r}"
         columns, key = found[table]
-        named = [("label", t.label), ("summary", t.summary)]
-        named += [("props", p) for p in t.props] + [("foreign_keys", c) for c in t.foreign_keys]
+        named: list[tuple[Where, str | None]] = [(("label",), t.label), (("summary",), t.summary)]
+        named += [(("props", i), p) for i, p in enumerate(t.props)]
+        named += [(("foreign_keys", c), c) for c in t.foreign_keys]
         for setting, column in named:
             if column is not None and column not in columns:
-                raise ValueError(
-                    f"{at} has no column {column!r} (settings: tables.{table}.{setting})"
+                shown = ".".join(str(s) for s in setting if isinstance(s, str))
+                raise SettingError(
+                    ("tables", table, *setting),
+                    f"{at} has no column {column!r} (settings: tables.{table}.{shown})",
                 )
         declared: dict[int, list[tuple[str, str, str | None]]] = {}
         for row in con.execute(f"PRAGMA foreign_key_list({_q(table)})"):
             declared.setdefault(int(row[0]), []).append((str(row[3]), str(row[2]), row[4]))
         foreign_keys: list[_ForeignKey] = []
         for column, edge in t.foreign_keys.items():
+            fk_at = ("tables", table, "foreign_keys", column)
             where = f"{at}: column {column!r} (settings: tables.{table}.foreign_keys.{column})"
             fks = [fk for fk in declared.values() if any(c == column for c, _, _ in fk)]
             if not fks:
-                raise ValueError(f"{where} has no foreign key in the database")
+                raise SettingError(fk_at, f"{where} has no foreign key in the database")
             if len(fks) > 1:
-                raise ValueError(f"{where} has {len(fks)} foreign keys; name a column with one")
+                raise SettingError(
+                    fk_at, f"{where} has {len(fks)} foreign keys; name a column with one"
+                )
             if len(fks[0]) > 1:
-                raise ValueError(f"{where} is one of {len(fks[0])} columns of a foreign key")
+                raise SettingError(
+                    fk_at, f"{where} is one of {len(fks[0])} columns of a foreign key"
+                )
             ((_, parent, to),) = fks[0]
             if parent not in settings.tables:
-                raise ValueError(
+                raise SettingError(
+                    fk_at,
                     f"{where} references table {parent!r}, which the settings do not name "
-                    f"(names compare exactly); an edge needs the row it names in the tessera"
+                    f"(names compare exactly); an edge needs the row it names in the tessera",
                 )
             parent_columns, parent_key = found[parent]
             # A foreign key that names no column references its table's primary key.
             to = parent_key if to is None else str(to)
             if to not in parent_columns:
-                raise ValueError(
-                    f"{where} references column {to!r} of table {parent!r}, which has none"
+                raise SettingError(
+                    fk_at, f"{where} references column {to!r} of table {parent!r}, which has none"
                 )
             foreign_keys.append(_ForeignKey(column, edge, parent, to))
         shapes[table] = _Shape(table, t.type_for(table), key, tuple(foreign_keys))
