@@ -10,7 +10,8 @@ file, a wrong view file or a view file whose ``search`` is ``semantic`` (not bui
 is an :class:`ExportError` and nothing is written. Then it writes one new HTML file, never over
 an existing one: the built viewer's page (``bun run build``) with its script and stylesheet
 inlined, and one JSON element holding the mosaic's name and bytes, the view file's settings and
-SQLite's WebAssembly, the bytes in base64. The page reads that element and fetches nothing
+SQLite's WebAssembly, the bytes gzip-compressed (no name, no time, so the same inputs give the
+same file) and then base64. The page reads that element and fetches nothing
 (``viewer/src/lib/exported.ts``); the kit inside opens the bytes by the reading rules, both
 hashes checked. No embedding model and no ONNX Runtime are carried. The mosaic and the view
 file are only read.
@@ -19,6 +20,7 @@ file are only read.
 from __future__ import annotations
 
 import base64
+import gzip
 import html
 import json
 import os
@@ -61,6 +63,11 @@ def _inline(text: str, tag: str, where: Path) -> str:
     return text
 
 
+def _packed(data: bytes) -> str:
+    """``data`` gzip-compressed with no name and no time, then base64: what the page unpacks."""
+    return base64.b64encode(gzip.compress(data, compresslevel=6, mtime=0)).decode("ascii")
+
+
 def page(name: str, data: bytes, settings: dict[str, object], dist: Path) -> bytes:
     """The export's HTML: the built page with the mosaic ``name`` (``data``) inside."""
     index = (dist / "index.html").read_text(encoding="utf-8")
@@ -68,9 +75,9 @@ def page(name: str, data: bytes, settings: dict[str, object], dist: Path) -> byt
     style = _inline(_asset(dist, _STYLE, index, "stylesheet"), "style", dist)
     payload = {
         "name": name,
-        "mosaic": base64.b64encode(data).decode("ascii"),
+        "mosaic": _packed(data),
         "view": settings,
-        "sqlite": base64.b64encode(_sqlite_wasm(dist)).decode("ascii"),
+        "sqlite": _packed(_sqlite_wasm(dist)),
     }
     # `<` never appears raw, so the JSON cannot end its element or open a comment.
     text = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")

@@ -10,6 +10,7 @@ browser.
 """
 
 import base64
+import gzip
 import hashlib
 import json
 import re
@@ -73,6 +74,11 @@ def view_yaml(tmp_path: Path, text: str = TEXT) -> Path:
     return path
 
 
+def unpacked(text: object) -> bytes:
+    """The bytes the page unpacks: base64, then gzip."""
+    return gzip.decompress(base64.b64decode(str(text)))
+
+
 def data_of(page: str) -> dict[str, object]:
     found = re.search(r'<script type="application/json" id="mosaic-export">(.*?)</script>', page)
     assert found, "the export holds no data element"
@@ -96,8 +102,8 @@ def test_one_html_file_holds_the_page_the_kit_and_the_mosaic_shaped_by_the_view_
     assert 'src="./assets' not in page and 'href="./assets' not in page  # nothing to fetch
     data = data_of(page)
     assert data["name"] == "mosaic.mosaic"
-    assert base64.b64decode(str(data["mosaic"])) == mosaic.read_bytes()
-    assert base64.b64decode(str(data["sqlite"])) == SQLITE
+    assert unpacked(data["mosaic"]) == mosaic.read_bytes()
+    assert unpacked(data["sqlite"]) == SQLITE
     assert data["view"] == view_file.read(settings).as_json()
     assert (files_in(tmp_path / "in"), mosaic.read_bytes(), settings.read_bytes()) == before
 
@@ -112,9 +118,9 @@ def test_the_export_carries_no_embedding_model_and_no_onnx_runtime(
     )
     page = out.read_bytes()
     assert b"ONNX Runtime" not in page
-    assert ONNX not in page and base64.b64encode(ONNX) not in page
     data = data_of(page.decode("utf-8"))
     assert sorted(data) == ["mosaic", "name", "sqlite", "view"]
+    assert ONNX not in page and ONNX not in unpacked(data["mosaic"]) + unpacked(data["sqlite"])
 
 
 @pytest.mark.parametrize("name", REFUSED)

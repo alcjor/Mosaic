@@ -78,7 +78,7 @@
   async function openExport(): Promise<boolean> {
     let found;
     try {
-      found = readExport(document);
+      found = await readExport(document);
     } catch (e) {
       viewer.status = "error";
       viewer.error = e instanceof Error ? e.message : String(e);

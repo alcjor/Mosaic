@@ -9,6 +9,7 @@ with one byte of the mosaic changed is refused by the hash check when the page o
 """
 
 import base64
+import gzip
 import json
 import re
 import shutil
@@ -81,11 +82,11 @@ def test_an_export_whose_mosaic_was_changed_is_refused_when_the_page_opens_it(
     text = page.read_text(encoding="utf-8")
     found = re.search(r'"mosaic":"([A-Za-z0-9+/=]+)"', text)
     assert found
-    data = bytearray(base64.b64decode(found.group(1)))
+    data = bytearray(gzip.decompress(base64.b64decode(found.group(1))))
     at = bytes(data).find(b"Item B")  # a label, so only the knowledge hash can tell
     assert at > 0
     data[at + 5] = ord("C")
-    changed = base64.b64encode(bytes(data)).decode("ascii")
+    changed = base64.b64encode(gzip.compress(bytes(data), mtime=0)).decode("ascii")
     page.write_text(text.replace(found.group(1), changed), encoding="utf-8")
     seen = opened(bun, page, "Item", "Item:b", "Item")
     assert seen["blocked"] == []
