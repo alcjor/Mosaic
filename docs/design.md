@@ -346,7 +346,7 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 
 *README.*
 
-- **R-1.** The README follows the brand book's README layout: the lockup (dark in a dark theme, light otherwise), the tagline as the first line of text, one row of badges, the build strip, the long description and the "How it works" line, the quick start and the six rules.
+- **R-1.** The README follows the brand book's README layout, except for the badges (R-2): the lockup (dark in a dark theme, light otherwise), the tagline as the first line of text, one row of badges, the build strip, the long description and the "How it works" line, the quick start and the six rules.
 - **R-2.** The badge row shows, in this order: CI on `main`, coverage, the SonarQube Cloud quality gate, the OpenSSF Scorecard and the licence, plus the latest release once one is tagged. This extends the brand book's "build, release, licence".
 - **R-3.** The quick start uses only commands that work on `main`, and a test runs them, as for tutorials (S-15).
 - **R-4.** The README says, per part (format, builders, kit, viewer, agent interface), what works today and which milestone brings the rest; the pull request that plans a new milestone updates it.
@@ -354,12 +354,12 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 
 *Repository checks.*
 
-- **R-6.** Coverage of the Python packages, the kit and the viewer is measured by the fast tests on every pull request and on `main`, and reported to Codecov per part. It informs and never blocks a merge; the README says it covers the fast tests only.
-- **R-7.** CodeQL scans the Python and the JavaScript and TypeScript code on pull requests, on `main` and weekly.
+- **R-6.** Coverage of the Python packages, the kit and the viewer is measured by the fast tests on every pull request and on `main`, and reported to Codecov per part. A pull request reports only the parts whose checks ran (R-13); the other parts keep their figure from `main`, so no part's coverage disappears. It informs and never blocks a merge; the README says it covers the fast tests only.
+- **R-7.** CodeQL scans the Python and the JavaScript and TypeScript code on `main`, weekly, and on a pull request when it is marked ready for review, not on every push to a draft.
 - **R-8.** Dependabot alerts are on, and dependency updates for Python, Bun and GitHub Actions arrive grouped, once a week per ecosystem.
-- **R-9.** SonarQube Cloud analyses `main` and pull requests with the coverage of R-6; its quality gate is shown and does not block a merge.
+- **R-9.** SonarQube Cloud analyses `main`, and a pull request when it is marked ready for review, not on every push to a draft, with the coverage of R-6; its quality gate is shown and does not block a merge.
 - **R-10.** OpenSSF Scorecard runs weekly and on `main`, and publishes its result for the badge.
-- **R-11.** Ordinary pushes cost no more CI time than collecting coverage: the other checks run on the schedule and events above. A check whose secret the maintainer has not added yet is skipped, never failed.
+- **R-11.** A push to a draft pull request costs no more CI time than the existing checks plus collecting coverage: the other checks run only on the schedule and events above. A check whose secret the maintainer has not added yet is skipped, never failed.
 - **R-12.** A high or critical finding from CodeQL, Dependabot or SonarQube Cloud on `main` becomes a fix slice, the same way a blocking `Claude review` finding does (`CLAUDE.md`, Work plan, step 0).
 
 *Development speed.* CI minutes are limited and every agent session starts cold, so time saved here is saved on every slice.
@@ -371,7 +371,7 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 
 Ways to meet these, as suggestions only: path filters on the CI jobs, a cache for Bun's install cache, `pytest-testmon` or a similar affected-test runner, and the session-start hook running `scripts/fetch_model.py` and `scripts/fetch_fixtures.py`.
 
-*Done by the maintainer, not the builders:* installing the Codecov and SonarQube Cloud apps, adding the `CODECOV_TOKEN` and `SONAR_TOKEN` secrets, turning off SonarQube Cloud's automatic analysis, and turning on code scanning and Dependabot alerts. Dependabot's pull requests are not the builders' work (`CLAUDE.md`, "Only your own work") and wait for the maintainer.
+*Done by the maintainer, not the builders:* installing the Codecov and SonarQube Cloud apps, adding the `CODECOV_TOKEN` and `SONAR_TOKEN` secrets, turning off SonarQube Cloud's automatic analysis, and turning on code scanning and Dependabot alerts. Dependabot's pull requests are not the builders' work (`CLAUDE.md`, "Only your own work") and wait for the maintainer. The builders' changes under `.github/` and `.claude/` that these needs call for (the workflows of R-6 to R-11, the path filters and cache of R-13 and R-14, the session-start hook of R-16) are protected paths, so their pull requests wait for the maintainer's approval like any other change there.
 
 ### Constraints, assumptions and risks
 
