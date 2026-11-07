@@ -1,0 +1,27 @@
+# Proposed view file (plan M3.5), drawn for the Netflix titles mosaic. PROPOSAL ONLY: the
+# maintainer decides the keys, values and defaults (question at the top of PR for M3.5;
+# docs/design.md, Implementation plan, "View file"). Every key is optional; an empty file, or
+# none, gives the viewer M2 has.
+
+search: semantic        # semantic | text. Proposed default: semantic.
+theme: auto             # auto | light | dark. Proposed default: auto (follows the system).
+
+types:                  # Which node types appear. Proposed: in the order written here;
+                        # default every node type, by name.
+  Title:
+    label: Film or show            # Shown instead of the type name. Default: the type name.
+    columns: [release_year, rating]
+                                   # Its table: the node's name, then these properties.
+                                   # Default: every declared property.
+    page: [release_year, directed_by, features, listed_in]
+                                   # Its node page: these properties and edge types, in this
+                                   # order. Default: every property and every edge type.
+    names:                         # Proposed: labels for this type's property and edge type
+      release_year: Year           # names (label renames the type itself).
+      directed_by: Directed by
+  Person: {}
+  Genre: {}
+
+export:
+  types: [Title, Person, Genre]    # Which types an export carries. What that means, and its
+                                   # default, are asked in M3.10.
