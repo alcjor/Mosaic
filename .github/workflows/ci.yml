@@ -33,7 +33,7 @@ jobs:
       - name: import contracts
         run: uv run lint-imports
       - name: pytest (slow tests run locally before push)
-        run: uv run pytest -m "not slow"
+        run: uv run pytest -m "not slow" -n auto
 
   js:
     name: js
