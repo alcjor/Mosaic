@@ -320,8 +320,9 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
             " WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\'"
         )
     }
-    shapes: dict[str, _Shape] = {}
-    for table, t in settings.tables.items():
+    # Every named table and its key first: a foreign key may reference any of them.
+    found: dict[str, tuple[list[str], str]] = {}
+    for table in settings.tables:
         at = f"{name}: table {table!r}"
         if table not in tables or tables[table].lstrip().upper().startswith("CREATE VIRTUAL"):
             raise ValueError(f"{at} is not a table of the database (settings: tables.{table})")
@@ -333,6 +334,11 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
                 f"{at} has a primary key of {len(key)} columns ({', '.join(key)}); "
                 f"a row's key is a primary key of one column"
             )
+        found[table] = (columns, key[0])
+    shapes: dict[str, _Shape] = {}
+    for table, t in settings.tables.items():
+        at = f"{name}: table {table!r}"
+        columns, key = found[table]
         named = [("label", t.label), ("summary", t.summary)]
         named += [("props", p) for p in t.props] + [("foreign_keys", c) for c in t.foreign_keys]
         for setting, column in named:
@@ -346,23 +352,28 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
         foreign_keys: list[_ForeignKey] = []
         for column, edge in t.foreign_keys.items():
             where = f"{at}: column {column!r} (settings: tables.{table}.foreign_keys.{column})"
-            found = [fk for fk in declared.values() if any(c == column for c, _, _ in fk)]
-            if not found:
+            fks = [fk for fk in declared.values() if any(c == column for c, _, _ in fk)]
+            if not fks:
                 raise ValueError(f"{where} has no foreign key in the database")
-            if len(found) > 1:
-                raise ValueError(f"{where} has {len(found)} foreign keys; name a column with one")
-            if len(found[0]) > 1:
-                raise ValueError(f"{where} is one of {len(found[0])} columns of a foreign key")
-            ((_, parent, to),) = found[0]
+            if len(fks) > 1:
+                raise ValueError(f"{where} has {len(fks)} foreign keys; name a column with one")
+            if len(fks[0]) > 1:
+                raise ValueError(f"{where} is one of {len(fks[0])} columns of a foreign key")
+            ((_, parent, to),) = fks[0]
             if parent not in settings.tables:
                 raise ValueError(
-                    f"{where} references table {parent!r}, which the settings do not name; "
-                    f"an edge needs the row it names in the tessera"
+                    f"{where} references table {parent!r}, which the settings do not name "
+                    f"(names compare exactly); an edge needs the row it names in the tessera"
                 )
+            parent_columns, parent_key = found[parent]
             # A foreign key that names no column references its table's primary key.
-            to = _columns(con, parent)[1][0] if to is None else str(to)
+            to = parent_key if to is None else str(to)
+            if to not in parent_columns:
+                raise ValueError(
+                    f"{where} references column {to!r} of table {parent!r}, which has none"
+                )
             foreign_keys.append(_ForeignKey(column, edge, parent, to))
-        shapes[table] = _Shape(table, t.type_for(table), key[0], tuple(foreign_keys))
+        shapes[table] = _Shape(table, t.type_for(table), key, tuple(foreign_keys))
     return shapes
 
 

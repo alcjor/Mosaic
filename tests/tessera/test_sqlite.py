@@ -543,3 +543,31 @@ def test_text_holding_u0000_is_refused(tmp_path: Path) -> None:
         "INSERT INTO T VALUES (1, 'a' || char(0) || 'b');",
     )
     _refused(tmp_path, db, Settings(tables={"T": Table(props=("S",))}), r"row 1: 'S'.*U\+0000")
+
+
+@pytest.mark.parametrize(
+    ("schema", "match"),
+    [
+        (
+            "CREATE TABLE C (Id INTEGER PRIMARY KEY, PId REFERENCES P);CREATE TABLE P (A TEXT);",
+            r"table 'P' has no primary key",
+        ),
+        (
+            "CREATE TABLE C (Id INTEGER PRIMARY KEY, PId REFERENCES P);",
+            r"table 'P' is not a table",
+        ),
+        (
+            "CREATE TABLE C (Id INTEGER PRIMARY KEY, PId REFERENCES P (Nope));"
+            "CREATE TABLE P (Id INTEGER PRIMARY KEY);",
+            r"table 'C': column 'PId'.*column 'Nope' of table 'P'",
+        ),
+    ],
+    ids=["parent-without-a-key", "parent-not-a-table", "parent-column-missing"],
+)
+def test_a_foreign_key_whose_parent_cannot_be_read_is_refused(
+    tmp_path: Path, schema: str, match: str
+) -> None:
+    """The child table is named first, so its foreign key is read before the parent."""
+    db = _database(tmp_path / "parent.db", schema, "")
+    settings = Settings(tables={"C": Table(foreign_keys={"PId": "in_p"}), "P": Table()})
+    _refused(tmp_path, db, settings, match)
