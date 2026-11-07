@@ -10,7 +10,8 @@ each time in a new, empty directory: both runs give the tessera hash that ``patt
 default), so ``mosaic build`` gets the model of section 6 with ``--model``, fetched and checked
 by ``scripts/fetch_model.py``: both runs give the same vector hash (section 7), one vector per
 node, and the knowledge hash of the same target with vectors off (section 3.6). The test prints
-the hashes, file sizes and timings of both runs, for the PR (run it with ``-s``).
+the hashes, file sizes and timings of both runs, for the PR (run it with ``-s``). Each run's
+knowledge hash, vector hash and model are those ``expected-hashes.json`` records (plan M3.12).
 """
 
 import json
@@ -27,12 +28,15 @@ from mosaic_format.reader import open as open_sealed
 from mosaic_format.yaml_core import load
 
 from tests.conftest import MODEL, REPO, SPEC
+from tests.fixtures.expected import differences, load_expected
 from tests.test_cli import entry_point
 
 BUILD_BUDGET_SECONDS = 15 * 60
 """ADR-007: building the Netflix mosaic, vectors included, takes under 15 minutes."""
 
 FIXTURE = REPO / "conformance" / "fixtures" / "netflix"
+TARGET = "default"
+"""The pattern's one target (it has no ``mosaics``, section 5.4); its file is ``default.mosaic``."""
 SOURCE = REPO / "conformance" / "fixtures" / "downloads" / "netflix-titles" / "netflix_titles.csv"
 TYPES = ("Title", "Person", "Country", "Genre", "Year")
 EDGES = ("directed_by", "features", "made_in", "listed_in", "released_in")
@@ -128,7 +132,7 @@ def _run(directory: Path) -> Run:
         out,
         cwd=directory,
     )
-    mosaic = out / "default.mosaic"
+    mosaic = out / f"{TARGET}.mosaic"
     _timed(seconds, "check tessera", "check", tessera, cwd=directory)
     _timed(seconds, "check mosaic", "check", mosaic, "--pieces", pieces, cwd=directory)
     with open_sealed(tessera) as t:
@@ -189,6 +193,20 @@ def test_the_imported_tessera_has_the_hash_the_pattern_pins(runs: tuple[Run, Run
     _, pinned = _pinned_piece()
     for run in runs:
         assert run.tessera_hash == pinned
+
+
+def test_each_build_has_the_expected_hashes(runs: tuple[Run, Run]) -> None:
+    """Section 11: the fixture holds "the expected mosaic"; plan M3.12."""
+    expected = load_expected(FIXTURE)
+    for run in runs:
+        found = differences(
+            expected,
+            TARGET,
+            knowledge_hash=run.mosaic_hash,
+            vector_hash=run.vector_hash,
+            embed_model=run.embed_model,
+        )
+        assert not found, "\n".join(found)
 
 
 def test_two_clean_builds_give_the_same_knowledge_hash(runs: tuple[Run, Run]) -> None:

@@ -1,0 +1,10 @@
+{
+  "comment": "The expected Netflix titles mosaic (docs/spec-0.1.md section 11): what a clean build of pattern.yaml from the tessera it pins gives, per target. knowledge_hash is section 3.6, vector_hash section 3.7, embed_model the model of section 6. Proposed by the pair (plan M3.12) from two clean local builds; changing it needs the maintainer's review (CODEOWNERS).",
+  "mosaics": {
+    "default": {
+      "knowledge_hash": "156f675bc6c0a8d40f428e0a3264baa72e37dfbcf68c49d2cdec2dfb0928537d",
+      "vector_hash": "ee90e3205b4ec63b9a81da3b314cb4d3cc80798eda3f8ed33d75cfe2dfb47bee",
+      "embed_model": "snowflake-arctic-embed-xs@e6aa5e656466a73d7c3111e9a3378bd13e5b93af30eaac2b3f13fd56692589a1"
+    }
+  }
+}
