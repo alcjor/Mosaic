@@ -118,7 +118,7 @@ Other stakeholders do not use Mosaic but shape it:
 
 ### Use cases
 
-Fifteen use cases say what Mosaic must do, without domain words. UC-01 to UC-05 are what agents and readers do with a mosaic; UC-06 to UC-12 are how one is made and shared; UC-13 to UC-15 measure and extend it.
+Sixteen use cases say what Mosaic must do, without domain words. UC-01 to UC-05 are what agents and readers do with a mosaic; UC-06 to UC-12 are how one is made and shared; UC-13 to UC-15 measure and extend it; UC-16 is a reader's walk through the viewer.
 
 | ID | Use case | Example | Served by | Release |
 | --- | --- | --- | --- | --- |
@@ -137,6 +137,7 @@ Fifteen use cases say what Mosaic must do, without domain words. UC-01 to UC-05 
 | UC-13 | **Measure usefulness.** Score a small model's answers with a mosaic against known answers, against its size | 200 questions on a generated plant, answered with and without vectors | Benchmark | v0 |
 | UC-14 | **Reach outside data.** Go from a thing to data that stays outside, such as time series | TEMP-3's readings next to its limits | Agents, viewer | Keys in v0; adapters later |
 | UC-15 | **Follow changes.** Rebuild after a source changes, and list what changed between two mosaics | The TS-200 sensor model gets a new range: what is affected | Mosaic builder, viewer | Later |
+| UC-16 | **Follow a chain.** Walk a chosen sequence of links from a thing, with what matters about each thing along the way shown side by side | Every procedure step that sends a command which reads TEMP-3, with each step's procedure and each command's limits | Viewer | Later |
 
 ### Scope
 
@@ -202,7 +203,7 @@ The first implementation proves the whole flow on the Netflix titles fixture, th
 | Reference tessera builder | Table / CSV importer only, with columns as linked things (optionally split on a separator) and value conversion (dates, mixed units) | Document, code and knowledge graph importers; the AI step |
 | Mosaic builder | The eight build steps, build report, strict mode, vectors with the v0 embedding model | Proposals in practice, incremental builds |
 | Kit | TypeScript, running in the page: `find` (exact, full-text and vector tiers), `get`, `neighbors`, `table`, `cite`; query embedding with the v0 model | `path`, the generated card, tiny-mosaic text, the answer schema in full, a Node build for the MCP server, a Python wrapper for scripts and notebooks |
-| Viewer | Search box (semantic search through `find`), tables rebuilt from node types, a node page with its links and sources; mosaic view to explore and a single-file HTML export, both shaped by a view file | Graph explorer |
+| Viewer | Search box (semantic search through `find`), tables rebuilt from node types, a node page with its links and sources; mosaic view to explore and a single-file HTML export, both shaped by a view file | Graph explorer; chains and cards |
 | Agent interface | None | MCP server and card |
 
 Done when the Netflix titles and Chinook mosaics build with their expected hashes, the viewer opens them offline and exports each to one HTML file, and a plain-language search finds the right titles.
@@ -261,6 +262,40 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 - **Import wizard for table sources:** choose a CSV file or a database, pick the key and the columns, and get an ordinary tessera.
 - **Proposal review:** accept or reject proposals, written to `proposals.yaml`; the home of the pattern assistant (M6).
 - **Facts typed by hand** go through a source, such as a spreadsheet template turned into a tessera, never straight into a mosaic: corrections belong in sources, and a new build follows.
+
+**Viewer: chains and cards, not yet in a milestone.** A person browsing a mosaic often asks a question that is a fixed walk across the links: from a thing, along one kind of link, then another. The path between two things (UC-03) answers "how are these connected"; a chain answers "show me everything connected this way, and what matters about each thing on the way" (UC-16). These needs say what the viewer must let a person do; how is for the builders to decide. The mock-ups in `design/reference/viewer/` show one way to meet them and are not requirements.
+
+*Boundary.* These are needs of the reference viewer and its view file only. They change nothing in the file format, the pattern, the mosaic builder or the kit, and they must be met with what the kit already exposes. If a need cannot be met that way, that is a separate decision about the core, not something these needs imply.
+
+*Define a chain.*
+
+- **V-1.** The viewer lets a person define a chain as a start and an ordered list of steps, where each step follows one kind of link in one direction to the next thing.
+- **V-2.** The viewer lets any step be pinned to one particular thing, or left open to any thing of that type.
+- **V-3.** The viewer only offers steps the mosaic's types and links allow, so a chain that cannot be followed cannot be built.
+- **V-4.** The viewer can turn a path found between two things into a chain, so that "how these two connect" becomes "everything connected this way".
+- **V-5.** The viewer lets a person extend, shorten or change a chain and see the effect without starting over.
+
+*Choose what each card shows.*
+
+- **V-6.** The viewer lets a person choose, for each type, which facts its card shows: properties, the things it links to, and how many things it links to by a given link.
+- **V-7.** A type's card looks the same wherever that type appears in the viewer: in a chain, a path, the graph or a node's page. It is set once per type, not per chain.
+- **V-8.** Every fact on a card keeps its source (principle 4): the viewer lets a person open the passage or row behind any value, and behind each link between two steps.
+- **V-9.** A type with no card set still gets a sensible default from what the mosaic holds.
+
+*See chains as cards or as a table.*
+
+- **V-10.** The viewer shows each result of a chain as a row of cards, one per step, joined by the links that connect them.
+- **V-11.** The viewer shows all results of a chain as one table, with one group of columns per step, that can be sorted, filtered and saved as a file.
+- **V-12.** The viewer switches between cards and table without losing the chain, the place in the results or the filters.
+- **V-13.** The viewer always says how many results a chain has, even when only some are shown, and gives them in the same order every time for the same mosaic.
+- **V-14.** A chain whose results would flood the page still answers quickly and says how much was left out, rather than failing or freezing.
+
+*Share chains through the view file.*
+
+- **V-15.** Chains and card choices are saved in the view file, beside the other choices it already holds, so they live in Git with one owner and are reviewed like any other change.
+- **V-16.** Anyone who opens the same mosaic with the same view file sees the same chains and cards, in `mosaic view` and in the single-file export alike, offline.
+- **V-17.** The viewer can link to one chain, with its pinned steps and filters, so a colleague lands on exactly the same results.
+- **V-18.** A view file whose chains or cards name types, links or properties the mosaic does not have still opens; the viewer reports what it could not apply instead of failing.
 
 ### Constraints, assumptions and risks
 

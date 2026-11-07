@@ -9,6 +9,7 @@ code can use them and tests can enforce them.
 | `tokens.json` | Colours (light "Paper" and dark "Navy ground" themes), type, spacing, radii |
 | `brand-book.md` | The brand book: naming, voice, colour roles, the shard motif, logo, **section 6: App** (the viewer's components and states) |
 | `components/*.md` | Guidelines per component |
+| `reference/viewer/` | Mock-ups of the viewer, for reference only: they illustrate needs in `docs/design.md` and bind nothing (see its README) |
 
 Logos, icons and imagery stay in the design system's asset store.
 
