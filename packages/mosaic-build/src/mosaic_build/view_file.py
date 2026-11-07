@@ -102,15 +102,14 @@ def _name(where: _Where) -> str:
     return ".".join(str(w) for w in where if isinstance(w, str)) or "view file"
 
 
-def _keys(value: object, where: _Where, known: tuple[str, ...], what: str) -> dict[str, Any]:
+def _mapping(value: object, where: _Where, what: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ViewFileError(where, f"{_name(where)} must be a mapping of {what}")
-    for key in value:
-        if key not in known:
-            raise ViewFileError(
-                (*where, key), f"{_name((*where, key))}: no such setting; one of {', '.join(known)}"
-            )
     return value
+
+
+def _unknown(where: _Where, known: tuple[str, ...]) -> ViewFileError:
+    return ViewFileError(where, f"{_name(where)}: no such setting; one of {', '.join(known)}")
 
 
 def _one_of(value: object, where: _Where, values: tuple[str, ...]) -> str:
@@ -154,38 +153,72 @@ def _names(value: object, where: _Where) -> dict[str, str]:
 
 
 def _type_view(name: str, value: object, where: _Where) -> TypeView:
-    given = _keys(value, where, _TYPE_KEYS, "a type's settings")
+    got: dict[str, Any] = {}
+    for key, item in _mapping(value, where, "a type's settings").items():  # in the order written
+        at = (*where, key)
+        match key:
+            case "label":
+                got[key] = _text(item, at)
+            case "columns" | "page":
+                got[key] = _texts(item, at)
+            case "names":
+                got[key] = _names(item, at)
+            case _:
+                raise _unknown(at, _TYPE_KEYS)
     return TypeView(
         name=name,
-        label=None if "label" not in given else _text(given["label"], (*where, "label")),
-        columns=None if "columns" not in given else _texts(given["columns"], (*where, "columns")),
-        page=None if "page" not in given else _texts(given["page"], (*where, "page")),
-        names={} if "names" not in given else _names(given["names"], (*where, "names")),
+        label=got.get("label"),
+        columns=got.get("columns"),
+        page=got.get("page"),
+        names=got.get("names", {}),
     )
 
 
+def _types(value: object) -> tuple[TypeView, ...]:
+    if not isinstance(value, dict):
+        raise ViewFileError(("types",), "types must be a mapping of type names to settings")
+    views = []
+    for name, entry in value.items():
+        if not name:
+            raise ViewFileError(("types", name), "types: a type name must be non-empty text")
+        views.append(_type_view(name, entry, ("types", name)))
+    return tuple(views)
+
+
+def _export_types(value: object) -> tuple[str, ...] | None:
+    got = None
+    for key, item in _mapping(value, ("export",), "export settings").items():
+        if key != "types":
+            raise _unknown(("export", key), _EXPORT_KEYS)
+        got = _texts(item, ("export", "types"))
+    return got
+
+
 def from_json(value: object) -> ViewSettings:
-    """The settings that ``value``, a view file's data, gives; ``None`` is an empty file."""
+    """The settings that ``value``, a view file's data, gives; ``None`` is an empty file.
+
+    The settings are read in the order written, so of several wrong ones the first is named.
+    """
     if value is None:
         return ViewSettings()
-    given = _keys(value, (), _KEYS, "settings")
-    types = None
-    if "types" in given:
-        entries = given["types"]
-        if not isinstance(entries, dict):
-            raise ViewFileError(("types",), "types must be a mapping of type names to settings")
-        for name in entries:
-            if not name:
-                raise ViewFileError(("types", name), "types: a type name must be non-empty text")
-        types = tuple(_type_view(n, v, ("types", n)) for n, v in entries.items())
-    export = _keys(given.get("export", {}), ("export",), _EXPORT_KEYS, "export settings")
+    got: dict[str, Any] = {}
+    for key, item in _mapping(value, (), "settings").items():
+        match key:
+            case "search":
+                got[key] = _one_of(item, (key,), SEARCH)
+            case "theme":
+                got[key] = _one_of(item, (key,), THEMES)
+            case "types":
+                got[key] = _types(item)
+            case "export":
+                got[key] = _export_types(item)
+            case _:
+                raise _unknown((key,), _KEYS)
     return ViewSettings(
-        search=_one_of(given.get("search", SEARCH[0]), ("search",), SEARCH),
-        theme=_one_of(given.get("theme", THEMES[0]), ("theme",), THEMES),
-        types=types,
-        export_types=None
-        if "types" not in export
-        else _texts(export["types"], ("export", "types")),
+        search=got.get("search", SEARCH[0]),
+        theme=got.get("theme", THEMES[0]),
+        types=got.get("types"),
+        export_types=got.get("export"),
     )
 
 

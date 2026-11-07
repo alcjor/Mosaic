@@ -296,3 +296,22 @@ def test_a_missing_file_is_an_os_error(tmp_path: Path) -> None:
 def test_from_json_refuses_what_read_refuses(value: object) -> None:
     with pytest.raises(ValueError):
         from_json(value)
+
+
+@pytest.mark.parametrize(
+    ("text", "line", "setting"),
+    [
+        ("search: fuzzy\ncolour: red\n", 1, "search"),
+        ("colour: red\nsearch: fuzzy\n", 1, "colour"),
+        ("types:\n  A: {label: 3}\ntheme: sepia\n", 2, "types.A.label"),
+        ("theme: sepia\ntypes:\n  A: {label: 3}\n", 1, "theme"),
+        ("types:\n  A:\n    colour: x\n    label: 3\n", 3, "types.A.colour"),
+        ("types:\n  A:\n    label: 3\n    colour: x\n", 3, "types.A.label"),
+    ],
+)
+def test_of_several_wrong_settings_the_first_written_is_named(
+    tmp_path: Path, text: str, line: int, setting: str
+) -> None:
+    path = _write(tmp_path, text)
+    with pytest.raises(ValueError, match=rf"^{path}:{line}: view file: {setting}"):
+        read(path)
