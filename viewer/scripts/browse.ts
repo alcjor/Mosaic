@@ -5,6 +5,9 @@
  * in it.
  *
  *     bun viewer/scripts/browse.ts FILE QUERY NODE_ID
+ *     bun viewer/scripts/browse.ts --url URL QUERY NODE_ID
+ *
+ * With `--url`, it serves nothing and walks the page at URL once, as `mosaic view` opens it.
  *
  * Twice: once with the mosaic named in the address (`?mosaic=`), once picked with the page's
  * file chooser. Each time it types QUERY in the search box and presses Enter, opens NODE_ID from
@@ -16,14 +19,16 @@ import { createRequire } from "node:module";
 import { basename, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const [file, query, nodeId] = process.argv.slice(2);
+const given = process.argv.slice(2);
+const pageUrl = given[0] === "--url" ? given[1] : undefined;
+const [file, query, nodeId] = pageUrl === undefined ? given : given.slice(1);
 if (!file || !query || !nodeId) {
-  console.error("usage: bun viewer/scripts/browse.ts FILE QUERY NODE_ID");
+  console.error("usage: bun viewer/scripts/browse.ts FILE QUERY NODE_ID | --url URL QUERY NODE_ID");
   process.exit(2);
 }
 
 const dist = fileURLToPath(new URL("../dist/", import.meta.url));
-if (!existsSync(join(dist, "index.html"))) throw new Error("build the viewer first: bun run build");
+if (pageUrl === undefined && !existsSync(join(dist, "index.html"))) throw new Error("build the viewer first: bun run build");
 const types: Record<string, string> = {
   ".html": "text/html",
   ".js": "text/javascript",
@@ -76,6 +81,20 @@ async function walk(page: Page) {
     opened = first;
   }
   return { header, results, card: cardText, links, sources, opened, hash: new URL(page.url()).hash };
+}
+
+if (pageUrl !== undefined) {
+  try {
+    const page = await browser.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(pageUrl);
+    console.log(JSON.stringify({ named: await walk(page), errors }));
+  } finally {
+    await browser.close();
+    server.stop(true);
+  }
+  process.exit(0);
 }
 
 try {

@@ -23,9 +23,17 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   3.9, or else a pattern, with ``proposals.yaml`` beside it, by sections 5 and 5.6. It prints
   one line per violation, or ``<file>: ok``, and lists on standard error the rules it could not
   run. Without ``--pieces``, a pattern's piece rules are not run.
+- ``mosaic view <file>`` opens the viewer page with a tessera or mosaic loaded
+  (:mod:`mosaic_build.view`). It first applies the reading rules of section 3.8 (steps 1 to 3)
+  itself: a missing file, or one they refuse, is an error naming the file and what failed, and
+  no page opens. Then it serves the built viewer and the file's bytes, read-only, on this
+  machine (``127.0.0.1``), prints the page's address, opens it in the default browser, and
+  serves until interrupted (Ctrl-C). The kit in the page answers every query; the server only
+  hands out files. The viewer must be built first (``bun run build``).
 
-Exit status: 0 when the command did what was asked, 1 when a build failed, a check found
-violations or an input could not be read, 2 for a command line that is not understood.
+Exit status: 0 when the command did what was asked (for ``view``, when it is stopped), 1 when a
+build failed, a check found violations, an input could not be read or a file could not be
+viewed, 2 for a command line that is not understood.
 """
 
 from __future__ import annotations
@@ -34,6 +42,8 @@ import argparse
 import os
 import re
 import sys
+import threading
+import webbrowser
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -44,6 +54,7 @@ from mosaic_format.pattern import check_pattern
 from mosaic_format.yaml_core import YamlError, load
 
 from mosaic_build import __version__
+from mosaic_build import view as viewer
 from mosaic_build.mosaic import BuildError, build
 from mosaic_build.mosaic.pieces import piece_paths
 from mosaic_build.mosaic.target import DEFAULT_TARGET
@@ -51,7 +62,6 @@ from mosaic_build.tessera import csv as csv_tessera
 from mosaic_build.tessera import settings as csv_settings
 
 PLANNED = {
-    "view": "M2",
     "export": "M3",
 }
 """Commands of later milestones, which say so and exit with status 2."""
@@ -118,6 +128,20 @@ def make_parser() -> argparse.ArgumentParser:
     checker = sub.add_parser("check", help="check a tessera, a mosaic or a pattern")
     checker.add_argument("file", type=Path, help="a tessera, a mosaic or pattern.yaml")
     checker.add_argument("--pieces", type=Path, help="directory of available piece files")
+
+    view_cmd = sub.add_parser(
+        "view",
+        help="open the viewer page with a tessera or mosaic loaded",
+        description=(
+            "Check FILE by the reading rules (section 3.8: container, schema, header, version and "
+            "both hashes), then serve the built viewer and FILE, read-only, on 127.0.0.1, and "
+            "open the page in the default browser. The kit runs in the page; nothing is queried "
+            "on a server. FILE is never written. Stop with Ctrl-C. A missing or refused file is "
+            "an error naming it and what failed (exit status 1), and no page opens. The viewer "
+            "must be built first: bun run build."
+        ),
+    )
+    view_cmd.add_argument("file", type=Path, help="the tessera or mosaic to open (only read)")
 
     for name, milestone in PLANNED.items():
         sub.add_parser(name, help=f"not implemented yet (planned for {milestone})")
@@ -262,6 +286,30 @@ def _check(args: argparse.Namespace) -> int:
     return 0
 
 
+def _view(args: argparse.Namespace) -> int:
+    path: Path = args.file
+    try:
+        data = viewer.checked_bytes(path)
+        dist = viewer.viewer_dist()
+    except viewer.ViewError as e:
+        _error("view", e)
+        return 1
+    server, url = viewer.serve(dist, path.name, data)
+    stopped = threading.Event()
+    try:
+        print(f"{path}: ok; viewer at {url} (Ctrl-C to stop)", flush=True)
+        if not webbrowser.open(url):
+            print("open the address above in a browser", flush=True)
+        while not stopped.wait(0.5):
+            pass
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.shutdown()
+        server.server_close()
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = make_parser()
     args = parser.parse_args(argv)
@@ -271,7 +319,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command in PLANNED:
         _error(args.command, f"not implemented yet (planned for {PLANNED[args.command]})")
         return 2
-    run = {"import": _import_csv, "build": _build, "check": _check}[args.command]
+    run = {"import": _import_csv, "build": _build, "check": _check, "view": _view}[args.command]
     try:
         return run(args)
     except _Usage as e:
