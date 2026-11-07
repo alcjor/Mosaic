@@ -109,7 +109,9 @@
     </nav>
     {#if viewer.tableRoute}
       <div class="wide">
-        <TableView view={viewer.table} route={viewer.tableRoute} hrefFor={tableHref} nodeHref={hrefFor} onfilter={filtered} />
+        {#key viewer.tableRoute.type}
+          <TableView view={viewer.table} route={viewer.tableRoute} hrefFor={tableHref} nodeHref={hrefFor} onfilter={filtered} />
+        {/key}
       </div>
     {:else if viewer.page && "message" in viewer.page}
       <section class="entity">

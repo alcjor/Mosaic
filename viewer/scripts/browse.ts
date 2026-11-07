@@ -94,6 +94,8 @@ async function tables(page: Page, type: string) {
   await table.locator("tbody a[data-id]").first().waitFor();
   const headers = await table.locator("thead th").allInnerTexts();
   const rows = await ids(page);
+  // The filter form shows the column it will use: the first one, before any choice.
+  const firstColumn = await table.getByLabel("Column", { exact: true }).inputValue();
   const column = (await table.locator("thead a[data-column]").last().getAttribute("data-column"))!;
   await table.locator(`thead a[data-column="${column}"]`).click();
   await table.locator('th[aria-sort="ascending"] a[data-column]').waitFor();
@@ -113,7 +115,25 @@ async function tables(page: Page, type: string) {
   const first = filtered[0]!;
   await table.locator(`tbody a[data-id="${first}"]`).click();
   await page.locator(`article[aria-label="${first}"]`).waitFor();
-  return { listed, headers, rows, column, ascending, descending, filtered, pager, opened: first, hash: new URL(page.url()).hash };
+  const hash = new URL(page.url()).hash;
+  // A column picked in one table never carries over to another type's table.
+  await page.locator(`a[data-type="${type}"]`).click();
+  await table.locator("tbody a[data-id]").first().waitFor();
+  await table.getByLabel("Column", { exact: true }).selectOption(column);
+  const other = listed.find((t) => t !== type)!;
+  await page.locator(`a[data-type="${other}"]`).click();
+  const otherTable = page.locator(`section[aria-label="Table ${other}"]`);
+  await otherTable.locator("tbody a[data-id]").first().waitFor();
+  const otherColumn = await otherTable.getByLabel("Column", { exact: true }).inputValue();
+  await otherTable.getByLabel("Value", { exact: true }).fill("x");
+  await otherTable.getByRole("button", { name: "Filter" }).click();
+  await otherTable.locator('ul[aria-label="Filters"]').waitFor();
+  const otherWhere = new URLSearchParams(new URL(page.url()).hash.slice(1)).get("w");
+  const otherError = await otherTable.locator('[role="alert"]').count();
+  return {
+    listed, headers, rows, firstColumn, column, ascending, descending, filtered, pager, opened: first, hash,
+    other: { type: other, column: otherColumn, where: otherWhere, errors: otherError },
+  };
 }
 
 if (pageUrl !== undefined) {

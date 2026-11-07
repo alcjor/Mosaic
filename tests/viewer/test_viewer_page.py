@@ -72,3 +72,9 @@ def test_the_viewer_searches_and_opens_node_pages_and_tables_with_the_kit_in_the
     assert "1 row" in tables["pager"]
     assert tables["opened"] == "Item:a"
     assert tables["hash"] == "#q=Item&node=Item%3Aa"
+    assert tables["firstColumn"] == "label"
+    # A column picked on Item's table is not sent for Group's, which has no such column.
+    other = tables["other"]
+    assert other["type"] == "Group" and other["column"] == "label"
+    assert json.loads(other["where"]) == [{"column": "label", "op": "=", "value": "x"}]
+    assert other["errors"] == 0

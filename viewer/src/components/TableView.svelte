@@ -30,6 +30,12 @@
 
   let columns = $derived(view && "columns" in view ? view.columns.slice(1) : []);
 
+  // The column picked is always one of this table's columns, shown in the select: the first
+  // until the reader picks another, and the first again when the table's columns change.
+  $effect(() => {
+    if (!columns.includes(column)) column = columns[0] ?? "";
+  });
+
   /** The route that sorts by `name`: ascending first, then descending. */
   function sorted(name: string): TableRoute {
     const desc = route.order?.column === name && !route.order.desc;
@@ -44,7 +50,7 @@
   function submit(event: SubmitEvent): void {
     event.preventDefault();
     const value = filterValue(text, kind);
-    const chosen = column || columns[0];
+    const chosen = columns.includes(column) ? column : columns[0];
     if (chosen === undefined) return;
     if (value === null) {
       problem = kind === "number" ? "Enter a number." : "Enter true or false.";
