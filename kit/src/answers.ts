@@ -111,6 +111,23 @@ export interface NeighborsAnswer {
   };
 }
 
+export interface TableAnswer {
+  readonly tool: "table";
+  readonly mosaic: string;
+  readonly data: {
+    /** The node type asked about. */
+    readonly type: string;
+    /** `id`, then the columns shown: declared properties, node fields and edges (section 8.6). */
+    readonly columns: readonly string[];
+    /** At most 20: each the node's id, then one cell per column shown. */
+    readonly rows: readonly (readonly unknown[])[];
+    /** The page shown, from 1; each page holds 20 rows. */
+    readonly page: number;
+    /** How many nodes of the type `where` keeps. */
+    readonly total: number;
+  };
+}
+
 /** The error codes of `answers.schema.json`. */
 export type ErrorCode =
   | "unknown_id"
@@ -131,7 +148,7 @@ export interface ErrorAnswer {
   };
 }
 
-export type Answer = FindAnswer | GetAnswer | NeighborsAnswer | CiteAnswer | ErrorAnswer;
+export type Answer = FindAnswer | GetAnswer | NeighborsAnswer | TableAnswer | CiteAnswer | ErrorAnswer;
 
 /** The longest error message `answers.schema.json` allows. */
 const MESSAGE_LIMIT = 400;
