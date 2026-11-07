@@ -21,13 +21,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from mosaic_format.writer import Content, seal
 from mosaic_format.yaml_core import Document, load
 
 from mosaic_build.tessera import sqlite
 from mosaic_build.tessera.settings import SettingsError, conversion
 from mosaic_build.tessera.sqlite import SettingError, Settings, Table, Where, check_settings
 
-__all__ = ["SettingsFile", "build", "from_json", "load_file", "read"]
+__all__ = ["SettingsFile", "build", "from_json", "load_file", "read", "read_database"]
 
 _SETTINGS = ("tables",)
 """The settings' keys."""
@@ -137,15 +138,28 @@ def read(path: str | os.PathLike[str]) -> Settings:
     return load_file(path).settings
 
 
+def read_database(
+    source: str | os.PathLike[str], settings: SettingsFile
+) -> tuple[Content, sqlite.Report]:
+    """The tessera's content for the SQLite database ``source``, shaped by ``settings``.
+
+    As :func:`mosaic_build.tessera.sqlite.read`, but a setting the database does not match is a
+    ``ValueError`` that also names the settings file and the setting's line.
+    """
+    try:
+        return sqlite.read(source, settings.settings)
+    except SettingError as e:
+        raise ValueError(f"{settings.at(e.where)}: {e}") from None
+
+
 def build(
     source: str | os.PathLike[str], out: str | os.PathLike[str], settings: SettingsFile
 ) -> sqlite.Built:
     """Write the tessera of the SQLite database ``source`` to ``out``, shaped by ``settings``.
 
-    As :func:`mosaic_build.tessera.sqlite.build`, but a setting the database does not match is
-    a ``ValueError`` that also names the settings file and the setting's line.
+    The database is read in full first (:func:`read_database`), so nothing is written when it
+    or the settings are refused.
     """
-    try:
-        return sqlite.build(source, out, settings.settings)
-    except SettingError as e:
-        raise ValueError(f"{settings.at(e.where)}: {e}") from None
+    made, report = read_database(source, settings)
+    sealed = seal(out, made)
+    return sqlite.Built(sealed.path, sealed.knowledge_hash, sealed.vector_hash, report)

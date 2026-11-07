@@ -62,6 +62,7 @@ from mosaic_format import FORMAT_VERSION
 from mosaic_format.check import check_file
 from mosaic_format.file import SIDECARS
 from mosaic_format.pattern import check_pattern
+from mosaic_format.writer import seal
 from mosaic_format.yaml_core import YamlError, load
 
 from mosaic_build import __version__
@@ -72,6 +73,7 @@ from mosaic_build.mosaic.target import DEFAULT_TARGET
 from mosaic_build.tessera import csv as csv_tessera
 from mosaic_build.tessera import settings as csv_settings
 from mosaic_build.tessera import sqlite_settings
+from mosaic_build.tessera.sqlite import Built
 
 PLANNED = {
     "export": "M3",
@@ -254,11 +256,15 @@ def _import(args: argparse.Namespace) -> int:
     if out.exists():
         _error(command, f"{out}: exists; a tessera is never overwritten")
         return 1
-    out.parent.mkdir(parents=True, exist_ok=True)
     try:
         if isinstance(settings, sqlite_settings.SettingsFile):
-            built = sqlite_settings.build(source, out, settings)
+            # Read the database in full first: a refused one leaves no folder behind either.
+            made, report = sqlite_settings.read_database(source, settings)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            sealed = seal(out, made)
+            built = Built(sealed.path, sealed.knowledge_hash, sealed.vector_hash, report)
         else:
+            out.parent.mkdir(parents=True, exist_ok=True)
             built = csv_tessera.build(source, out, settings)
     except (OSError, ValueError) as e:
         _error(command, e)
