@@ -45,13 +45,30 @@ class ExpectedError(ValueError):
     """An expected-hashes file that does not have the shape above."""
 
 
+class _Twice(Exception):
+    def __init__(self, key: str) -> None:
+        self.key = key
+
+
+def _once(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """A JSON object whose keys are all distinct: a target named twice is an error, not a guess."""
+    found: dict[str, object] = {}
+    for key, value in pairs:
+        if key in found:
+            raise _Twice(key)
+        found[key] = value
+    return found
+
+
 def load_expected(fixture: Path) -> dict[str, Expected]:
     """Read ``fixture/expected-hashes.json``; raise :class:`ExpectedError` naming what is wrong."""
     path = fixture / FILE
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_once)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ExpectedError(f"{path}: {error}") from error
+    except _Twice as twice:
+        raise ExpectedError(f"{path}: `{twice.key}` is named twice") from twice
     if not isinstance(data, dict) or set(data) - {"comment", "mosaics"}:
         raise ExpectedError(f"{path}: the top level holds only `comment` and `mosaics`")
     mosaics = data.get("mosaics")

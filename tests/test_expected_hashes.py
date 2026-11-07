@@ -194,6 +194,17 @@ def test_a_malformed_file_is_an_error_naming_the_file_and_the_setting(
     assert str(fixture / FILE) in str(error.value)
 
 
+def test_a_target_named_twice_is_an_error_naming_it(tmp_path: Path) -> None:
+    entry = json.dumps(_entry())
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    (fixture / FILE).write_text(
+        f'{{"mosaics": {{"default": {entry}, "default": {entry}}}}}', encoding="utf-8"
+    )
+    with pytest.raises(ExpectedError, match="`default` is named twice"):
+        load_expected(fixture)
+
+
 def test_a_target_without_vectors_has_no_vector_hash_and_no_model(tmp_path: Path) -> None:
     fixture = _write(tmp_path / "fixture", {"mosaics": {"small": _entry(vector=None, model=None)}})
     assert load_expected(fixture) == {"small": Expected("a" * 64, None, None)}
