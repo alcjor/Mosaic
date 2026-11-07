@@ -11,8 +11,9 @@ conversions, and the foreign keys that become edges. They are recorded in ``head
 - **Keys.** A row's key is its primary key's value, as text: an integer in decimal, a real
   number in its canonical JSON form (section 3.1), text as written. The node id is
   ``<type>:<key>`` and the type's ``key_prop`` is the key column (section 3.4). A table needs a
-  primary key of one column; a key that is NULL, empty, a blob or holds ``;`` (which a locator
-  value cannot hold, section 3.5) is refused, and so are two rows with the same key.
+  primary key of one column, or of two foreign keys (below); a key that is NULL, empty, a blob
+  or holds ``;`` (which a locator value cannot hold, section 3.5) is refused, and so are two rows
+  with the same key.
 - **Values.** A prop column's value keeps its kind: an integer is a JSON integer (a string
   beyond +/-(2**53 - 1), section 3.1), a real a JSON number, text a string; NULL makes no prop.
   A column declares the kind its values have: ``integer``, ``number`` (integers and reals),
@@ -30,8 +31,16 @@ conversions, and the foreign keys that become edges. They are recorded in ``head
   names, compared as SQLite compares them in a join; a value that names no row, or more than
   one, is refused. A column with more than one foreign key, or one of several columns, is
   refused.
+- **Tables of two foreign keys** (plan M3.13, the maintainer's answer on #124). A table whose
+  primary key is two columns, each a foreign key of one column, gives no node and no node type:
+  each row gives one edge, from the row the first key column names to the row the second names
+  (in key order), of the edge type its settings' ``edge`` names; the row's other columns are the
+  edge's props, as a node's are. Its key is the two values' text joined by ``/``, so a value
+  holding ``/`` is refused. Such a table takes ``edge`` and no other setting; any other key of
+  several columns is refused, and a foreign key may not reference such a table.
 - **Evidence.** One row per node, locator ``file=<name>;table=<table>;row=<key>``, and one per
-  edge, ``file=<name>;table=<table>;row=<key>;field=<column>``; method ``extracted``.
+  edge, ``file=<name>;table=<table>;row=<key>;field=<column>``, or for the row of a table of
+  two foreign keys ``file=<name>;table=<table>;row=<first>/<second>``; method ``extracted``.
 - **Reading.** The file is read once, as bytes; its hash and its content come from those bytes,
   which are opened in memory, read-only. The source file is never opened for writing and no
   file is made beside it (principle 8). A database with a ``-wal`` or ``-journal`` file beside
@@ -131,7 +140,9 @@ def _text(raw: bytes) -> str | _Undecodable:
 class Table:
     """What one table gives: its node type (None: the table's name), the ``label`` and
     ``summary`` columns or None, the ``props`` columns, their conversions, and the foreign keys
-    that become edges, each by its column, mapped to the edge type's name."""
+    that become edges, each by its column, mapped to the edge type's name. For a table whose
+    primary key is two foreign keys, ``edge`` names the edge type each row gives, and nothing
+    else is set."""
 
     type: str | None = None
     label: str | None = None
@@ -139,11 +150,14 @@ class Table:
     props: tuple[str, ...] = ()
     convert: Mapping[str, Conversion] = field(default_factory=dict)
     foreign_keys: Mapping[str, str] = field(default_factory=dict)
+    edge: str | None = None
 
     def type_for(self, table: str) -> str:
         return table if self.type is None else self.type
 
     def as_json(self, table: str) -> dict[str, object]:
+        if self.edge is not None:
+            return {"edge": self.edge}
         value: dict[str, object] = {
             "type": self.type_for(table),
             "label": self.label,
@@ -200,6 +214,17 @@ class _ForeignKey:
 
 
 @dataclass(frozen=True)
+class _EdgeTable:
+    """A named table of two foreign keys: the edge type its rows give, its two key columns'
+    foreign keys in key order, and its other columns, which are the edges' props."""
+
+    name: str
+    edge: str
+    ends: tuple[_ForeignKey, _ForeignKey]
+    props: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class _Shape:
     """A named table as the database declares it: its key column and its foreign keys."""
 
@@ -247,8 +272,8 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
         raise ValueError(f"{path}: cannot be read ({e.strerror or e})") from None
     con = _open(name, data)
     try:
-        shapes = _shapes(con, name, settings)
-        made, report = _read(con, name, settings, shapes)
+        shapes, edge_tables = _shapes(con, name, settings)
+        made, report = _read(con, name, settings, shapes, edge_tables)
     finally:
         con.close()
     return (
@@ -278,6 +303,9 @@ def check_settings(settings: Settings) -> None:
             raise SettingError(
                 ("tables", table), f"{at}: a table name with ';' cannot be a locator value (3.5)"
             )
+        if t.edge is not None:
+            _check_edge_table(table, t, edges)
+            continue
         node_type = t.type_for(table)
         type_at: Where = ("tables", table) if t.type is None else ("tables", table, "type")
         typed = f"{at}: type" if t.type is None else f"{at}.type: type"
@@ -322,6 +350,42 @@ def check_settings(settings: Settings) -> None:
             edges[edge] = f"tables.{table}.foreign_keys.{column}"
 
 
+_NODE_SETTINGS = ("type", "label", "summary", "props", "convert", "foreign_keys")
+"""A table's settings that shape nodes, which a table that gives edges does not take."""
+
+
+def _check_edge_table(table: str, t: Table, edges: dict[str, str]) -> None:
+    at = f"settings: tables.{table}"
+    given = {
+        "type": t.type is not None,
+        "label": t.label is not None,
+        "summary": t.summary is not None,
+        "props": bool(t.props),
+        "convert": bool(t.convert),
+        "foreign_keys": bool(t.foreign_keys),
+    }
+    for setting in _NODE_SETTINGS:
+        if given[setting]:
+            raise SettingError(
+                ("tables", table, setting),
+                f"{at}.{setting}: a table that gives edges (edge) takes no {setting}; its rows "
+                f"are edges, and its other columns their props",
+            )
+    edge = str(t.edge)
+    where: Where = ("tables", table, "edge")
+    if EDGE_TYPE.fullmatch(edge) is None:
+        raise SettingError(
+            where, f"{at}.edge: edge {edge!r} is not an edge type name ^[a-z][a-z0-9_]*$ (3.4)"
+        )
+    if edge in edges:
+        raise SettingError(
+            where,
+            f"{at}.edge: edge {edge!r} is already the edge of {edges[edge]}; each table and "
+            f"foreign key has its own edge type",
+        )
+    edges[edge] = f"tables.{table}.edge"
+
+
 def _open(name: str, data: bytes) -> sqlite3.Connection:
     """The database ``data`` holds, opened in memory and read-only."""
     if not data.startswith(MAGIC):
@@ -352,8 +416,15 @@ def _q(identifier: str) -> str:
     return '"' + identifier.replace('"', '""') + '"'
 
 
-def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str, _Shape]:
-    """Each named table's key and foreign keys, checked against the settings."""
+type _Declared = dict[int, list[tuple[str, str, str | None]]]
+"""A table's foreign keys by id: each one's columns as (column, parent table, parent column)."""
+
+
+def _shapes(
+    con: sqlite3.Connection, name: str, settings: Settings
+) -> tuple[dict[str, _Shape], dict[str, _EdgeTable]]:
+    """Each named table's key and foreign keys, checked against the settings: the tables whose
+    rows are nodes, and the tables of two foreign keys, whose rows are edges."""
     tables = {
         str(n): str(sql or "")
         for n, sql in con.execute(
@@ -361,9 +432,10 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
             " WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\'"
         )
     }
-    # Every named table and its key first: a foreign key may reference any of them.
-    found: dict[str, tuple[list[str], str]] = {}
-    for table in settings.tables:
+    # Every named table, its key and what its rows give first: a foreign key may reference any.
+    found: dict[str, tuple[list[str], list[str], _Declared]] = {}
+    gives_edges: set[str] = set()
+    for table, t in settings.tables.items():
         at = f"{name}: table {table!r}"
         if table not in tables or tables[table].lstrip().upper().startswith("CREATE VIRTUAL"):
             raise SettingError(
@@ -371,18 +443,69 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
                 f"{at} is not a table of the database (settings: tables.{table})",
             )
         columns, key = _columns(con, table)
+        declared: _Declared = {}
+        for row in con.execute(f"PRAGMA foreign_key_list({_q(table)})"):
+            declared.setdefault(int(row[0]), []).append((str(row[3]), str(row[2]), row[4]))
+        found[table] = (columns, key, declared)
         if not key:
             raise ValueError(f"{at} has no primary key; a row's key is its primary key")
-        if len(key) > 1:
+        if len(key) == 1:
+            if t.edge is not None:
+                raise SettingError(
+                    ("tables", table, "edge"),
+                    f"{at} has a primary key of one column ({key[0]}), so its rows are nodes; "
+                    f"edge is for a table whose primary key is two foreign keys "
+                    f"(settings: tables.{table}.edge)",
+                )
+            continue
+        if len(key) != 2 or not all(_single(declared, c) for c in key):
             raise ValueError(
-                f"{at} has a primary key of {len(key)} columns ({', '.join(key)}); "
-                f"a row's key is a primary key of one column"
+                f"{at} has a primary key of {len(key)} columns ({', '.join(key)}); a row's key "
+                f"is a primary key of one column, or of two columns that are each a foreign key "
+                f"(each row then gives an edge)"
             )
-        found[table] = (columns, key[0])
+        if t.edge is None:
+            raise SettingError(
+                ("tables", table),
+                f"{at} has a primary key of two foreign keys ({', '.join(key)}), so each row "
+                f"gives an edge; set edge to name its edge type (settings: tables.{table}.edge)",
+            )
+        gives_edges.add(table)
+
+    def parent_of(at: str, where: Where, column: str, declared: _Declared) -> _ForeignKey:
+        """The table and column the one foreign key of ``column`` references, checked."""
+        ((_, parent, to),) = next(fk for fk in declared.values() if fk[0][0] == column)
+        if parent not in settings.tables:
+            raise SettingError(
+                where,
+                f"{at} references table {parent!r}, which the settings do not name "
+                f"(names compare exactly); an edge needs the row it names in the tessera",
+            )
+        if parent in gives_edges:
+            raise SettingError(
+                where, f"{at} references table {parent!r}, whose rows are edges, not nodes"
+            )
+        parent_columns, parent_key, _ = found[parent]
+        # A foreign key that names no column references its table's primary key.
+        to = parent_key[0] if to is None else str(to)
+        if to not in parent_columns:
+            raise SettingError(
+                where, f"{at} references column {to!r} of table {parent!r}, which has none"
+            )
+        return _ForeignKey(column, "", parent, to)
+
     shapes: dict[str, _Shape] = {}
+    edge_tables: dict[str, _EdgeTable] = {}
     for table, t in settings.tables.items():
         at = f"{name}: table {table!r}"
-        columns, key = found[table]
+        columns, key, declared = found[table]
+        if table in gives_edges:
+            first, second = (
+                parent_of(f"{at}: key column {c!r}", ("tables", table), c, declared) for c in key
+            )
+            props = tuple(c for c in columns if c not in key)
+            edge_tables[table] = _EdgeTable(table, str(t.edge), (first, second), props)
+            continue
         named: list[tuple[Where, str | None]] = [(("label",), t.label), (("summary",), t.summary)]
         named += [(("props", i), p) for i, p in enumerate(t.props)]
         named += [(("foreign_keys", c), c) for c in t.foreign_keys]
@@ -393,9 +516,6 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
                     ("tables", table, *setting),
                     f"{at} has no column {column!r} (settings: tables.{table}.{shown})",
                 )
-        declared: dict[int, list[tuple[str, str, str | None]]] = {}
-        for row in con.execute(f"PRAGMA foreign_key_list({_q(table)})"):
-            declared.setdefault(int(row[0]), []).append((str(row[3]), str(row[2]), row[4]))
         foreign_keys: list[_ForeignKey] = []
         for column, edge in t.foreign_keys.items():
             fk_at = ("tables", table, "foreign_keys", column)
@@ -411,23 +531,16 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
                 raise SettingError(
                     fk_at, f"{where} is one of {len(fks[0])} columns of a foreign key"
                 )
-            ((_, parent, to),) = fks[0]
-            if parent not in settings.tables:
-                raise SettingError(
-                    fk_at,
-                    f"{where} references table {parent!r}, which the settings do not name "
-                    f"(names compare exactly); an edge needs the row it names in the tessera",
-                )
-            parent_columns, parent_key = found[parent]
-            # A foreign key that names no column references its table's primary key.
-            to = parent_key if to is None else str(to)
-            if to not in parent_columns:
-                raise SettingError(
-                    fk_at, f"{where} references column {to!r} of table {parent!r}, which has none"
-                )
-            foreign_keys.append(_ForeignKey(column, edge, parent, to))
-        shapes[table] = _Shape(table, t.type_for(table), key, tuple(foreign_keys))
-    return shapes
+            fk = parent_of(where, fk_at, column, declared)
+            foreign_keys.append(_ForeignKey(column, edge, fk.parent, fk.parent_column))
+        shapes[table] = _Shape(table, t.type_for(table), key[0], tuple(foreign_keys))
+    return shapes, edge_tables
+
+
+def _single(declared: _Declared, column: str) -> bool:
+    """Whether ``column`` has exactly one foreign key, and that one of this column alone."""
+    fks = [fk for fk in declared.values() if any(c == column for c, _, _ in fk)]
+    return len(fks) == 1 and len(fks[0]) == 1
 
 
 def _columns(con: sqlite3.Connection, table: str) -> tuple[list[str], list[str]]:
@@ -487,7 +600,11 @@ def _kind(values: Iterable[_Value]) -> str:
 
 
 def _read(
-    con: sqlite3.Connection, name: str, settings: Settings, shapes: Mapping[str, _Shape]
+    con: sqlite3.Connection,
+    name: str,
+    settings: Settings,
+    shapes: Mapping[str, _Shape],
+    edge_tables: Mapping[str, _EdgeTable],
 ) -> tuple[tuple[list[Type], list[Node], list[Edge], list[Evidence]], Report]:
     types: list[Type] = []
     nodes: list[Node] = []
@@ -495,6 +612,8 @@ def _read(
     evidence: list[Evidence] = []
     unconverted: dict[str, list[str]] = {}
     for table, t in settings.tables.items():
+        if table in edge_tables:
+            continue
         shape = shapes[table]
         wanted = list(
             dict.fromkeys([c for c in (t.label, t.summary) if c is not None] + [*t.props])
@@ -543,11 +662,14 @@ def _read(
         kinds.update({p: _kind(values[p]) for p in t.props if p not in t.convert})
         types.append(Type(name=shape.type, kind="node", key_prop=shape.key, props=_json(kinds)))
     for table in settings.tables:
+        if table in edge_tables:
+            _edge_rows(con, name, edge_tables[table], shapes, (types, edges, evidence))
+            continue
         shape = shapes[table]
         for fk in shape.foreign_keys:
             parent = shapes[fk.parent]
             types.append(Type(name=fk.edge, kind="edge", from_type=shape.type, to_type=parent.type))
-            for key, dst in _references(con, name, shape, fk, parent):
+            for key, dst in _references(con, name, table, (shape.key,), fk, parent):
                 edge = Edge(type=fk.edge, src=f"{shape.type}:{key}", dst=f"{parent.type}:{dst}")
                 edges.append(edge)
                 locator = f"file={name};table={table};row={key};field={fk.column}"
@@ -560,6 +682,21 @@ def _read(
 
 def _key(name: str, table: str, column: str, value: _Value, seen: set[str]) -> str:
     """A row's key from its primary key value; refused when no node id can hold it."""
+    return _unique(name, table, _key_text(name, table, column, value), seen)
+
+
+def _unique(name: str, table: str, key: str, seen: set[str]) -> str:
+    if key in seen:
+        raise ValueError(
+            f"{name}: table {table!r}: two rows have the key {key!r}; "
+            f"node ids are unique within a tessera (4.1)"
+        )
+    seen.add(key)
+    return key
+
+
+def _key_text(name: str, table: str, column: str, value: _Value) -> str:
+    """A key column's value as text; refused when no locator can hold it (section 3.5)."""
     at = f"{name}: table {table!r}"
     if value is None or (isinstance(value, bytes) and not isinstance(value, _Undecodable)):
         what = "NULL" if value is None else "a blob"
@@ -572,35 +709,99 @@ def _key(name: str, table: str, column: str, value: _Value, seen: set[str]) -> s
         raise ValueError(
             f"{at}: key {key!r} holds ';', which a locator value cannot hold (section 3.5)"
         )
-    if key in seen:
-        raise ValueError(
-            f"{at}: two rows have the key {key!r}; node ids are unique within a tessera (4.1)"
-        )
-    seen.add(key)
     return key
 
 
+def _edge_rows(
+    con: sqlite3.Connection,
+    name: str,
+    table: _EdgeTable,
+    shapes: Mapping[str, _Shape],
+    into: tuple[list[Type], list[Edge], list[Evidence]],
+) -> None:
+    """The edges a table of two foreign keys gives, one per row, with their evidence."""
+    types, edges, evidence = into
+    first, second = table.ends
+    keys = (first.column, second.column)
+    select = ", ".join(_q(c) for c in [*keys, *table.props])
+    rows = con.execute(f"SELECT {select} FROM {_q(table.name)} ORDER BY 1, 2").fetchall()
+    seen: set[str] = set()
+    values: dict[str, list[_Value]] = {p: [] for p in table.props}
+    props_of: dict[str, str | None] = {}
+    for row in rows:
+        parts = [_key_text(name, table.name, c, v) for c, v in zip(keys, row[:2], strict=True)]
+        for column, part in zip(keys, parts, strict=True):
+            if "/" in part:
+                raise ValueError(
+                    f"{name}: table {table.name!r}: key column {column!r} is {part!r}, which "
+                    f"holds '/', the separator of a key of two foreign keys"
+                )
+        key = _unique(name, table.name, "/".join(parts), seen)
+        at = f"{name}: table {table.name!r} row {key}"
+        props: dict[str, object] = {}
+        for column, value in zip(table.props, row[2:], strict=True):
+            _check(at, column, value)
+            if value is not None:
+                values[column].append(value)
+                props[column] = _prop(value)
+        props_of[key] = _json(props) if props else None
+    srcs, dsts = (
+        dict(_references(con, name, table.name, keys, fk, shapes[fk.parent])) for fk in table.ends
+    )
+    src_type, dst_type = shapes[first.parent].type, shapes[second.parent].type
+    kinds = {p: _kind(values[p]) for p in table.props}
+    types.append(
+        Type(name=table.edge, kind="edge", from_type=src_type, to_type=dst_type, props=_json(kinds))
+    )
+    pairs: dict[tuple[str, str], str] = {}
+    for key, edge_props in props_of.items():
+        src, dst = srcs[key], dsts[key]
+        if (src, dst) in pairs:
+            raise ValueError(
+                f"{name}: table {table.name!r}: rows {pairs[src, dst]} and {key} both name "
+                f"{src_type}:{src} and {dst_type}:{dst}; each row gives its own edge"
+            )
+        pairs[src, dst] = key
+        edge = Edge(
+            type=table.edge,
+            src=f"{src_type}:{src}",
+            dst=f"{dst_type}:{dst}",
+            props=edge_props,
+        )
+        edges.append(edge)
+        evidence.append(_evidence(edge.key, name, f"file={name};table={table.name};row={key}"))
+
+
 def _references(
-    con: sqlite3.Connection, name: str, shape: _Shape, fk: _ForeignKey, parent: _Shape
+    con: sqlite3.Connection,
+    name: str,
+    table: str,
+    keys: tuple[str, ...],
+    fk: _ForeignKey,
+    parent: _Shape,
 ) -> list[tuple[str, str]]:
-    """Each row's key and the key of the row its foreign key value names; NULL names none."""
+    """Each row's key (its ``keys`` columns' text joined by ``/``) and the key of the row its
+    foreign key value names, in key order; NULL names none."""
+    columns = ", ".join(f"c.{_q(k)}" for k in keys)
+    order = ", ".join(str(i) for i in range(1, len(keys) + 3))
     sql = (
-        f"SELECT c.{_q(shape.key)}, c.{_q(fk.column)}, p.{_q(parent.key)}"
-        f" FROM {_q(shape.name)} AS c LEFT JOIN {_q(parent.name)} AS p"
+        f"SELECT {columns}, c.{_q(fk.column)}, p.{_q(parent.key)}"
+        f" FROM {_q(table)} AS c LEFT JOIN {_q(parent.name)} AS p"
         f" ON c.{_q(fk.column)} = p.{_q(fk.parent_column)}"
-        f" WHERE c.{_q(fk.column)} IS NOT NULL ORDER BY 1, 3"
+        f" WHERE c.{_q(fk.column)} IS NOT NULL ORDER BY {order}"
     )
     found: dict[str, list[str]] = {}
     values: dict[str, _Value] = {}
-    for child, value, dst in con.execute(sql):
-        key = _text_of(child)
+    for row in con.execute(sql):
+        *child, value, dst = row
+        key = "/".join(_text_of(v) for v in child)
         values[key] = value
         targets = found.setdefault(key, [])
         if dst is not None:
             targets.append(_text_of(dst))
     pairs: list[tuple[str, str]] = []
     for key, targets in found.items():
-        at = f"{name}: table {shape.name!r} row {key}: {fk.column!r}"
+        at = f"{name}: table {table!r} row {key}: {fk.column!r}"
         if not targets:
             raise ValueError(
                 f"{at} is {values[key]!r}, but table {parent.name!r} has no row with "

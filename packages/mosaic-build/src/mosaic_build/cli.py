@@ -11,7 +11,8 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   SQLite database (:mod:`mosaic_build.tessera.sqlite`). The settings file has the shape of the
   tessera's ``header.settings`` (:mod:`mosaic_build.tessera.sqlite_settings`): the tables to
   read and, for each, its node type, label, summary, props, conversions and the foreign keys
-  that become edges. A setting the database does not match (a table or column it does not
+  that become edges, or for a table whose primary key is two foreign keys the edge type each
+  row gives. A setting the database does not match (a table or column it does not
   have, a foreign key it does not declare) is an error naming the settings file, the line and
   the setting. A file that is not a SQLite database is an error naming it. Values a conversion
   could not read are listed on standard error.
@@ -128,7 +129,10 @@ def make_parser() -> argparse.ArgumentParser:
             "database, with its type (default: the table's name), label, summary, props, "
             "convert and foreign_keys (a foreign key's column mapped to its edge type). Each "
             "row is one node keyed by its primary key, and each value of a named foreign key "
-            "one edge to the row it names. The database is only read. A wrong setting, also a "
+            "one edge to the row it names. A table whose primary key is two foreign keys takes "
+            "edge alone, its edge type: each row is one edge from the row its first key column "
+            "names to the row its second names, with its other columns as the edge's props. "
+            "The database is only read. A wrong setting, also a "
             "table or column the database does not have or a foreign key it does not declare, "
             "is an error naming the settings file, the line and the setting (exit status 1), "
             "and no tessera is written; so is a file that is not a SQLite database."
