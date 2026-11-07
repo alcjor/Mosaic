@@ -16,6 +16,7 @@ export {
   useSqliteWasm,
   type Header,
   type EdgeType,
+  type Piece,
   type NodeType,
   type OpenOptions,
   type RefusalRule,

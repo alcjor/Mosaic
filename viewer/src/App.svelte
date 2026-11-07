@@ -27,7 +27,7 @@
   import { fetchNamedModel, fetchNamedMosaic, loadModel, shortHash } from "./lib/mosaic.js";
   import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
   import { useSqliteWasm } from "@mosaic/kit";
-  import { readExport, runtimeOf } from "./lib/exported.js";
+  import { cutFrom, readExport, runtimeOf } from "./lib/exported.js";
   import { applyTheme, watchView } from "./lib/view.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
@@ -156,6 +156,10 @@
   />
   {#if exported}
     <span class="export caption">Read-only export</span>
+    {@const from = viewer.file ? cutFrom(viewer.file.pieces) : null}
+    {#if from}
+      <span class="export caption" title={from.hash}>from {from.id} {shortHash(from.hash)}</span>
+    {/if}
   {/if}
   <label class="open caption">
     Open a mosaic

@@ -12,7 +12,7 @@
  * (a page opened from `file://` cannot import a file) and gives the kit both; the kit checks the
  * model's files by their pinned hashes (section 6) before it runs them.
  */
-import type { ModelFiles, OrtModule, Runtime } from "@mosaic/kit";
+import type { ModelFiles, OrtModule, Piece, Runtime } from "@mosaic/kit";
 import { parseView, type ViewSettings } from "./view.js";
 
 /** The id of the element that holds an export's data. */
@@ -75,6 +75,15 @@ export async function parseExport(text: string): Promise<Exported> {
     };
   }
   return { name: given.name, mosaic, sqlite, view, model };
+}
+
+/**
+ * The mosaic an export's file was cut from (answer on #140), when its pieces are exactly one
+ * mosaic, as `mosaic export` builds a cut with `export.types`; else null. The page shows it as
+ * "from <piece> <short hash>", read from the file itself.
+ */
+export function cutFrom(pieces: readonly Piece[]): Piece | null {
+  return pieces.length === 1 && pieces[0]!.kind === "mosaic" ? pieces[0]! : null;
 }
 
 /** ONNX Runtime from an export: its module imported from a blob, and its WebAssembly's bytes. */

@@ -24,5 +24,7 @@ types:                  # Which node types appear, in the order written here.
   Genre: {}
 
 export:
-  types: [Title, Person, Genre]    # Which types an export carries. What that means, and its
-                                   # default, are set in plan slice M3.10.
+  types: [Title, Person, Genre]    # Which node types an export carries: a mosaic built from
+                                   # this one with only these types, the edges between them and
+                                   # their evidence, saying where it comes from (#140). A type
+                                   # the mosaic lacks is an error. Default: the mosaic as it is.

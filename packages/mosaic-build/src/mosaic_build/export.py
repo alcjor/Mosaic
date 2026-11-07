@@ -30,6 +30,9 @@ import os
 import re
 from pathlib import Path
 
+from mosaic_format.yaml_core import load
+
+from mosaic_build import cut as cutter
 from mosaic_build import view as viewer
 from mosaic_build import view_file
 from mosaic_build.mosaic.vectors import MODEL
@@ -133,6 +136,28 @@ def page(
     return out.encode("utf-8")
 
 
+def _check_export_types(source: Path, view: Path | None, types: list[str]) -> None:
+    """``export.types`` names node types the mosaic has, and at least one (answer A on #140)."""
+    assert view is not None  # export.types is only ever set by a view file
+    try:
+        doc = load(view.read_text(encoding="utf-8"), str(view))
+    except OSError, ValueError:
+        doc = None
+
+    def at(*where: str | int) -> str:
+        line = None if doc is None else doc.line(("export", "types", *where))
+        return str(view) if line is None else f"{view}:{line}"
+
+    if not types:
+        raise ExportError(f"{at()}: view file: export.types is empty; name the types to carry")
+    declared = cutter.read_source(source).node_types
+    for i, name in enumerate(types):
+        if name not in declared:
+            raise ExportError(
+                f"{at(i)}: view file: export.types: the mosaic has no node type {name}"
+            )
+
+
 def default_output(source: Path) -> Path:
     """Where an export of ``source`` goes without ``-o``: its name with ``.html``, here (#131).
 
@@ -187,8 +212,18 @@ def export(
             raise ExportError(str(e)) from None
     # With search: text a model directory given is ignored, not even read, so a missing or wrong
     # one is no error: the export carries no model (answer B on #137, "ignore the model").
+    exported = settings.get("export")
+    listed = exported.get("types") if isinstance(exported, dict) else None
+    export_types = None if listed is None else [str(t) for t in listed]
+    if export_types is not None:
+        _check_export_types(source, view, export_types)
     if output.exists() or output.is_symlink():
         raise ExportError(f"{output}: exists; an export is never overwritten")
+    if export_types is not None:
+        try:
+            data = cutter.cut(source, export_types, model if files is not None else None)
+        except cutter.CutError as e:
+            raise ExportError(str(e)) from None
     body = page(source.name, data, settings, built, files)
     try:
         with output.open("xb") as handle:

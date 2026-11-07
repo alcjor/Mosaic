@@ -3,7 +3,9 @@
 import { render } from "svelte/server";
 import { describe, expect, it } from "vitest";
 import App from "../src/App.svelte";
-import { EXPORT_ID, parseExport, readExport } from "../src/lib/exported.js";
+import { buildMosaic } from "../../kit/test/build-mosaic.js";
+import { cutFrom, EXPORT_ID, parseExport, readExport } from "../src/lib/exported.js";
+import { Viewer } from "../src/lib/viewer.svelte.js";
 import { DEFAULT_VIEW } from "../src/lib/view.js";
 import { reading } from "./fixtures.js";
 
@@ -65,5 +67,33 @@ describe("an export's data", () => {
   it("an export says it is a read-only export; a page mosaic view serves does not", () => {
     expect(render(App, { props: { exported: true } }).body).toContain("Read-only export");
     expect(render(App, {}).body).not.toContain("Read-only export");
+  });
+});
+
+describe("an export cut to some types (answer on #140)", () => {
+  const hash = "1a2b3c4d5e6f".padEnd(64, "0");
+
+  it("is from the one mosaic its file was built from", () => {
+    expect(cutFrom([{ id: "netflix", kind: "mosaic", hash }])).toEqual({ id: "netflix", kind: "mosaic", hash });
+    expect(cutFrom([])).toBeNull();
+    expect(cutFrom([{ id: "t", kind: "tessera", hash }])).toBeNull();
+    expect(cutFrom([{ id: "a", kind: "mosaic", hash }, { id: "b", kind: "mosaic", hash }])).toBeNull();
+  });
+
+  it("the page shows its own name and checked hash, and 'from <source> <hash>' read from the file", async () => {
+    const viewer = new Viewer();
+    const bytes = buildMosaic({ nodes: [{ type: "Item", key: "a" }], sources: [{ id: "netflix", kind: "mosaic", hash }] });
+    await viewer.open(bytes, "netflix.mosaic");
+    const body = render(App, { props: { viewer, exported: true } }).body;
+    expect(body).toContain(">netflix.mosaic<");
+    expect(body).toContain(`>${viewer.file!.header.knowledge_hash.slice(0, 12)}<`);
+    expect(body).toContain(">from netflix 1a2b3c4d5e6f<");
+    expect(render(App, { props: { viewer } }).body).not.toContain("from netflix");
+  });
+
+  it("an export of a mosaic built from tesserae shows no 'from'", async () => {
+    const viewer = new Viewer();
+    await viewer.open(buildMosaic({ nodes: [{ type: "Item", key: "a" }], sources: [{ id: "t", kind: "tessera", hash }] }), "m.mosaic");
+    expect(render(App, { props: { viewer, exported: true } }).body).not.toContain(">from ");
   });
 });
