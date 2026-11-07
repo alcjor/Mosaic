@@ -80,24 +80,25 @@ describe("table (section 8.1)", () => {
     const file = await open(SAMPLE);
     const data = await tabled(file, { type: "Probe" });
     expect(data.type).toBe("Probe");
-    expect(data.columns).toEqual(["id", "active", "code", "range", "scale", "year"]);
+    // Without columns: the label, then the declared properties (section 8.6).
+    expect(data.columns).toEqual(["id", "label", "active", "code", "range", "scale", "year"]);
     expect(data.page).toBe(1);
     expect(data.total).toBe(5);
     expect(data.rows).toEqual([
-      ["Probe:P1", true, "TMP-1", [0, 100], 0.5, 2019],
-      ["Probe:P2", false, "TMP-2", null, 1.5, 2021],
-      ["Probe:P3", true, "PRS-3", null, null, 2020],
-      ["Probe:P4", null, null, null, null, null],
-      ["Probe:P5", null, "tmp-5", null, -2, 2021],
+      ["Probe:P1", "Inlet", true, "TMP-1", [0, 100], 0.5, 2019],
+      ["Probe:P2", "Outlet", false, "TMP-2", null, 1.5, 2021],
+      ["Probe:P3", "Tank", true, "PRS-3", null, null, 2020],
+      ["Probe:P4", "Spare", null, null, null, null, null],
+      ["Probe:P5", "Pump", null, "tmp-5", null, -2, 2021],
     ]);
     file.close();
   });
 
-  it("a type that declares no property has the id column alone", async () => {
+  it("a type that declares no property has the id and label columns", async () => {
     const file = await open(SAMPLE);
     const data = await tabled(file, { type: "Gauge" });
-    expect(data.columns).toEqual(["id"]);
-    expect(data.rows).toEqual([["Gauge:G1"]]);
+    expect(data.columns).toEqual(["id", "label"]);
+    expect(data.rows).toEqual([["Gauge:G1", "Dial"]]);
     expect(data.total).toBe(1);
     file.close();
   });
@@ -105,7 +106,7 @@ describe("table (section 8.1)", () => {
   it("a declared type with no node is an empty success with total 0", async () => {
     const file = await open({ ...SAMPLE, types: ["Valve"], typeProps: { ...SAMPLE.typeProps, Valve: '{"size":"integer"}' } });
     const data = await tabled(file, { type: "Valve" });
-    expect(data).toEqual({ type: "Valve", columns: ["id", "size"], rows: [], page: 1, total: 0 });
+    expect(data).toEqual({ type: "Valve", columns: ["id", "label", "size"], rows: [], page: 1, total: 0 });
     file.close();
   });
 
@@ -167,9 +168,9 @@ describe("table: where (section 8.1)", () => {
     // Text compares by its UTF-8 bytes, so case counts; a number is not the text of it.
     expect(await where(file, [{ column: "code", op: "=", value: "tmp-1" }])).toEqual([]);
     expect(await where(file, [{ column: "year", op: "=", value: "2021" }])).toEqual([]);
-    // != keeps the rows that have the property with another value; a row without it has no value.
-    expect(await where(file, [{ column: "year", op: "!=", value: 2021 }])).toEqual(["Probe:P1", "Probe:P3"]);
-    expect(await where(file, [{ column: "active", op: "!=", value: true }])).toEqual(["Probe:P2"]);
+    // != keeps every row whose value is not the given one, rows without the property included (8.6).
+    expect(await where(file, [{ column: "year", op: "!=", value: 2021 }])).toEqual(["Probe:P1", "Probe:P3", "Probe:P4"]);
+    expect(await where(file, [{ column: "active", op: "!=", value: true }])).toEqual(["Probe:P2", "Probe:P4", "Probe:P5"]);
     file.close();
   });
 
@@ -186,9 +187,9 @@ describe("table: where (section 8.1)", () => {
     file.close();
   });
 
-  it("contains keeps text values that hold the given text, case and all", async () => {
+  it("contains keeps text values that hold the given text, ignoring case (section 8.6)", async () => {
     const file = await open(SAMPLE);
-    expect(await where(file, [{ column: "code", op: "contains", value: "TMP" }])).toEqual(["Probe:P1", "Probe:P2"]);
+    expect(await where(file, [{ column: "code", op: "contains", value: "TMP" }])).toEqual(["Probe:P1", "Probe:P2", "Probe:P5"]);
     expect(await where(file, [{ column: "code", op: "contains", value: "-" }])).toHaveLength(4);
     expect(await where(file, [{ column: "code", op: "contains", value: "%" }])).toEqual([]);
     expect(await where(file, [{ column: "code", op: "contains", value: "_" }])).toEqual([]);
@@ -204,8 +205,8 @@ describe("table: where (section 8.1)", () => {
         { column: "year", op: ">", value: 2020 },
       ],
     });
-    expect(ids(data)).toEqual(["Probe:P2"]);
-    expect(data.total).toBe(1);
+    expect(ids(data)).toEqual(["Probe:P2", "Probe:P5"]);
+    expect(data.total).toBe(2);
     file.close();
   });
 
@@ -215,12 +216,12 @@ describe("table: where (section 8.1)", () => {
     file.close();
   });
 
-  it("only the seven operators, on declared properties only, are allowed", async () => {
+  it("only the seven operators, on columns of the type only, are allowed", async () => {
     const file = await open(SAMPLE);
     for (const op of ["==", "<>", "LIKE", "like", "in", "IS", "glob", "contains ", ""]) {
       expect((await failed(file.table({ type: "Probe", where: [{ column: "code", op, value: "x" }] }))).code).toBe("bad_argument");
     }
-    for (const column of ["id", "label", "key", "type", "props", "name", "code; DROP TABLE node", "1"]) {
+    for (const column of ["id", "type", "props", "name", "reads", "code; DROP TABLE node", "1"]) {
       expect((await failed(file.table({ type: "Probe", where: [{ column, op: "=", value: "x" }] }))).code).toBe("unknown_column");
     }
     for (const w of [
@@ -259,14 +260,14 @@ describe("table: order and page (section 8.1)", () => {
     file.close();
   });
 
-  it("order sorts by declared properties, ascending unless desc, ties by id", async () => {
+  it("order sorts by declared properties, ascending unless desc, ties by id, no value last", async () => {
     const file = await open(SAMPLE);
     expect(ids(await tabled(file, { type: "Probe", order: "year" }))).toEqual([
-      "Probe:P4", // no year: before any value
       "Probe:P1",
       "Probe:P3",
       "Probe:P2",
       "Probe:P5",
+      "Probe:P4", // no year: last in both directions (section 8.6)
     ]);
     expect(ids(await tabled(file, { type: "Probe", order: [{ column: "year", direction: "desc" }] }))).toEqual([
       "Probe:P2",
@@ -283,18 +284,18 @@ describe("table: order and page (section 8.1)", () => {
       "Probe:P4",
     ]);
     expect(ids(await tabled(file, { type: "Probe", order: { column: "code", direction: "asc" } }))).toEqual([
-      "Probe:P4",
       "Probe:P3",
       "Probe:P1",
       "Probe:P2",
       "Probe:P5",
+      "Probe:P4",
     ]);
     file.close();
   });
 
-  it("order on anything but a declared property, or in another direction, is refused", async () => {
+  it("order on anything but a column of the type, or in another direction, is refused", async () => {
     const file = await open(SAMPLE);
-    for (const order of ["id", "label", "random()", "year DESC", [{ column: "nid" }]]) {
+    for (const order of ["id", "reads", "random()", "year DESC", [{ column: "nid" }]]) {
       expect((await failed(file.table({ type: "Probe", order }))).code).toBe("unknown_column");
     }
     for (const order of [1, null, [], [{ column: "year", direction: "down" }], [{ direction: "asc" }], [{ column: "year", by: 1 }]]) {
@@ -320,13 +321,13 @@ describe("table: order and page (section 8.1)", () => {
     expect(ids(third)).toEqual(keys.slice(40).map((k) => `Item:${k}`));
     expect(third.total).toBe(n);
     const past = await tabled(file, { type: "Item", page: 4 });
-    expect(past).toEqual({ type: "Item", columns: ["id", "n"], rows: [], page: 4, total: n });
+    expect(past).toEqual({ type: "Item", columns: ["id", "label", "n"], rows: [], page: 4, total: n });
     const far = await tabled(file, { type: "Item", page: Number.MAX_SAFE_INTEGER });
     expect(far.rows).toEqual([]);
     // Paging keeps the order and the filter.
     const desc = await tabled(file, { type: "Item", order: [{ column: "n", direction: "desc" }], where: [{ column: "n", op: ">=", value: 10 }], page: 2 });
     expect(desc.total).toBe(35);
-    expect(desc.rows.map((r) => r[1])).toEqual(Array.from({ length: 15 }, (_, i) => 24 - i));
+    expect(desc.rows.map((r) => r[2])).toEqual(Array.from({ length: 15 }, (_, i) => 24 - i));
     for (const page of [0, -1, 1.5, "1", null, Number.MAX_SAFE_INTEGER + 2]) {
       expect((await failed(file.table({ type: "Item", page }))).code).toBe("bad_argument");
     }
@@ -341,7 +342,7 @@ describe("table: text from the file only inside data, length-limited (section 8.
       typeProps: { Item: '{"note":"text","tags":"json"}' },
       nodes: [{ type: "Item", key: "a", props: JSON.stringify({ note: long, tags: [long, 1] }) }],
     });
-    const data = await tabled(file, { type: "Item" });
+    const data = await tabled(file, { type: "Item", columns: ["note", "tags"] });
     const [id, note, tags] = data.rows[0]!;
     expect(id).toBe("Item:a");
     expect(note).toBe("x".repeat(400) + CUT_MARKER);
@@ -357,7 +358,7 @@ describe("table: text from the file only inside data, length-limited (section 8.
     });
     const answer = valid(await file.table({ type: "Item" }));
     if (!("data" in answer)) throw new Error("table failed");
-    expect(answer.data.rows).toEqual([["Item:a", injected]]);
+    expect(answer.data.rows).toEqual([["Item:a", null, injected]]);
     expect(JSON.stringify({ ...answer, data: null })).not.toContain("Ignore");
     file.close();
   });

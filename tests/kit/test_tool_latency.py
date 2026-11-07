@@ -31,7 +31,13 @@ CALLS = {
     "cite": {"id": "Item:i04242"},
     "table": {
         "type": "Item",
-        "where": [{"column": "code", "op": "contains", "value": "42"}],
+        # A source-like view (section 8.6): node fields, properties and an edge column, filtered
+        # on the edge column too, so every item's group list is read.
+        "columns": ["label", "code", "size", "in_group"],
+        "where": [
+            {"column": "code", "op": "contains", "value": "42"},
+            {"column": "in_group", "op": "contains", "value": "group"},
+        ],
         "order": [{"column": "size", "direction": "desc"}],
         "page": 2,
     },
@@ -70,7 +76,8 @@ def test_the_kit_s_tools_answer_within_3_times_native_in_a_browser(tmp_path: Pat
     assert answers["find"]["data"]["results"][0]["id"] == "Item:i04242"
     assert answers["neighbors"]["data"]["total"] == (NODES - 100) // 100
     table = answers["table"]["data"]
-    assert table["columns"] == ["id", "code", "size"]
+    assert table["columns"] == ["id", "label", "code", "size", "in_group"]
+    assert all(len(row[4]) == 1 and row[4][0].startswith("Group ") for row in table["rows"])
     assert len(table["rows"]) == 20 and table["total"] > 40
     for tool in CALLS:
         assert p95[tool] < BUDGET_MS, f"{tool}: p95 {p95[tool]} ms, budget {BUDGET_MS} ms"

@@ -1,39 +1,41 @@
 /**
- * `table` (Specification 0.1, section 8.1): the rows of one node type, with its declared
- * properties as columns.
+ * `table` (Specification 0.1, sections 8.1 and 8.6): the rows of one node type, laid out as a
+ * source table would show them.
  *
  * - `type` is a node type the mosaic declares. Anything else (an edge type included) is
  *   `unknown_type`, never an empty success, and the message names the closest node types by
  *   edit distance, at most 5: only names of the form section 3.4 allows, which hold nothing but
  *   letters and digits, as `find`'s suggestions hold ids.
- * - `data.columns` is `id`, then the declared properties shown: by default the type's declared
- *   properties in the order its `props` object holds them, the first 20 (section 8.2 cuts lists
- *   at 20); with `columns`, those named, in the order given, at most 20 and each once. Each row
- *   holds the node's id, then each column's value as the node's `props` holds it (a string,
- *   number, boolean, array or object), or null when the node has no such property.
+ * - A column name means, in this order: a declared property of the type; the node field `key`,
+ *   `label` or `summary`; an edge type whose `from_type` is the type. Any other name in
+ *   `columns`, `where` or `order` is `unknown_column`.
+ * - `data.columns` is `id`, then the columns shown: by default `label`, then the declared
+ *   properties in the order the type's `props` object holds them, 20 in all; with `columns`,
+ *   those named, in the order given, at most 20 and each once. A property's cell is its value as
+ *   stored, or null when the node has none; a field's cell is its text or null; an edge's cell
+ *   is the labels of the nodes those edges lead to, one per node, by their ids, never cut at 20.
  * - `where` is one condition `{column, op, value}` or a list of at most 20, all of which must
- *   hold. `column` is a declared property of the type; `op` is one of `=`, `!=`, `<`, `<=`, `>`,
- *   `>=` and `contains`; `value` is a string, a number or a boolean, and a string for
- *   `contains`. A condition holds only on a node that has the property with a value of the same
- *   kind: text compares by UTF-8 bytes, numbers by value, `false` before `true`; `!=` holds on a
- *   node whose value is not null and not equal, whatever its kind; `contains` holds on a text
- *   value that holds the given text, by bytes. Names and values are bound as parameters, so a
- *   value holding SQL is a value and no part of a query comes from the caller or the file.
- * - `order` is a declared property, `{column, direction}` with `asc` (default) or `desc`, or a
- *   list of at most 20 of these. Values order as SQLite orders them: null (no value) first,
- *   then numbers (booleans as 0 and 1), then text, arrays and objects together, text by its
- *   UTF-8 bytes and arrays and objects by those of their JSON text; `desc` reverses that. Ties, and every call without `order`, go by id
- *   (UTF-8 bytes).
+ *   hold. A condition compares only values of its own kind (text by UTF-8 bytes, numbers by
+ *   value, booleans with booleans); `!=` holds on every node whose value is not the given one,
+ *   nodes without a value included. `contains` takes text and ignores case (Unicode default
+ *   lowercase mapping, by {@link FOLD}); it holds on text, and on a list with a text item, that
+ *   contains it. Names and values are bound as parameters, so a value holding SQL is a value and
+ *   no part of a query comes from the caller or the file.
+ * - `order` is a column name, `{column, direction}` with `asc` (default) or `desc`, or a list of
+ *   at most 20 of these. Values sort in groups kept in both directions: booleans, numbers, text,
+ *   lists, objects (by JSON text), then no value; `desc` reverses inside each group. Ties, and
+ *   every call without `order`, go by id (UTF-8 bytes).
  * - `page` (default 1) picks 20 rows at a time; `total` counts every node of the type that
  *   `where` keeps, so a page past the last is an empty success with the total.
- * - Text read from the file is cut at 400 characters with the marker (section 8.2, as `get`
- *   cuts property values; decision A on #110), in values, inside arrays and objects, and in
- *   column names; ids are whole. A node whose id is longer than an answer's id can be (512
- *   characters) is left out of the rows and still counted in `total`, as in `neighbors`.
+ * - Text read from the file is cut with the marker (section 8.2): labels at 120 characters, in
+ *   edge cells too, other text at 400, in values, inside arrays and objects, and in column
+ *   names; ids are whole. A node whose id is longer than an answer's id can be (512 characters)
+ *   is left out of the rows and still counted in `total`, as in `neighbors`.
  */
 import type { Database } from "@sqlite.org/sqlite-wasm";
 import { type TableAnswer, ToolError, shownArgument } from "./answers.js";
 import { QUERY_LIMIT, RESULT_LIMIT } from "./bounds.js";
+import { TEXT_LIMITS, cut } from "./constants.js";
 import { ID_LIMIT, OTHER_TEXT_LIMIT, argumentsOf, cutJson } from "./lookup.js";
 
 /** One `where` condition. */
@@ -68,12 +70,6 @@ const TYPE_NAME = /^[A-Z][A-Za-z0-9]*$/;
 
 /** Longest type name an unknown type's message names. */
 const SHOWN_TYPE_LIMIT = 40;
-
-/** The JSON kinds `json_each` reports that a value of each argument kind compares with. */
-const KINDS = { string: "'text'", number: "'integer', 'real'", boolean: "'true', 'false'" } as const;
-
-/** A property's value as a comparable SQL value: booleans as 0 and 1, no value as NULL. */
-const VALUE = "CASE p.type WHEN 'true' THEN 1 WHEN 'false' THEN 0 WHEN 'null' THEN NULL ELSE p.value END";
 
 interface Condition {
   readonly column: string;
@@ -110,11 +106,11 @@ function columnName(name: string, value: unknown): string {
 function columnsArgument(value: unknown): string[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || value.length === 0 || value.length > RESULT_LIMIT) {
-    throw new ToolError("bad_argument", `table's columns must be a list of 1 to ${RESULT_LIMIT} declared property names`);
+    throw new ToolError("bad_argument", `table's columns must be a list of 1 to ${RESULT_LIMIT} column names`);
   }
   const columns = value.map((c) => columnName("columns", c));
   if (new Set(columns).size !== columns.length) {
-    throw new ToolError("bad_argument", "table's columns must name each property once");
+    throw new ToolError("bad_argument", "table's columns must name each column once");
   }
   return columns;
 }
@@ -214,28 +210,147 @@ function unknownType(db: Database, type: string, checkpoint: () => void): ToolEr
   return new ToolError("unknown_type", `table: ${shownArgument(type)} is not a node type of this mosaic; ${named}`);
 }
 
-/** The `unknown_column` error for `column` of `type`; it names no property read from the file. */
+
+/** The `unknown_column` error for `column` of `type`; it names no name read from the file. */
 function unknownColumn(type: string, column: string): ToolError {
   return new ToolError(
     "unknown_column",
-    `table: ${shownArgument(column)} is not a declared property of ${type}; table on ${type} without columns lists them (the id column is always first)`,
+    `table: ${shownArgument(column)} is not a column of ${type}: a column is a declared property, key, label, summary or an edge type leaving ${type}; table on ${type} without columns lists the label and declared properties`,
   );
 }
 
-/** The value of property `$<n>` of node `n`, as JSON text, or NULL. */
-const shown = (n: string) => `(SELECT n.props -> p.fullkey FROM json_each(n.props) AS p WHERE p.key = ${n} LIMIT 1)`;
+/** The node fields a column may name, with the length their text is cut to (section 8.2). */
+const FIELDS = { key: OTHER_TEXT_LIMIT, label: TEXT_LIMITS.label, summary: OTHER_TEXT_LIMIT } as const;
 
-/** An SQL condition on property `$<c>` compared with `$<v>`, both bound by the caller. */
-function condition(c: Condition, col: string, val: string): string {
+type Field = keyof typeof FIELDS;
+
+/** What a column name means for one type (section 8.6): a property, a node field or an edge. */
+type Column =
+  | { readonly name: string; readonly kind: "property" }
+  | { readonly name: string; readonly kind: "field"; readonly field: Field }
+  | { readonly name: string; readonly kind: "edge" };
+
+function isField(name: string): name is Field {
+  return Object.hasOwn(FIELDS, name);
+}
+
+/** Lowercase by the Unicode default mapping, as `contains` compares (section 8.6). */
+const FOLD = "mosaic_fold";
+
+const folding = new WeakSet<Database>();
+
+/** Give `db` the {@link FOLD} function, once. */
+function withFold(db: Database): void {
+  if (folding.has(db)) return;
+  db.createFunction(FOLD, {
+    arity: 1,
+    deterministic: true,
+    xFunc: (_ctx, value) => (typeof value === "string" ? value.toLowerCase() : value),
+  });
+  folding.add(db);
+}
+
+/**
+ * The JSON kind of column `c` on node `n` (`text`, `integer`, `real`, `true`, `false`, `array`,
+ * `object`), or NULL when the node has no value; `name` is the bound parameter holding its name.
+ */
+function kindOf(c: Column, name: string): string {
+  switch (c.kind) {
+    case "property":
+      return `(SELECT NULLIF(p.type, 'null') FROM json_each(n.props) AS p WHERE p.key = ${name} LIMIT 1)`;
+    case "field":
+      return `(CASE WHEN n.${c.field} IS NULL THEN NULL ELSE 'text' END)`;
+    case "edge":
+      return "'array'";
+  }
+}
+
+/** The labels of the nodes the edges `$<name>` lead to from `n`, by their ids, as JSON text. */
+const edgeLabels = (name: string) =>
+  `(SELECT json_group_array(d.label ORDER BY d.id COLLATE BINARY) FROM node AS d` +
+  ` WHERE d.nid IN (SELECT e.dst FROM edge AS e WHERE e.src = n.nid AND e.type = ${name}))`;
+
+/**
+ * The comparable value of column `c` on node `n`: text as text, numbers as numbers, booleans as
+ * 0 and 1, lists and objects as their JSON text, NULL when the node has no value.
+ */
+function valueOf(c: Column, name: string): string {
+  switch (c.kind) {
+    case "property":
+      return `(SELECT CASE p.type WHEN 'null' THEN NULL ELSE p.value END FROM json_each(n.props) AS p WHERE p.key = ${name} LIMIT 1)`;
+    case "field":
+      return `n.${c.field}`;
+    case "edge":
+      return edgeLabels(name);
+  }
+}
+
+/** Column `c` of node `n` as JSON text to show (JSON `null` or SQL NULL when it has no value). */
+function shownOf(c: Column, name: string): string {
+  switch (c.kind) {
+    case "property":
+      return `(SELECT n.props -> p.fullkey FROM json_each(n.props) AS p WHERE p.key = ${name} LIMIT 1)`;
+    case "field":
+      return `json_quote(n.${c.field})`;
+    case "edge":
+      return edgeLabels(name);
+  }
+}
+
+/** The JSON kinds a `where` value of each argument kind compares with. */
+const SAME_KIND = { string: "'text'", number: "'integer', 'real'", boolean: "'true', 'false'" } as const;
+
+/**
+ * Whether text `x` holds the bound, already folded text `val`, ignoring case. On ASCII text the
+ * Unicode default lowercase mapping is SQLite's `lower`, so {@link FOLD}, a call into the page,
+ * runs only on text holding other characters (UTF-8 bytes outnumber characters).
+ */
+const contains = (x: string, val: string) =>
+  `(instr(lower(${x}), ${val}) > 0 OR (length(CAST(${x} AS BLOB)) <> length(${x}) AND instr(${FOLD}(${x}), ${val}) > 0))`;
+
+/**
+ * An SQL condition on the kind `t` and value `v` of column `column` (its name bound as `name`),
+ * against the bound value `val`. An edge's cell is a list, so only `contains` and `!=` can hold
+ * on it; `contains` reads the labels directly rather than building the list for every node.
+ */
+function condition(c: Condition, column: Column, name: string, t: string, v: string, val: string): string {
+  if (column.kind === "edge") {
+    if (c.op === "!=") return "1";
+    if (c.op !== "contains") return "0";
+    return (
+      `EXISTS (SELECT 1 FROM edge AS e JOIN node AS d ON d.nid = e.dst` +
+      ` WHERE e.src = r.nid AND e.type = ${name} AND ${contains("d.label", val)})`
+    );
+  }
   if (c.op === "contains") {
-    return `EXISTS (SELECT 1 FROM json_each(n.props) AS p WHERE p.key = ${col} AND p.type = 'text' AND instr(p.value, ${val}) > 0)`;
+    const has = (x: string) => contains(x, val);
+    return (
+      `((${t} = 'text' AND ${has(v)}) OR (${t} = 'array' AND EXISTS ` +
+      `(SELECT 1 FROM json_each(${v}) AS j WHERE j.type = 'text' AND ${has("j.value")})))`
+    );
   }
-  const kinds = KINDS[typeof c.value as keyof typeof KINDS];
-  const same = (op: string) => `p.type IN (${kinds}) AND (${VALUE}) ${op} ${val}`;
-  if (c.op === "!=") {
-    return `EXISTS (SELECT 1 FROM json_each(n.props) AS p WHERE p.key = ${col} AND p.type <> 'null' AND NOT (${same("=")}))`;
+  const same = `${t} IN (${SAME_KIND[typeof c.value as keyof typeof SAME_KIND]})`;
+  if (c.op === "!=") return `NOT coalesce(${same} AND ${v} = ${val}, 0)`;
+  return `coalesce(${same} AND ${v} ${c.op} ${val}, 0)`;
+}
+
+/** The group a value's kind sorts in: booleans, numbers, text, lists, objects, then no value. */
+const group = (t: string) =>
+  `CASE ${t} WHEN 'true' THEN 1 WHEN 'false' THEN 1 WHEN 'integer' THEN 2 WHEN 'real' THEN 2` +
+  ` WHEN 'text' THEN 3 WHEN 'array' THEN 4 WHEN 'object' THEN 5 ELSE 6 END`;
+
+/** A cell to show: `json` read from the file as JSON text, cut as section 8.2 says. */
+function cell(c: Column, json: unknown): unknown {
+  if (typeof json !== "string") return null;
+  const value = JSON.parse(json) as unknown;
+  switch (c.kind) {
+    case "property":
+      return cutJson(value, OTHER_TEXT_LIMIT);
+    case "field":
+      return typeof value === "string" ? cut(value, FIELDS[c.field]) : null;
+    case "edge":
+      return Array.isArray(value) ? value.map((l) => (typeof l === "string" ? cut(l, TEXT_LIMITS.label) : null)) : [];
   }
-  return `EXISTS (SELECT 1 FROM json_each(n.props) AS p WHERE p.key = ${col} AND ${same(c.op)})`;
 }
 
 /**
@@ -260,46 +375,83 @@ export function table(db: Database, mosaic: string, args: unknown, checkpoint: (
   for (const key of db.selectValues("SELECT key FROM json_each(?)", [typeof props === "string" ? props : "{}"])) {
     if (typeof key === "string" && !declared.includes(key)) declared.push(key);
   }
-  const known = (column: string): string => {
-    if (!declared.includes(column)) throw unknownColumn(type, column);
-    return column;
+  const edges = new Set(
+    db
+      .selectValues("SELECT name FROM type WHERE kind = 'edge' AND from_type = ?", [type])
+      .filter((n): n is string => typeof n === "string"),
+  );
+  // A declared property first, then a node field, then an edge leaving the type (section 8.6).
+  const resolve = (name: string): Column => {
+    if (declared.includes(name)) return { name, kind: "property" };
+    if (isField(name)) return { name, kind: "field", field: name };
+    if (edges.has(name)) return { name, kind: "edge" };
+    throw unknownColumn(type, name);
   };
-  const columns = asked === undefined ? declared.slice(0, RESULT_LIMIT) : asked.map(known);
-  where.forEach((c) => known(c.column));
-  order.forEach((o) => known(o.column));
+  const names = asked ?? [...new Set(["label", ...declared])].slice(0, RESULT_LIMIT);
+  const columns = names.map(resolve);
+  const filters = where.map((c) => ({ c, column: resolve(c.column) }));
+  const keys = order.map((o) => ({ o, column: resolve(o.column) }));
+  withFold(db);
 
+  // Each column `where` or `order` reads is computed once per node, as kind t<i> and value v<i>.
   const bind: Record<string, string | number> = { $type: type };
-  const filter = where.map((c, i) => {
-    bind[`$wc${i}`] = c.column;
-    bind[`$wv${i}`] = typeof c.value === "boolean" ? (c.value ? 1 : 0) : c.value;
-    return ` AND ${condition(c, `$wc${i}`, `$wv${i}`)}`;
+  const used: string[] = [];
+  const index = (column: Column): number => {
+    let i = used.indexOf(column.name);
+    if (i < 0) {
+      i = used.push(column.name) - 1;
+      if (column.kind !== "field") bind[`$u${i}`] = column.name;
+    }
+    return i;
+  };
+  const parts: string[] = [];
+  const conds = filters.map(({ c, column }, k) => {
+    const i = index(column);
+    // An edge's list is never equal to, nor before or after, a single value: no value to bind.
+    if (column.kind !== "edge" || c.op === "contains") {
+      bind[`$w${k}`] = typeof c.value === "boolean" ? (c.value ? 1 : 0) : c.op === "contains" ? (c.value as string).toLowerCase() : c.value;
+    }
+    return condition(c, column, `$u${i}`, `t${i}`, `v${i}`, `$w${k}`);
   });
-  const from = `FROM node AS n WHERE n.type = $type${filter.join("")}`;
-  const total = Number(db.selectValue(`SELECT count(*) ${from}`, bind));
+  const sort = keys.flatMap(({ o, column }) => {
+    const i = index(column);
+    return [`${group(`t${i}`)}`, `v${i} COLLATE BINARY ${o.desc ? "DESC" : "ASC"}`];
+  });
+  for (const [i, name] of used.entries()) {
+    const column = resolve(name);
+    parts.push(`${kindOf(column, `$u${i}`)} AS t${i}`, `${valueOf(column, `$u${i}`)} AS v${i}`);
+  }
+  const rowsOf =
+    `WITH r AS (SELECT ${["n.id AS id", "n.nid AS nid", ...parts].join(", ")} FROM node AS n WHERE n.type = $type)` +
+    ` SELECT %s FROM r${conds.length > 0 ? ` WHERE ${conds.join(" AND ")}` : ""}`;
+  const total = Number(db.selectValue(rowsOf.replace("%s", "count(*)"), bind));
 
   const offset = (page - 1) * RESULT_LIMIT;
   let rows: unknown[][] = [];
   if (offset < total) {
-    const values = columns.map((c, i) => {
-      bind[`$c${i}`] = c;
-      return shown(`$c${i}`);
+    const shownIds = db
+      .selectValues(
+        `${rowsOf.replace("%s", "id")}${conds.length > 0 ? " AND" : " WHERE"} length(id) <= ${ID_LIMIT}` +
+          ` ORDER BY ${[...sort, "id COLLATE BINARY"].join(", ")} LIMIT ${RESULT_LIMIT} OFFSET $offset`,
+        { ...bind, $offset: offset },
+      )
+      .map(String);
+    checkpoint();
+    const show: Record<string, string> = { $ids: JSON.stringify(shownIds) };
+    const cells = columns.map((c, i) => {
+      if (c.kind !== "field") show[`$c${i}`] = c.name;
+      return shownOf(c, `$c${i}`);
     });
-    const keys = order.map((o, i) => {
-      bind[`$o${i}`] = o.column;
-      const value = `(SELECT ${VALUE} FROM json_each(n.props) AS p WHERE p.key = $o${i} LIMIT 1)`;
-      return `${value} ${o.desc ? "DESC" : "ASC"}`;
-    });
-    const sql =
-      `SELECT ${["n.id", ...values].join(", ")} ${from} AND length(n.id) <= ${ID_LIMIT}` +
-      ` ORDER BY ${[...keys, "n.id COLLATE BINARY"].join(", ")} LIMIT ${RESULT_LIMIT} OFFSET $offset`;
-    rows = db.selectArrays(sql, { ...bind, $offset: offset }).map(([id, ...cells]) => [
-      String(id),
-      ...cells.map((cell) => (typeof cell === "string" ? cutJson(JSON.parse(cell) as unknown, OTHER_TEXT_LIMIT) : null)),
-    ]);
+    rows = db
+      .selectArrays(
+        `SELECT ${["n.id", ...cells].join(", ")} FROM json_each($ids) AS k JOIN node AS n ON n.id = k.value ORDER BY k.key`,
+        show,
+      )
+      .map(([id, ...values]) => [String(id), ...values.map((v, i) => cell(columns[i]!, v))]);
   }
   return {
     tool: "table",
     mosaic,
-    data: { type, columns: ["id", ...columns.map((c) => cutJson(c, OTHER_TEXT_LIMIT) as string)], rows, page, total },
+    data: { type, columns: ["id", ...names.map((c) => cutJson(c, OTHER_TEXT_LIMIT) as string)], rows, page, total },
   };
 }

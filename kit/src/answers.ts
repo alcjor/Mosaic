@@ -117,9 +117,9 @@ export interface TableAnswer {
   readonly data: {
     /** The node type asked about. */
     readonly type: string;
-    /** `id`, then the declared properties shown. */
+    /** `id`, then the columns shown: declared properties, node fields and edges (section 8.6). */
     readonly columns: readonly string[];
-    /** At most 20: each the node's id, then one value per declared property shown. */
+    /** At most 20: each the node's id, then one cell per column shown. */
     readonly rows: readonly (readonly unknown[])[];
     /** The page shown, from 1; each page holds 20 rows. */
     readonly page: number;

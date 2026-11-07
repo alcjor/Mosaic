@@ -146,9 +146,10 @@ export interface SealedFile {
    */
   neighbors(args: unknown): Promise<NeighborsAnswer | ErrorAnswer>;
   /**
-   * `table` (section 8.1): the nodes of the type `args.type`, a page of 20 rows with the node's
-   * id and its declared properties as columns, optionally `args.columns`, `args.where`,
-   * `args.order` and `args.page`, or an error answer.
+   * `table` (sections 8.1 and 8.6): the nodes of the type `args.type`, a page of 20 rows with the
+   * node's id, then its label and declared properties or the columns `args.columns` names
+   * (properties, `key`, `label`, `summary`, edges leaving the type), optionally filtered by
+   * `args.where`, sorted by `args.order` and paged by `args.page`, or an error answer.
    */
   table(args: unknown): Promise<TableAnswer | ErrorAnswer>;
   /**
