@@ -250,7 +250,7 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 | M1 | Netflix, build side | CSV importer that can turn a column into linked things (optionally split on a separator: directors, cast, countries, genres, years) and convert dates and mixed fields, mosaic builder (8 steps, build report, strict), `mosaic check`; the Netflix mosaic builds with the same knowledge hash in repeated clean local builds |
 | M2 | Netflix, read side | Vectors in the builder; TypeScript kit with `find`, `get`, `neighbors`, `table`, `cite`; `mosaic view` explores the Netflix mosaic with semantic search |
 | M3 | First milestone complete | View files, single-file export with both search settings, the Chinook fixture and its tool cases pass |
-| M4 | Project site | The project site needs S-1 to S-22 (below) are met: the site is published from `main`, every tutorial runs in a test, the gallery shows the Netflix and Chinook examples with their expected knowledge hashes, the gate checks documentation completeness, switched on only after the gaps it finds in `main` are filled, and the README and repository checks R-1 to R-12 are in place |
+| M4 | Project site | The project site needs S-1 to S-22 (below) are met: the site is published from `main`, every tutorial runs in a test, the gallery shows the Netflix and Chinook examples with their expected knowledge hashes, the gate checks documentation completeness, switched on only after the gaps it finds in `main` are filled, and the README, repository checks and development speed needs R-1 to R-16 are in place |
 | M5 | Several pieces | OpenFlights: merging pieces, qualifiers, weak ids, notices |
 | M6 | Text and mentions | Document and code tessera builders, link rules from mentions, `source_text`; the PX4 fixture |
 | M7 | AI input | AI step in tessera builders, pattern assistant, proposals end to end |
@@ -361,6 +361,15 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 - **R-10.** OpenSSF Scorecard runs weekly and on `main`, and publishes its result for the badge.
 - **R-11.** Ordinary pushes cost no more CI time than collecting coverage: the other checks run on the schedule and events above. A check whose secret the maintainer has not added yet is skipped, never failed.
 - **R-12.** A high or critical finding from CodeQL, Dependabot or SonarQube Cloud on `main` becomes a fix slice, the same way a blocking `Claude review` finding does (`CLAUDE.md`, Work plan, step 0).
+
+*Development speed.* CI minutes are limited and every agent session starts cold, so time saved here is saved on every slice.
+
+- **R-13.** A pull request that changes only the Python side, or only the kit and viewer, runs only the CI checks that cover it; a change to a shared file (the normative files, `conformance/`, the workflows, the lockfiles) runs them all.
+- **R-14.** CI reuses dependency downloads between runs, for Bun as it already does for uv.
+- **R-15.** While working, a builder can re-run only the tests a change affects; the full fast gate before every push stays as it is.
+- **R-16.** A new agent session starts with the embedding model and the confirmed fixture sources already fetched and checked by their pinned hashes.
+
+Ways to meet these, as suggestions only: path filters on the CI jobs, a cache for Bun's install cache, `pytest-testmon` or a similar affected-test runner, and the session-start hook running `scripts/fetch_model.py` and `scripts/fetch_fixtures.py`.
 
 *Done by the maintainer, not the builders:* installing the Codecov and SonarQube Cloud apps, adding the `CODECOV_TOKEN` and `SONAR_TOKEN` secrets, turning off SonarQube Cloud's automatic analysis, and turning on code scanning and Dependabot alerts. Dependabot's pull requests are not the builders' work (`CLAUDE.md`, "Only your own work") and wait for the maintainer.
 
