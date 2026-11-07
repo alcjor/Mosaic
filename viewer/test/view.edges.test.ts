@@ -3,7 +3,7 @@
 // file"), the keys, values and defaults of views/example.yaml as answered on #120 (Question 1;
 // Question 2, Reading A: a type left out is absent from the type list and tables only), brand
 // book section 6 (SearchField mode switch), sections 8.1 and 8.6 (`table`), 10 (untrusted data).
-import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { render } from "svelte/server";
 import { describe, expect, it, vi } from "vitest";
@@ -72,10 +72,16 @@ function attributes(html: string, attribute: string): string[] {
 describe("the JSON form Python hands the page", () => {
   // docs/design.md, View file: used by both view and export. `ViewSettings.as_json` is what the
   // page reads (M3.5's hand-off to M3.6); both shipped view files must cross unchanged.
-  function asJson(path: string): unknown {
-    const code = "import json,sys\nfrom mosaic_build import view_file\nprint(json.dumps(view_file.read(sys.argv[1]).as_json()))";
-    const out = execFileSync("uv", ["run", "--quiet", "python", "-I", "-c", code, path], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    return JSON.parse(out);
+  // Python and TypeScript meet at a conformance file (CLAUDE.md, Boundaries): the settings
+  // `as_json` gives for each shipped view file, which tests/test_view_file.py checks on the
+  // Python side.
+  const CASES = JSON.parse(readFileSync(`${ROOT}/conformance/views/settings.json`, "utf8")) as {
+    cases: { view: string | null; settings: unknown }[];
+  };
+  function asJson(path: string | null): unknown {
+    const found = CASES.cases.find((c) => c.view === path);
+    if (found === undefined) throw new Error(`conformance/views/settings.json has no case for ${path}`);
+    return found.settings;
   }
 
   it("views/example.yaml crosses with its types in the order written", () => {
@@ -99,9 +105,7 @@ describe("the JSON form Python hands the page", () => {
 
   it("an empty view file crosses as M2's viewer", () => {
     // docs/design.md / #120: every key optional, an empty file gives M2's viewer.
-    const code = "import json\nfrom mosaic_build import view_file\nprint(json.dumps(view_file.from_json({}).as_json()))";
-    const out = execFileSync("uv", ["run", "--quiet", "python", "-I", "-c", code], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    expect(parseView(JSON.parse(out))).toEqual(DEFAULT_VIEW);
+    expect(parseView(asJson(null))).toEqual(DEFAULT_VIEW);
   });
 });
 

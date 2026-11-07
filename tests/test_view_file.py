@@ -315,3 +315,13 @@ def test_of_several_wrong_settings_the_first_written_is_named(
     path = _write(tmp_path, text)
     with pytest.raises(ValueError, match=rf"^{path}:{line}: view file: {setting}"):
         read(path)
+
+
+def test_the_conformance_settings_are_what_the_reader_gives() -> None:
+    """Python and TypeScript meet at conformance/views/settings.json (the page reads it)."""
+    cases = json.loads((ROOT / "conformance" / "views" / "settings.json").read_text("utf-8"))
+    views = [c["view"] for c in cases["cases"]]
+    assert views == ["views/example.yaml", "conformance/fixtures/netflix/view.yaml", None]
+    for case in cases["cases"]:
+        path = None if case["view"] is None else ROOT / case["view"]
+        assert read(path).as_json() == case["settings"], case["view"]
