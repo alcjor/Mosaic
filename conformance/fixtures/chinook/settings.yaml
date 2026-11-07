@@ -1,0 +1,41 @@
+# SQLite import settings for the Chinook fixture (docs/spec-0.1.md section 11; plan M3.3).
+# mosaic import sqlite Chinook_Sqlite.sqlite --settings settings.yaml -o chinook.tessera
+# The music catalogue, its playlists and the staff and customers who look after it. Invoice and
+# InvoiceLine are left out: they are sales records with no name to search by.
+tables:
+  Artist:
+    label: Name
+    props: [Name]
+  Album:
+    label: Title
+    props: [Title]
+    foreign_keys:
+      ArtistId: by
+  Track:
+    label: Name
+    props: [Name, Composer, Milliseconds, Bytes, UnitPrice]
+    foreign_keys:
+      AlbumId: on_album
+      GenreId: in_genre
+      MediaTypeId: encoded_as
+  Genre:
+    label: Name
+    props: [Name]
+  MediaType:
+    label: Name
+    props: [Name]
+  Playlist:
+    label: Name
+    props: [Name]
+  PlaylistTrack:
+    edge: contains
+  Employee:
+    label: LastName
+    props: [FirstName, LastName, Title, City, Country, HireDate]
+    foreign_keys:
+      ReportsTo: reports_to
+  Customer:
+    label: LastName
+    props: [FirstName, LastName, Company, City, Country]
+    foreign_keys:
+      SupportRepId: supported_by
