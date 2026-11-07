@@ -2,7 +2,7 @@
 # The piece is the tessera that settings.yaml makes from the pinned Chinook_Sqlite.sqlite.
 format: "0.1"
 pieces:
-  - chinook@30693c4b34d8251503458c6b704737cb5ae64670df596bee621afbdca1f20672
+  - chinook@5ce2d900bdcedf48246fdbdb39bc220f91e346a87c7a89842106ad02390dc350
 
 types:
   Artist:

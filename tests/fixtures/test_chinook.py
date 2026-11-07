@@ -59,6 +59,8 @@ EDGES = {
     "supported_by": 59,
 }
 """One edge per non-NULL foreign key value, and one per row of ``PlaylistTrack``."""
+NOTICE = "Chinook Database. Copyright (c) 2008-2024 Luis Rocha. MIT License."
+"""The database's MIT copyright line, set in ``settings.yaml`` (the maintainer's answer on #125)."""
 
 pytestmark = pytest.mark.slow
 
@@ -214,6 +216,19 @@ def test_the_mosaic_has_one_vector_per_node_and_names_the_model(runs: tuple[Run,
 def test_the_build_with_vectors_takes_under_15_minutes(runs: tuple[Run, Run]) -> None:
     for run in runs:
         assert run.seconds["build"] < BUILD_BUDGET_SECONDS
+
+
+def test_the_mosaic_carries_the_mit_notice(runs: tuple[Run, Run], tmp_path: Path) -> None:
+    """Sections 3.2, 7.2, 10 and the maintainer's answer on #125: the notice is not lost."""
+    for run in runs:
+        assert run.report["notices"] == [{"piece": "chinook", "text": NOTICE}]
+    mosaic = tmp_path / "chinook.mosaic"
+    mosaic.write_bytes(runs[0].mosaic_bytes)
+    with open_sealed(mosaic) as m:
+        assert m.query("SELECT id, kind, notice FROM source ORDER BY id") == [
+            ("chinook", "tessera", None),
+            ("chinook/Chinook_Sqlite.sqlite", "database", NOTICE),
+        ]
 
 
 def test_a_playlist_links_straight_to_its_tracks(runs: tuple[Run, Run], tmp_path: Path) -> None:
