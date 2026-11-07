@@ -250,7 +250,7 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 | M1 | Netflix, build side | CSV importer that can turn a column into linked things (optionally split on a separator: directors, cast, countries, genres, years) and convert dates and mixed fields, mosaic builder (8 steps, build report, strict), `mosaic check`; the Netflix mosaic builds with the same knowledge hash in repeated clean local builds |
 | M2 | Netflix, read side | Vectors in the builder; TypeScript kit with `find`, `get`, `neighbors`, `table`, `cite`; `mosaic view` explores the Netflix mosaic with semantic search |
 | M3 | First milestone complete | View files, single-file export with both search settings, the Chinook fixture and its tool cases pass |
-| M4 | Project site | The project site needs S-1 to S-22 (below) are met: the site is published from `main`, every tutorial runs in a test, the gallery shows the Netflix and Chinook examples with their expected knowledge hashes, and the gate checks documentation completeness, switched on only after the gaps it finds in `main` are filled |
+| M4 | Project site | The project site needs S-1 to S-22 (below) are met: the site is published from `main`, every tutorial runs in a test, the gallery shows the Netflix and Chinook examples with their expected knowledge hashes, the gate checks documentation completeness, switched on only after the gaps it finds in `main` are filled, and the README and repository checks R-1 to R-12 are in place |
 | M5 | Several pieces | OpenFlights: merging pieces, qualifiers, weak ids, notices |
 | M6 | Text and mentions | Document and code tessera builders, link rules from mentions, `source_text`; the PX4 fixture |
 | M7 | AI input | AI step in tessera builders, pattern assistant, proposals end to end |
@@ -341,6 +341,28 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 
 - **S-21.** The site is rebuilt and published when `main` changes something it shows, and is not rebuilt for changes it does not show.
 - **S-22.** A broken link, a failed generation or a failed check stops the site's build and leaves the published site at its last good version; the same site can be built and previewed locally with one command.
+
+**README and repository checks, M4.** The README is the project's front page on GitHub, and its badges show at a glance that the code builds, how much the tests cover, and how its quality and security stand. The maintainer has chosen the services: Codecov for coverage, SonarQube Cloud for code quality, CodeQL for code security, Dependabot for dependencies and OpenSSF Scorecard for supply-chain practice.
+
+*README.*
+
+- **R-1.** The README follows the brand book's README layout: the lockup (dark in a dark theme, light otherwise), the tagline as the first line of text, one row of badges, the build strip, the long description and the "How it works" line, the quick start and the six rules.
+- **R-2.** The badge row shows, in this order: CI on `main`, coverage, the SonarQube Cloud quality gate, the OpenSSF Scorecard and the licence, plus the latest release once one is tagged. This extends the brand book's "build, release, licence".
+- **R-3.** The quick start uses only commands that work on `main`, and a test runs them, as for tutorials (S-15).
+- **R-4.** The README says, per part (format, builders, kit, viewer, agent interface), what works today and which milestone brings the rest; the pull request that plans a new milestone updates it.
+- **R-5.** The README links to the project site once it is published, the specification, the commands to develop and test, and the licence, with a note that each fixture's licence is in `conformance/fixtures/manifest.json`.
+
+*Repository checks.*
+
+- **R-6.** Coverage of the Python packages, the kit and the viewer is measured by the fast tests on every pull request and on `main`, and reported to Codecov per part. It informs and never blocks a merge; the README says it covers the fast tests only.
+- **R-7.** CodeQL scans the Python and the JavaScript and TypeScript code on pull requests, on `main` and weekly.
+- **R-8.** Dependabot alerts are on, and dependency updates for Python, Bun and GitHub Actions arrive grouped, once a week per ecosystem.
+- **R-9.** SonarQube Cloud analyses `main` and pull requests with the coverage of R-6; its quality gate is shown and does not block a merge.
+- **R-10.** OpenSSF Scorecard runs weekly and on `main`, and publishes its result for the badge.
+- **R-11.** Ordinary pushes cost no more CI time than collecting coverage: the other checks run on the schedule and events above. A check whose secret the maintainer has not added yet is skipped, never failed.
+- **R-12.** A high or critical finding from CodeQL, Dependabot or SonarQube Cloud on `main` becomes a fix slice, the same way a blocking `Claude review` finding does (`CLAUDE.md`, Work plan, step 0).
+
+*Done by the maintainer, not the builders:* installing the Codecov and SonarQube Cloud apps, adding the `CODECOV_TOKEN` and `SONAR_TOKEN` secrets, turning off SonarQube Cloud's automatic analysis, and turning on code scanning and Dependabot alerts. Dependabot's pull requests are not the builders' work (`CLAUDE.md`, "Only your own work") and wait for the maintainer.
 
 ### Constraints, assumptions and risks
 
