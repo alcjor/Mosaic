@@ -19,5 +19,8 @@ def notice_problem(notice: str | None) -> str | None:
         return "notice contains U+0000, which text never holds (3.1)"
     for c in notice:
         if 0xD800 <= ord(c) <= 0xDFFF:
-            return f"notice contains the unpaired surrogate U+{ord(c):04X}, which text cannot hold (3.1)"
+            return (
+                f"notice contains the unpaired surrogate U+{ord(c):04X}, "
+                f"which text cannot hold (3.1)"
+            )
     return None
