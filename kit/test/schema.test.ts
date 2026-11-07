@@ -87,3 +87,20 @@ describe("edgeTypes", () => {
     file.close();
   });
 });
+
+describe("pieces", () => {
+  it("lists the pieces the file was built from, in sid order, with their hashes", async () => {
+    const file = await openFile(new Uint8Array(readFileSync(repo("conformance/reading/mosaic.mosaic"))), "mosaic.mosaic");
+    expect(file.pieces).toEqual([
+      { id: "first", kind: "tessera", hash: "9a56bbb09c609a344b3008385d52ffec894ce391a6d3d7434fa78bb527515a4f" },
+      { id: "inner", kind: "mosaic", hash: "cc18c7ce68009a0dc543fd8ad6915a1d02c57dfaa49c0c5c762455719ffe6f96" },
+    ]);
+    file.close();
+  });
+
+  it("lists none for a tessera", async () => {
+    const file = await openFile(new Uint8Array(readFileSync(repo("conformance/reading/tessera.tessera"))), "t.tessera");
+    expect(file.pieces).toEqual([]);
+    file.close();
+  });
+});

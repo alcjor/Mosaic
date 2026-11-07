@@ -19,8 +19,9 @@ from typing import Any
 
 import pytest
 from mosaic_build.cli import main
+from mosaic_format.reader import open as open_sealed
 
-from tests.conftest import REPO
+from tests.conftest import MODEL, REPO
 
 MOSAIC = REPO / "conformance" / "reading" / "mosaic.mosaic"
 VIEW = "search: text\ntypes:\n  Item:\n    label: Thing\n  Group: {}\n"
@@ -92,3 +93,44 @@ def test_an_export_whose_mosaic_was_changed_is_refused_when_the_page_opens_it(
     assert seen["blocked"] == []
     alerts = " ".join(seen["alerts"])
     assert "mosaic.mosaic" in alerts and "hash" in alerts, alerts
+
+
+CUT = "search: text\nexport:\n  types: [Item]\n"
+
+
+@pytest.mark.slow
+def test_a_cut_export_opens_offline_and_says_where_it_comes_from(tmp_path: Path) -> None:
+    # Plan M3.10, answer on #140: the cut is built from the source mosaic as its one piece; the
+    # page shows the cut's own checked hash and "from <source> <hash>" read from the file.
+    bun = built()
+    view = tmp_path / "view.yaml"
+    view.write_text(CUT, encoding="utf-8")
+    page = tmp_path / "cut.html"
+    assert main(["export", str(MOSAIC), "--view", str(view), "-o", str(page)]) == 0
+    seen = opened(bun, page, "Item A", "Item:a", "Item")
+    assert seen["blocked"] == [] and seen["errors"] == [] and seen["alerts"] == []
+    header = " ".join(seen["header"])
+    print(f"\ncut export header: {header}")
+    assert seen["header"][0] == "mosaic.mosaic"
+    assert seen["header"][1] != "8adae50b32ad"  # the cut's own knowledge hash, checked on open
+    assert "from mosaic 8adae50b32ad" in header
+    assert seen["links"] == []  # Group is not carried, so neither is in_group
+    assert seen["rows"] == ["Item:a", "Item:b"]
+
+
+@pytest.mark.slow
+def test_a_semantic_cut_carries_vectors_for_its_nodes(tmp_path: Path) -> None:
+    built()
+    view = tmp_path / "view.yaml"
+    view.write_text("search: semantic\nexport:\n  types: [Item]\n", encoding="utf-8")
+    page = tmp_path / "cut.html"
+    args = ["export", str(MOSAIC), "--view", str(view), "--model", str(MODEL), "-o", str(page)]
+    assert main(args) == 0
+    found = re.search(r'"mosaic":"([A-Za-z0-9+/=]+)"', page.read_text(encoding="utf-8"))
+    assert found
+    path = tmp_path / "carried.mosaic"
+    path.write_bytes(gzip.decompress(base64.b64decode(found.group(1))))
+    with open_sealed(path) as sealed:
+        assert sealed.vector_hash is not None
+        vectors, nodes = (sealed.query(f"SELECT count(*) FROM {t}") for t in ("vector", "node"))
+        assert vectors == nodes

@@ -126,6 +126,14 @@ export interface NodeType {
 /** Most node types {@link SealedFile.nodeTypes} lists (section 3.8 step 4: bounded result size). */
 export const NODE_TYPE_LIMIT = 1000;
 
+/** A piece the file was built from: a row of its `source` of kind `tessera` or `mosaic` (section 3.2). */
+export interface Piece {
+  readonly id: string;
+  readonly kind: "tessera" | "mosaic";
+  /** The piece's knowledge hash, which pins it. */
+  readonly hash: string;
+}
+
 /** An edge type the file declares, with the node types it joins (section 3.4). */
 export interface EdgeType {
   readonly name: string;
@@ -154,6 +162,11 @@ export interface SealedFile {
    * (section 3.4); empty for a type {@link nodeTypes} does not list.
    */
   propsOf(type: string): readonly string[];
+  /**
+   * The pieces the file was built from, in `sid` order: its `source` rows of kind `tessera` or
+   * `mosaic` (section 3.2), at most {@link NODE_TYPE_LIMIT}; none for a tessera.
+   */
+  readonly pieces: readonly Piece[];
   /** The time bound of one tool call, in milliseconds (section 3.8 step 4). */
   readonly timeLimitMs: number;
   /**
@@ -607,9 +620,19 @@ function declaredProps(db: Database, types: readonly NodeType[]): Map<string, re
   return props;
 }
 
+function pieces(db: Database): Piece[] {
+  const rows = db.selectArrays(
+    `SELECT id, kind, hash FROM source WHERE kind IN ('tessera', 'mosaic') AND length(id) <= 120
+      ORDER BY sid LIMIT ?`,
+    [NODE_TYPE_LIMIT],
+  );
+  return rows.map(([id, kind, hash]) => ({ id: String(id), kind: kind === "mosaic" ? "mosaic" : "tessera", hash: String(hash) }));
+}
+
 function sealedFile(db: Database, name: string, header: Header, deadline: Deadline, embedder?: QueryEmbedder): SealedFile {
   let open = true;
   const types = nodeTypes(db);
+  const built = pieces(db);
   const edges = edgeTypes(db);
   const declared = declaredProps(db, types);
   const mosaic = header.knowledge_hash;
@@ -631,6 +654,7 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
     nodeTypes: types,
     edgeTypes: edges,
     propsOf: (type) => declared.get(type) ?? [],
+    pieces: built,
     timeLimitMs: deadline.limitMs,
     vectorSearch,
     find: async (args) => {

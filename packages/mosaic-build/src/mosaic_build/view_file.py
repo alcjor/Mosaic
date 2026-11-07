@@ -14,8 +14,10 @@ of ``views/example.yaml`` (answer on #120); ``views/view.schema.json`` is their 
   (labels for its property and edge type names). A type left out is absent from the type list
   and tables only: search and links still reach its nodes, and the kit is not shaped by the
   view file (answer on #120, Reading A).
-- ``export.types``: which types an export carries; what that means, and its default, are
-  M3.10's.
+- ``export.types``: which node types an export carries (answer on #140). The export carries a
+  mosaic built from the source as its one piece with those types as its target's ``types``
+  (:mod:`mosaic_build.cut`); a type the mosaic lacks, or an empty list, is an error. By
+  default, the mosaic as it is.
 
 Every key is optional, so an empty view file, or none (``read(None)``), gives M2's viewer. The
 file is read as YAML 1.2 core schema with duplicate keys refused. An unknown key and a value of
