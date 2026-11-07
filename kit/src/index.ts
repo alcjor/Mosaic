@@ -66,6 +66,8 @@ export {
   pool,
   queryText,
   type ModelFiles,
+  type OrtModule,
+  type Runtime,
   type QueryEmbedder,
 } from "./embed.js";
 

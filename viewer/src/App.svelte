@@ -27,7 +27,7 @@
   import { fetchNamedModel, fetchNamedMosaic, loadModel, shortHash } from "./lib/mosaic.js";
   import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
   import { useSqliteWasm } from "@mosaic/kit";
-  import { readExport } from "./lib/exported.js";
+  import { readExport, runtimeOf } from "./lib/exported.js";
   import { applyTheme, watchView } from "./lib/view.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
@@ -88,6 +88,13 @@
     if (found === null) return false;
     exported = true;
     useSqliteWasm(found.sqlite);
+    if (found.model !== null) {
+      try {
+        viewer.embedder = await loadModel(found.model.files, await runtimeOf(found.model));
+      } catch (e) {
+        viewer.modelError = `search by names and full text only: ${e instanceof Error ? e.message : String(e)}`;
+      }
+    }
     await viewer.setView(found.view);
     await opened(found.mosaic, found.name);
     return true;

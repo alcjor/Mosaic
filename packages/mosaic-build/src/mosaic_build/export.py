@@ -5,16 +5,19 @@ mosaic inside as one HTML file that opens offline with a double-click"; View fil
 text`` (a few MB) or ``search: semantic`` (the embedding model inside, M3.9).
 
 :func:`export` checks the mosaic by the reading rules first (section 3.8, steps 1 to 3, with
-:func:`mosaic_build.view.checked_bytes`) and the view file as ``mosaic view --view`` does; a refused
-file, a wrong view file or a view file whose ``search`` is ``semantic`` (not built until M3.9)
-is an :class:`ExportError` and nothing is written. Then it writes one new HTML file, never over
-an existing one: the built viewer's page (``bun run build``) with its script and stylesheet
+:func:`mosaic_build.view.checked_bytes`) and the view file as ``mosaic view --view`` does. A
+refused file, a wrong view file, a view file whose ``search`` is ``semantic`` without the
+model's directory (``--model DIR``) or a model file with another hash is an
+:class:`ExportError`, and nothing is written. Then it writes one new HTML file, never over an
+existing one: the built viewer's page (``bun run build``) with its script and stylesheet
 inlined, and one JSON element holding the mosaic's name and bytes, the view file's settings and
 SQLite's WebAssembly, the bytes gzip-compressed (no name, no time, so the same inputs give the
 same file) and then base64. The page reads that element and fetches nothing
 (``viewer/src/lib/exported.ts``); the kit inside opens the bytes by the reading rules, both
-hashes checked. No embedding model and no ONNX Runtime are carried. The mosaic and the view
-file are only read.
+hashes checked. With ``search: semantic`` the element also holds the embedding model's two
+files, checked by their pinned hashes, and ONNX Runtime's module and WebAssembly (plan M3.9), so
+the page searches by vectors offline; with ``search: text`` it holds neither. The mosaic, the
+view file and the model are only read.
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ from pathlib import Path
 
 from mosaic_build import view as viewer
 from mosaic_build import view_file
+from mosaic_build.mosaic.vectors import MODEL
 
 EXPORT_ID = "mosaic-export"
 """The id of the element that holds the export's data (``viewer/src/lib/exported.ts``)."""
@@ -68,8 +72,31 @@ def _packed(data: bytes) -> str:
     return base64.b64encode(gzip.compress(data, compresslevel=6, mtime=0)).decode("ascii")
 
 
-def page(name: str, data: bytes, settings: dict[str, object], dist: Path) -> bytes:
-    """The export's HTML: the built page with the mosaic ``name`` (``data``) inside."""
+def _ort(dist: Path) -> dict[str, str]:
+    """ONNX Runtime's module and WebAssembly from the built viewer, packed for the page."""
+    assets = dist / "assets"
+    module = sorted(assets.glob("ort.wasm.bundle.min-*.js"))
+    wasm = sorted(assets.glob("ort-wasm-simd-threaded-*.wasm"))
+    if len(module) != 1 or len(wasm) != 1:
+        raise ExportError(
+            f"{assets}: expected one ONNX Runtime module and one WebAssembly file, "
+            f"found {len(module)} and {len(wasm)}"
+        )
+    return {"module": _packed(module[0].read_bytes()), "wasm": _packed(wasm[0].read_bytes())}
+
+
+def page(
+    name: str,
+    data: bytes,
+    settings: dict[str, object],
+    dist: Path,
+    model: dict[str, bytes] | None = None,
+) -> bytes:
+    """The export's HTML: the built page with the mosaic ``name`` (``data``) inside.
+
+    With ``model`` (:func:`mosaic_build.view.checked_model`'s result), it also carries the model's
+    two files and ONNX Runtime, so the page searches by vectors (``search: semantic``).
+    """
     index = (dist / "index.html").read_text(encoding="utf-8")
     script = _inline(_asset(dist, _SCRIPT, index, "module script"), "script", dist)
     style = _inline(_asset(dist, _STYLE, index, "stylesheet"), "style", dist)
@@ -79,6 +106,12 @@ def page(name: str, data: bytes, settings: dict[str, object], dist: Path) -> byt
         "view": settings,
         "sqlite": _packed(_sqlite_wasm(dist)),
     }
+    if model is not None:
+        payload["model"] = {
+            "model": _packed(model[MODEL.model_file.path]),
+            "tokenizer": _packed(model[MODEL.tokenizer.path]),
+        }
+        payload["ort"] = _ort(dist)
     # `<` never appears raw, so the JSON cannot end its element or open a comment.
     text = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     out = (
@@ -110,11 +143,21 @@ def default_output(source: Path) -> Path:
     return Path(Path(source.name).with_suffix(".html").name)
 
 
-def export(source: Path, output: Path, view: Path | None = None, dist: Path | None = None) -> int:
+def export(
+    source: Path,
+    output: Path,
+    view: Path | None = None,
+    dist: Path | None = None,
+    model: Path | None = None,
+) -> int:
     """Write the export of ``source`` to the new file ``output``; returns its size in bytes.
 
-    Raises :class:`ExportError` (nothing written) for a refused mosaic, a wrong view file, a view
-    file asking for ``search: semantic``, an existing ``output`` or an unbuilt viewer.
+    With ``search: semantic`` (the default) the export carries the embedding model from the
+    directory ``model``, each file checked by its pinned SHA-256 as ``mosaic view --model``
+    checks them, and ONNX Runtime; with ``search: text`` it carries neither.
+
+    Raises :class:`ExportError` (nothing written) for a refused mosaic, a wrong view file, a
+    missing, wrong or unasked-for model, an existing ``output`` or an unbuilt viewer.
     """
     try:
         data = viewer.checked_bytes(source)
@@ -129,15 +172,26 @@ def export(source: Path, output: Path, view: Path | None = None, dist: Path | No
         raise ExportError(
             f"{shown}: its file name is not UTF-8 text, so the page cannot name it"
         ) from None
-    if settings["search"] != "text":
-        where = "the default view file" if view is None else str(view)
+    where = "the default view file" if view is None else str(view)
+    files = None
+    if settings["search"] == "semantic":
+        if model is None:
+            raise ExportError(
+                f"{where}: view file: search is semantic, so the export carries the embedding "
+                "model: give its directory with --model DIR (section 6), or set search: text"
+            )
+        try:
+            files = viewer.checked_model(model)
+        except viewer.ViewError as e:  # names the file and both hashes (section 6)
+            raise ExportError(str(e)) from None
+    elif model is not None:
         raise ExportError(
-            f"{where}: view file: search is semantic; an export with search: semantic carries the "
-            "embedding model and is not built yet (plan M3.9); set search: text"
+            f"{where}: view file: search is text, so the export carries no model; "
+            "--model is for search: semantic"
         )
     if output.exists() or output.is_symlink():
         raise ExportError(f"{output}: exists; an export is never overwritten")
-    body = page(source.name, data, settings, built)
+    body = page(source.name, data, settings, built, files)
     try:
         with output.open("xb") as handle:
             try:

@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 from mosaic_build.cli import main
 
-from tests.conftest import REPO
+from tests.conftest import MODEL, REPO
 from tests.fixtures.test_netflix import Run
 from tests.fixtures.test_netflix_read import TITLE
 
@@ -70,3 +70,42 @@ def test_the_netflix_export_opens_offline_and_finds_a_title(
     assert any(r["id"] == TITLE and r["match"] == "text" for r in seen["textResults"])
     assert len(seen["rows"]) == 20
     assert seen["mode"] == "text"
+
+
+QUERY = "high school chemistry teacher becomes a drug dealer"
+"""Describes Title:s5941 by its meaning; its name shares no word with the query."""
+
+
+def test_the_netflix_export_with_search_semantic_finds_a_title_by_meaning_offline(
+    built: tuple[Path, Run],
+    tmp_path: Path,
+) -> None:
+    # Plan M3.9: the export carries the pinned model and ONNX Runtime; opened from file:// with
+    # networking blocked, a plain-language query lists the title among the vector matches.
+    bun = shutil.which("bun")
+    assert bun, "bun is needed to build the viewer (CLAUDE.md, Commands)"
+    assert subprocess.run([bun, "run", "build"], cwd=REPO / "viewer", check=False).returncode == 0
+    mosaic, _ = built
+    assert "search: semantic\n" in VIEW.read_text(encoding="utf-8")
+    page = tmp_path / "netflix.html"
+    args = ["export", str(mosaic), "--view", str(VIEW), "--model", str(MODEL), "-o", str(page)]
+    assert main(args) == 0
+    run = subprocess.run(
+        [bun, "viewer/scripts/open-export.ts", str(page), QUERY, TITLE, "Title"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
+    assert run.returncode == 0, run.stderr
+    seen = json.loads(run.stdout.strip().splitlines()[-1])
+    size = page.stat().st_size
+    print(
+        f"\nnetflix export (search: semantic): {size:,} bytes; ready in {seen['readyMs']} ms; "
+        f"{TITLE} listed as {[r['match'] for r in seen['results'] if r['id'] == TITLE]}"
+    )
+    assert seen["blocked"] == [] and seen["errors"] == [] and seen["alerts"] == []
+    assert {"id": TITLE, "match": "vector"} in seen["results"]
+    assert not set(QUERY.lower().split()) & set(str(seen["card"]).split("\n")[0].lower().split())
+    assert seen["mode"] == "semantic"
