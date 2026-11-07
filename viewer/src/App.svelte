@@ -4,7 +4,10 @@
    * knowledge hash and the search field; then the results, the node's card, and its links and
    * sources; or the tables rebuilt from the mosaic's node types, each page one `table` call. The
    * kit runs in this page: a mosaic is opened from a file the reader picks, or from
-   * the address's `?mosaic=<url>`, and nothing is asked of a server but the file itself.
+   * the address's `?mosaic=<url>`, and nothing is asked of a server but the file itself. When the
+   * address also names the model (`?model=<url>`, from `mosaic view --model`), it is loaded in
+   * the page first, so `find` searches by vectors too; a model that fails to load is shown as an
+   * error and the page searches by names and full text only (section 3.8).
    */
   import { onMount } from "svelte";
   import EntityCard from "./components/EntityCard.svelte";
@@ -13,7 +16,7 @@
   import SearchField from "./components/SearchField.svelte";
   import TableView from "./components/TableView.svelte";
   import TypeList from "./components/TypeList.svelte";
-  import { fetchNamedMosaic, shortHash } from "./lib/mosaic.js";
+  import { fetchNamedModel, fetchNamedMosaic, loadModel, shortHash } from "./lib/mosaic.js";
   import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
@@ -57,8 +60,17 @@
   onMount(() => {
     window.addEventListener("hashchange", follow);
     void (async () => {
+      const model = (async () => {
+        try {
+          const files = await fetchNamedModel(location.search, location.href);
+          if (files) viewer.embedder = await loadModel(files);
+        } catch (e) {
+          viewer.modelError = `search by names and full text only: ${e instanceof Error ? e.message : String(e)}`;
+        }
+      })();
       try {
         const named = await fetchNamedMosaic(location.search, location.href);
+        await model;
         if (named) await opened(named.bytes, named.name);
       } catch (e) {
         viewer.status = "error";
@@ -91,6 +103,9 @@
 {/if}
 {#if viewer.error}
   <p class="banner body-screen" role="alert">{viewer.error}</p>
+{/if}
+{#if viewer.modelError}
+  <p class="banner body-screen" role="alert">{viewer.modelError}</p>
 {/if}
 
 {#if viewer.file === null}

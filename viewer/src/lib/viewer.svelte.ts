@@ -2,7 +2,7 @@
  * The viewer's state: the open mosaic, the search and the node page. Each change asks the kit,
  * in the page, and keeps only the latest answer, so a slow answer never replaces a newer one.
  */
-import type { SealedFile } from "@mosaic/kit";
+import type { QueryEmbedder, SealedFile } from "@mosaic/kit";
 import { nodePage, openMosaic, search, type NodeView, type SearchView, type ToolFailure } from "./mosaic.js";
 import type { TableRoute } from "./route.js";
 import { tableView, type TableView } from "./tables.js";
@@ -15,6 +15,10 @@ export class Viewer {
   status = $state<Status>("empty");
   /** Why the last file could not be opened. */
   error = $state<string | null>(null);
+  /** What embeds queries for `find`'s vector tier, when the page was given the model. */
+  embedder = $state.raw<QueryEmbedder | null>(null);
+  /** Why the model could not be loaded; the page then searches by names and full text only. */
+  modelError = $state<string | null>(null);
   query = $state("");
   results = $state.raw<SearchView | ToolFailure | null>(null);
   nodeId = $state<string | null>(null);
@@ -32,7 +36,7 @@ export class Viewer {
     this.status = "loading";
     this.error = null;
     try {
-      const file = await openMosaic(bytes, name);
+      const file = await openMosaic(bytes, name, this.embedder);
       this.file?.close();
       this.file = file;
       this.status = "ready";
