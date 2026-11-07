@@ -1,24 +1,26 @@
 <script lang="ts">
   /**
    * EntityCard (brand book, section 6): what `get` returns for one node: its label, type, id,
-   * summary, properties, aliases and external references.
+   * summary, properties, aliases and external references. With a view file, the properties are
+   * those its `page` names, in that order, under its labels.
    */
   import type { GetData } from "@mosaic/kit";
+  import { inPageOrder, type Shape } from "../lib/view.js";
   import TypeChip from "./TypeChip.svelte";
 
-  let { node }: { node: GetData } = $props();
+  let { node, shape = null }: { node: GetData; shape?: Shape | null } = $props();
 
   /** A property value as text: strings as they are, anything else as JSON. */
   function shown(value: unknown): string {
     return typeof value === "string" ? value : JSON.stringify(value);
   }
 
-  let entries = $derived(Object.entries(node.props ?? {}));
+  let entries = $derived(inPageOrder(Object.entries(node.props ?? {}), shape?.page(node.type) ?? null, ([key]) => key));
 </script>
 
 <article class="card" aria-label={node.id}>
   <h1 class="title category">{node.label ?? node.id}</h1>
-  <p class="kind"><TypeChip type={node.type} /> <span class="id code">{node.id}</span></p>
+  <p class="kind"><TypeChip type={node.type} label={shape?.typeLabel(node.type) ?? null} /> <span class="id code">{node.id}</span></p>
   {#if node.summary !== null}
     <p class="summary body-screen">{node.summary}</p>
   {/if}
@@ -29,7 +31,7 @@
       <tbody>
         {#each entries as [key, value] (key)}
           <tr>
-            <th scope="row" class="key">{key}</th>
+            <th scope="row" class="key" data-prop={key}>{shape?.label(node.type, key) ?? key}</th>
             <td class="value" class:mono={typeof value !== "string"}>{shown(value)}</td>
           </tr>
         {/each}

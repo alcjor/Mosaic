@@ -1,9 +1,9 @@
 <script lang="ts">
-  /** TypeChip (brand book, section 6): the type name after a small shard. */
-  let { type }: { type: string } = $props();
+  /** TypeChip (brand book, section 6): the type name, or the view file's label for it, after a small shard. */
+  let { type, label = null }: { type: string; label?: string | null } = $props();
 </script>
 
-<span class="chip caption"><span class="shard" aria-hidden="true"></span>{type}</span>
+<span class="chip caption"><span class="shard" aria-hidden="true"></span>{label ?? type}</span>
 
 <style>
   .chip {

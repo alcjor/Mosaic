@@ -126,6 +126,13 @@ export interface NodeType {
 /** Most node types {@link SealedFile.nodeTypes} lists (section 3.8 step 4: bounded result size). */
 export const NODE_TYPE_LIMIT = 1000;
 
+/** An edge type the file declares, with the node types it joins (section 3.4). */
+export interface EdgeType {
+  readonly name: string;
+  readonly from: string | null;
+  readonly to: string | null;
+}
+
 /** A tessera or mosaic that passed the reading rules, open read-only. */
 export interface SealedFile {
   /** The name it was opened under. */
@@ -137,6 +144,16 @@ export interface SealedFile {
    * form section 3.4 allows, at most {@link NODE_TYPE_LIMIT}.
    */
   readonly nodeTypes: readonly NodeType[];
+  /**
+   * The edge types the file declares, by name (UTF-8 bytes), each with the node types it joins
+   * (section 3.4). Only names of the form section 3.4 allows, at most {@link NODE_TYPE_LIMIT}.
+   */
+  readonly edgeTypes: readonly EdgeType[];
+  /**
+   * The properties node type `type` declares, in the order its `props` object holds them
+   * (section 3.4); empty for a type {@link nodeTypes} does not list.
+   */
+  propsOf(type: string): readonly string[];
   /** The time bound of one tool call, in milliseconds (section 3.8 step 4). */
   readonly timeLimitMs: number;
   /**
@@ -549,9 +566,40 @@ function nodeTypes(db: Database): NodeType[] {
     .map(([name, count]) => ({ name: String(name), count: Number(count) }));
 }
 
+const EDGE_TYPE_NAME = /^[a-z][a-z0-9_]*$/;
+
+function edgeTypes(db: Database): EdgeType[] {
+  const rows = db.selectArrays(
+    `SELECT name, from_type, to_type FROM type
+      WHERE kind = 'edge' AND length(name) <= 120 ORDER BY name COLLATE BINARY LIMIT ?`,
+    [NODE_TYPE_LIMIT],
+  );
+  const named = (value: unknown): string | null =>
+    typeof value === "string" && NODE_TYPE_NAME.test(value) ? value : null;
+  return rows
+    .filter(([name]) => typeof name === "string" && EDGE_TYPE_NAME.test(name))
+    .map(([name, from, to]) => ({ name: String(name), from: named(from), to: named(to) }));
+}
+
+/** Each listed node type's declared properties, at most {@link NODE_TYPE_LIMIT} each. */
+function declaredProps(db: Database, types: readonly NodeType[]): Map<string, readonly string[]> {
+  const props = new Map<string, readonly string[]>();
+  for (const { name } of types) {
+    const keys = db.selectValues(
+      `SELECT j.key FROM type AS t, json_each(CASE WHEN json_valid(t.props) THEN t.props ELSE '{}' END) AS j
+        WHERE t.name = ? AND t.kind = 'node' AND length(j.key) <= 120 ORDER BY j.id LIMIT ?`,
+      [name, NODE_TYPE_LIMIT],
+    );
+    props.set(name, [...new Set(keys.filter((k): k is string => typeof k === "string"))]);
+  }
+  return props;
+}
+
 function sealedFile(db: Database, name: string, header: Header, deadline: Deadline, embedder?: QueryEmbedder): SealedFile {
   let open = true;
   const types = nodeTypes(db);
+  const edges = edgeTypes(db);
+  const declared = declaredProps(db, types);
   const mosaic = header.knowledge_hash;
   const vectorSearch =
     embedder !== undefined && header.vector_hash !== null && header.embed_model === embedder.model;
@@ -569,6 +617,8 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
     name,
     header,
     nodeTypes: types,
+    edgeTypes: edges,
+    propsOf: (type) => declared.get(type) ?? [],
     timeLimitMs: deadline.limitMs,
     vectorSearch,
     find: async (args) => {

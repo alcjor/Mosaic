@@ -21,17 +21,25 @@ export interface TableView {
   readonly pages: number;
 }
 
-/** The arguments of `table` for a table view. */
-export function tableArgs(route: TableRoute): Record<string, unknown> {
+/**
+ * The arguments of `table` for a table view; with `columns`, the view file's, the node's name
+ * (`label`) then those columns, else `table`'s default.
+ */
+export function tableArgs(route: TableRoute, columns: readonly string[] | null = null): Record<string, unknown> {
   const args: Record<string, unknown> = { type: route.type, page: route.page };
+  if (columns !== null) args.columns = ["label", ...columns.filter((c) => c !== "label")];
   if (route.order) args.order = { column: route.order.column, direction: route.order.desc ? "desc" : "asc" };
   if (route.where.length > 0) args.where = route.where.map((c) => ({ column: c.column, op: c.op, value: c.value }));
   return args;
 }
 
 /** One page of a table view, from `table`. */
-export async function tableView(file: SealedFile, route: TableRoute): Promise<TableView | ToolFailure> {
-  const answer = await file.table(tableArgs(route));
+export async function tableView(
+  file: SealedFile,
+  route: TableRoute,
+  columns: readonly string[] | null = null,
+): Promise<TableView | ToolFailure> {
+  const answer = await file.table(tableArgs(route, columns));
   if ("error" in answer) return { message: answer.error.message, suggestions: answer.error.suggestions };
   const data: TableAnswer["data"] = answer.data;
   return {

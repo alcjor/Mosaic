@@ -1,0 +1,130 @@
+{
+  "about": "The settings each view file gives the page, as mosaic_build.view_file ViewSettings.as_json() writes them (plan M3.5, M3.6). view null: no view file. tests/test_view_file.py checks the Python side; viewer/test/view.edges.test.ts reads them.",
+  "cases": [
+    {
+      "view": "views/example.yaml",
+      "settings": {
+        "search": "semantic",
+        "theme": "auto",
+        "types": [
+          {
+            "name": "Title",
+            "label": "Film or show",
+            "columns": [
+              "release_year",
+              "rating"
+            ],
+            "page": [
+              "release_year",
+              "directed_by",
+              "features",
+              "listed_in"
+            ],
+            "names": {
+              "release_year": "Year",
+              "directed_by": "Directed by"
+            }
+          },
+          {
+            "name": "Person",
+            "label": null,
+            "columns": null,
+            "page": null,
+            "names": {}
+          },
+          {
+            "name": "Genre",
+            "label": null,
+            "columns": null,
+            "page": null,
+            "names": {}
+          }
+        ],
+        "export": {
+          "types": [
+            "Title",
+            "Person",
+            "Genre"
+          ]
+        }
+      }
+    },
+    {
+      "view": "conformance/fixtures/netflix/view.yaml",
+      "settings": {
+        "search": "semantic",
+        "theme": "auto",
+        "types": [
+          {
+            "name": "Title",
+            "label": "Title",
+            "columns": [
+              "type",
+              "release_year",
+              "rating",
+              "duration",
+              "duration_unit"
+            ],
+            "page": [
+              "type",
+              "release_year",
+              "date_added",
+              "rating",
+              "duration",
+              "duration_unit",
+              "directed_by",
+              "features",
+              "listed_in",
+              "made_in"
+            ],
+            "names": {
+              "type": "Kind",
+              "release_year": "Released",
+              "date_added": "Added",
+              "duration_unit": "Unit",
+              "directed_by": "Directed by",
+              "features": "Cast",
+              "listed_in": "Genres",
+              "made_in": "Countries"
+            }
+          },
+          {
+            "name": "Person",
+            "label": "Person",
+            "columns": null,
+            "page": null,
+            "names": {}
+          },
+          {
+            "name": "Genre",
+            "label": "Genre",
+            "columns": null,
+            "page": null,
+            "names": {}
+          },
+          {
+            "name": "Country",
+            "label": "Country",
+            "columns": null,
+            "page": null,
+            "names": {}
+          }
+        ],
+        "export": {
+          "types": null
+        }
+      }
+    },
+    {
+      "view": null,
+      "settings": {
+        "search": "semantic",
+        "theme": "auto",
+        "types": null,
+        "export": {
+          "types": null
+        }
+      }
+    }
+  ]
+}

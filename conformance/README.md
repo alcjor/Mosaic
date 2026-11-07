@@ -10,6 +10,7 @@ the two languages meet.
 | `invalid/files/` | One invalid tessera or mosaic per invariant of section 3.9, each naming the invariant it breaks | M1 |
 | `invalid/patterns/` | One invalid pattern or proposals file per rule of sections 5 and 5.6 | M1 |
 | `reading/` | Files the reading rules of section 3.8 open or refuse, one per rule of step 2, with the header each reader returns; read by the Python reader and the kit | M2 |
+| `views/` | `settings.json`: the settings each shipped view file gives the page, as the Python reader writes them; checked by the Python tests, read by the viewer's | M3 |
 | `tools/` | Kit tool cases on the Chinook mosaic with expected answers, valid against `spec/answers.schema.json` | M3 |
 
 **Expected values are the contract.** Files named `expected*` and the manifest are

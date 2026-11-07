@@ -2,25 +2,33 @@
   /**
    * The context column (brand book, section 6): the node's links from `neighbors`, grouped by
    * edge type and direction with a count (NeighborList), each opening the other node; then its
-   * sources from `cite` (CitationChip).
+   * sources from `cite` (CitationChip). With a view file, the links are those of the edge types
+   * its `page` names, in that order, under its labels.
    */
   import type { NodeView } from "../lib/mosaic.js";
+  import { inPageOrder, type Shape } from "../lib/view.js";
 
-  let { view, hrefFor }: { view: NodeView; hrefFor: (id: string) => string } = $props();
+  let { view, hrefFor, shape = null }: { view: NodeView; hrefFor: (id: string) => string; shape?: Shape | null } = $props();
 
-  /** An edge type as a reader says it: `directed_by` out is "directed by", in is "← directed by". */
+  let links = $derived(inPageOrder(view.links, shape?.page(view.node.type) ?? null, (group) => group.edge));
+
+  /**
+   * An edge type as a reader says it: `directed_by` out is "directed by", in is "← directed by";
+   * the view file's label for it (this node's type's, else the edge's source type's) replaces
+   * the words.
+   */
   function edgeName(edge: string, direction: "out" | "in"): string {
-    const words = edge.replaceAll("_", " ");
+    const words = shape?.edgeLabel(view.node.type, edge) ?? edge.replaceAll("_", " ");
     return direction === "out" ? words : `← ${words}`;
   }
 </script>
 
 <section class="block" aria-label="Links">
   <h2 class="heading section-label">Links</h2>
-  {#if view.links.length === 0}
+  {#if links.length === 0}
     <p class="empty body-screen">No links.</p>
   {/if}
-  {#each view.links as group (`${group.edge} ${group.direction}`)}
+  {#each links as group (`${group.edge} ${group.direction}`)}
     <section class="group" aria-label={edgeName(group.edge, group.direction)} data-edge={group.edge} data-direction={group.direction}>
       <h3 class="edge section-label">{edgeName(group.edge, group.direction)} · {group.count}</h3>
       <ul class="rows">
