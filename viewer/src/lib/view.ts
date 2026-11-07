@@ -74,6 +74,12 @@ function oneOf<T extends string>(value: unknown, where: string, values: readonly
 /** The view file's settings from their JSON form (`ViewSettings.as_json`); throws when malformed. */
 export function parseView(data: unknown): ViewSettings {
   const given = record(data, "the settings");
+  const seen = new Set<string>();
+  const once = (name: string, where: string): string => {
+    if (seen.has(name)) fail(where, `a type not listed before, not ${name} again`);
+    seen.add(name);
+    return name;
+  };
   const types =
     given.types === null || given.types === undefined
       ? null
@@ -82,7 +88,7 @@ export function parseView(data: unknown): ViewSettings {
           const entry = record(t, where);
           const names = record(entry.names ?? {}, `${where}.names`);
           return {
-            name: text(entry.name, `${where}.name`),
+            name: once(text(entry.name, `${where}.name`), `${where}.name`),
             label: entry.label === null || entry.label === undefined ? null : text(entry.label, `${where}.label`),
             columns: texts(entry.columns ?? null, `${where}.columns`),
             page: texts(entry.page ?? null, `${where}.page`),
@@ -133,9 +139,11 @@ export class Shape {
   readonly #settings = new Map<string, TypeSettings>();
   readonly #columns = new Map<string, readonly string[]>();
   readonly #page = new Map<string, readonly string[]>();
+  readonly #edgeFrom: ReadonlyMap<string, string | null>;
 
   constructor(view: ViewSettings, schema: Schema) {
     const notices: string[] = [];
+    this.#edgeFrom = new Map(schema.edgeTypes.map((e) => [e.name, e.from]));
     const known = new Map(schema.nodeTypes.map((t) => [t.name, t]));
     const listed: NodeType[] = [];
     for (const settings of view.types ?? schema.nodeTypes.map((t) => typeSettings(t.name))) {
@@ -157,6 +165,11 @@ export class Shape {
         });
       if (settings.columns !== null) {
         const columns = keep(settings.columns, (n) => props.includes(n) || leaving.has(n), "columns", "property");
+        if (columns.length > MORE_COLUMNS) {
+          notices.push(
+            `view file: types.${type.name}.columns: a table shows at most ${MORE_COLUMNS} columns after the name; left out: ${columns.slice(MORE_COLUMNS).join(", ")}`,
+          );
+        }
         this.#columns.set(type.name, columns.slice(0, MORE_COLUMNS));
       }
       if (settings.page !== null) {
@@ -184,6 +197,15 @@ export class Shape {
   /** The label the view file gives `name`, a property or edge type, on `type`'s pages, or null. */
   label(type: string, name: string): string | null {
     return this.#settings.get(type)?.names.get(name) ?? null;
+  }
+
+  /**
+   * The label the view file gives edge type `edge` on `type`'s node pages: `type`'s own, else
+   * that of the type the edge leaves, so an incoming edge keeps its source type's label; or null.
+   */
+  edgeLabel(type: string, edge: string): string | null {
+    const from = this.#edgeFrom.get(edge);
+    return this.label(type, edge) ?? (from ? this.label(from, edge) : null);
   }
 
   /** The columns `type`'s table shows after the node's name, or null for `table`'s default. */

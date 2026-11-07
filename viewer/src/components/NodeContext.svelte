@@ -14,10 +14,11 @@
 
   /**
    * An edge type as a reader says it: `directed_by` out is "directed by", in is "← directed by";
-   * the view file's label for it, on this node's type, replaces the words.
+   * the view file's label for it (this node's type's, else the edge's source type's) replaces
+   * the words.
    */
   function edgeName(edge: string, direction: "out" | "in"): string {
-    const words = shape?.label(view.node.type, edge) ?? edge.replaceAll("_", " ");
+    const words = shape?.edgeLabel(view.node.type, edge) ?? edge.replaceAll("_", " ");
     return direction === "out" ? words : `← ${words}`;
   }
 </script>

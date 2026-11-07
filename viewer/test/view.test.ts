@@ -345,3 +345,29 @@ describe("a view file naming what the mosaic does not have", () => {
     expect(render(App, { props: { viewer } }).body).not.toContain("View file notices");
   });
 });
+
+describe("decided edges", () => {
+  it("an incoming edge with no label on the page's type takes its source type's label", async () => {
+    const file = await open();
+    const view = (await nodePage(file, "Group:x")) as NodeView;
+    const shape = new Shape(SHAPED, file);
+    expect(shape.edgeLabel("Group", "in_group")).toBe("Belongs to");
+    expect(render(NodeContext, { props: { view, hrefFor, shape } }).body).toContain("← Belongs to · 2");
+    file.close();
+  });
+
+  it("columns past what a table shows are left out with a notice", () => {
+    const props = Array.from({ length: 21 }, (_, i) => `p${String(i).padStart(2, "0")}`);
+    const schema = { nodeTypes: [{ name: "Item", count: 0 }], edgeTypes: [], propsOf: () => props };
+    const shape = new Shape(settings({ types: [{ name: "Item", label: null, columns: props, page: null, names: {} }] }), schema);
+    expect(shape.columns("Item")).toEqual(props.slice(0, 19));
+    expect(shape.notices).toEqual([
+      "view file: types.Item.columns: a table shows at most 19 columns after the name; left out: p19, p20",
+    ]);
+  });
+
+  it("settings listing a type twice are refused", () => {
+    const twice = { name: "A", label: null, columns: null, page: null, names: {} };
+    expect(() => settings({ types: [twice, twice] })).toThrow(/types\[1\]\.name/);
+  });
+});
