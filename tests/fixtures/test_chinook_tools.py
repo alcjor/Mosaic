@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator
+from mosaic_format.reader import open as open_sealed
 
 from tests.conftest import MODEL, REPO
 from tests.fixtures import test_chinook
@@ -24,6 +25,9 @@ from tests.fixtures.expected import load_expected
 from tests.fixtures.tool_cases import FILE, SCHEMA, differences, load
 
 pytestmark = pytest.mark.slow
+
+NODE_IDS: set[str] = set()
+"""The ids of the built mosaic's nodes: an unknown id's suggestions must be among them."""
 
 
 @pytest.fixture(scope="module")
@@ -58,6 +62,8 @@ def answers(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     )
     assert done.returncode == 0, done.stdout + done.stderr
     found: dict[str, Any] = json.loads(done.stdout)
+    with open_sealed(mosaic) as m:
+        NODE_IDS.update(str(i) for (i,) in m.query("SELECT id FROM node"))
     print(f"\n$ bun kit/scripts/run-cases.ts {mosaic.name} {FILE.relative_to(REPO)} --model …")
     for name, answer in found.items():
         if "error" in answer:
@@ -73,7 +79,7 @@ def answers(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 
 
 def test_every_case_gives_its_expected_answer(answers: dict[str, Any]) -> None:
-    found = differences(load(FILE)["cases"], answers)
+    found = differences(load(FILE)["cases"], answers, node_ids=NODE_IDS or None)
     assert not found, "\n".join(found)
 
 
