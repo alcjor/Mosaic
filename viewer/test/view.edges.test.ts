@@ -303,13 +303,15 @@ describe("columns (example.yaml: the node's name, then these properties; at most
     expect(body).not.toMatch(/>null</);
   });
 
-  it("an edge type leaving the type is a column (section 8.6: a column is a property, a field or an edge type)", async () => {
+  // Ruled in review round 2 of M3.6: a view file's `columns` are "the node's name, then these
+  // properties" (views/example.yaml, accepted on #120); section 8.6 says what `table` takes, not
+  // what the view file's key means. So an edge type leaving the type is a notice, not a column.
+  it("an edge type leaving the type is not one of the view file's columns: a notice, and no column", async () => {
     const viewer = await viewerOn(settings({ types: [{ name: "Item", columns: ["has_tag"] }] }));
     await viewer.showTable(route("Item"));
     const view = viewer.table as Table;
-    expect(view.columns).toEqual(["id", "label", "has_tag"]);
-    expect(view.rows.find((r) => r[0] === "Item:one")![2]).toEqual(["Tag t"]);
-    expect(viewer.shape!.notices).toEqual([]);
+    expect(view.columns).toEqual(["id", "label"]);
+    expect(viewer.shape!.notices).toEqual(["view file: types.Item.columns: Item has no property has_tag"]);
   });
 
   it("more columns than a table can show never stop the page (section 8.6: at most 20)", async () => {

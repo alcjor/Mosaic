@@ -7,10 +7,11 @@
  * {@link Shape} applies the settings to one open mosaic: which node types the page lists, in the
  * order the file writes them; each type's label; its table's columns; what its node page shows,
  * in order; and the labels of its property and edge names. A table's columns are declared
- * properties, as the view file says ("the node's name, then these properties"). A type the file leaves out is absent
- * from the type list and tables only: search and links still reach its nodes, and the kit is
- * never shaped by the view file (answer on #120, Reading A). A type, property or edge type the
- * mosaic does not have is dropped with a notice, and the page still opens.
+ * properties, as the view file says ("the node's name, then these properties"). A type the
+ * file leaves out is absent from the type list and tables only: search and links still reach
+ * its nodes, and the kit is never shaped by the view file (answer on #120, Reading A). A type,
+ * property or edge type the mosaic does not have is dropped with a notice, and the page still
+ * opens.
  */
 import type { EdgeType, NodeType, SealedFile } from "@mosaic/kit";
 
