@@ -372,15 +372,20 @@ def test_an_edge_cell_cuts_the_labels_it_lists_at_120_characters(world: World) -
     assert all(label is None or len(label) <= 121 for label in cell)
 
 
-# --- find: a total that does not depend on the limit (section 8.2) ------------------------------
+# --- find: the total of decision C on #111 (sections 8.2, 8.5) --------------------------------
 
 
-def test_the_total_of_a_find_does_not_depend_on_the_limit(world: World) -> None:
-    """Section 8.2: lists are cut with *the* total count; cutting at 5 or at 20 is one total."""
-    totals = {
-        limit: world.data("find", query="Iron Maiden", limit=limit)["total"] for limit in (5, 20)
-    }
-    assert totals[5] == totals[20], totals
+def test_the_total_of_a_find_counts_the_exact_and_text_matches_plus_the_vector_matches_listed(
+    world: World,
+) -> None:
+    """Decision C on #111: ``total`` counts the exact and text matches plus the vector matches
+    listed, so the vector matches it counts depend on ``limit`` and the others do not."""
+    others = set()
+    for limit in (1, 5, 8, 9, 20):
+        data = world.data("find", query="Iron Maiden", limit=limit)
+        listed = sum(r["match"] == "vector" for r in data["results"])
+        others.add(data["total"] - listed)
+    assert others == {8}, others  # the 8 nodes whose text holds both words (find-text)
 
 
 def test_the_total_of_a_find_is_not_below_the_results_listed_at_any_limit(world: World) -> None:
