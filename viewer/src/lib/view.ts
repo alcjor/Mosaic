@@ -6,7 +6,8 @@
  *
  * {@link Shape} applies the settings to one open mosaic: which node types the page lists, in the
  * order the file writes them; each type's label; its table's columns; what its node page shows,
- * in order; and the labels of its property and edge names. A type the file leaves out is absent
+ * in order; and the labels of its property and edge names. A table's columns are declared
+ * properties, as the view file says ("the node's name, then these properties"). A type the file leaves out is absent
  * from the type list and tables only: search and links still reach its nodes, and the kit is
  * never shaped by the view file (answer on #120, Reading A). A type, property or edge type the
  * mosaic does not have is dropped with a notice, and the page still opens.
@@ -63,7 +64,13 @@ function text(value: unknown, where: string): string {
 function texts(value: unknown, where: string): readonly string[] | null {
   if (value === null) return null;
   if (!Array.isArray(value)) fail(where, "a list of names or null");
-  return value.map((v, i) => text(v, `${where}[${i}]`));
+  const seen = new Set<string>();
+  return value.map((v, i) => {
+    const name = text(v, `${where}[${i}]`);
+    if (seen.has(name)) fail(`${where}[${i}]`, `a name not listed before, not ${name} again`);
+    seen.add(name);
+    return name;
+  });
 }
 
 function oneOf<T extends string>(value: unknown, where: string, values: readonly T[]): T {
@@ -139,6 +146,7 @@ export class Shape {
   readonly #settings = new Map<string, TypeSettings>();
   readonly #columns = new Map<string, readonly string[]>();
   readonly #page = new Map<string, readonly string[]>();
+  readonly #names = new Map<string, ReadonlyMap<string, string>>();
   readonly #edgeFrom: ReadonlyMap<string, string | null>;
 
   constructor(view: ViewSettings, schema: Schema) {
@@ -155,8 +163,7 @@ export class Shape {
       listed.push(type);
       this.#settings.set(type.name, settings);
       const props = schema.propsOf(type.name);
-      const leaving = edgesOf(schema.edgeTypes, type.name, "out");
-      const touching = edgesOf(schema.edgeTypes, type.name, "both");
+      const touching = edgesOf(schema.edgeTypes, type.name);
       const keep = (names: readonly string[], allowed: (n: string) => boolean, where: string, what: string) =>
         names.filter((n) => {
           if (allowed(n)) return true;
@@ -164,7 +171,7 @@ export class Shape {
           return false;
         });
       if (settings.columns !== null) {
-        const columns = keep(settings.columns, (n) => props.includes(n) || leaving.has(n), "columns", "property");
+        const columns = keep(settings.columns, (n) => props.includes(n), "columns", "property");
         if (columns.length > MORE_COLUMNS) {
           notices.push(
             `view file: types.${type.name}.columns: a table shows at most ${MORE_COLUMNS} columns after the name; left out: ${columns.slice(MORE_COLUMNS).join(", ")}`,
@@ -175,10 +182,8 @@ export class Shape {
       if (settings.page !== null) {
         this.#page.set(type.name, keep(settings.page, (n) => props.includes(n) || touching.has(n), "page", "property or edge type"));
       }
-      keep([...settings.names.keys()], (n) => props.includes(n) || touching.has(n), "names", "property or edge type");
-    }
-    for (const name of view.exportTypes ?? []) {
-      if (!known.has(name)) notices.push(`view file: export.types: the mosaic has no node type ${name}`);
+      const named = keep([...settings.names.keys()], (n) => props.includes(n) || touching.has(n), "names", "property or edge type");
+      this.#names.set(type.name, new Map(named.map((n) => [n, settings.names.get(n)!])));
     }
     this.types = listed;
     this.notices = notices;
@@ -196,7 +201,7 @@ export class Shape {
 
   /** The label the view file gives `name`, a property or edge type, on `type`'s pages, or null. */
   label(type: string, name: string): string | null {
-    return this.#settings.get(type)?.names.get(name) ?? null;
+    return this.#names.get(type)?.get(name) ?? null;
   }
 
   /**
@@ -223,13 +228,9 @@ function typeSettings(name: string): TypeSettings {
   return { name, label: null, columns: null, page: null, names: new Map() };
 }
 
-/** The edge types that leave `type` (`out`), or that leave or enter it (`both`). */
-function edgesOf(edges: readonly EdgeType[], type: string, direction: "out" | "both"): Set<string> {
-  return new Set(
-    edges
-      .filter((e) => e.from === null || e.from === type || (direction === "both" && (e.to === null || e.to === type)))
-      .map((e) => e.name),
-  );
+/** The edge types that leave or enter `type`. */
+function edgesOf(edges: readonly EdgeType[], type: string): Set<string> {
+  return new Set(edges.filter((e) => e.from === null || e.from === type || e.to === null || e.to === type).map((e) => e.name));
 }
 
 /** Set the page's theme: `auto` follows the system, `light` and `dark` fix it (tokens.css). */

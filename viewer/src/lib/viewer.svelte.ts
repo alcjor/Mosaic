@@ -42,6 +42,7 @@ export class Viewer {
   #searches = 0;
   #pages = 0;
   #tables = 0;
+  #opens = 0;
   #opened: { bytes: Uint8Array; name: string } | null = null;
 
   /** The embedder `find` uses in the current mode, if any. */
@@ -72,8 +73,13 @@ export class Viewer {
   async open(bytes: Uint8Array, name: string): Promise<void> {
     this.status = "loading";
     this.error = null;
+    const n = ++this.#opens;
     try {
       const file = await openMosaic(bytes, name, this.searchEmbedder);
+      if (n !== this.#opens) {
+        file.close(); // a newer open (another file, or another search mode) came after this one
+        return;
+      }
       this.file?.close();
       this.file = file;
       this.#opened = { bytes, name };
@@ -83,6 +89,7 @@ export class Viewer {
       this.page = null;
       this.table = null;
     } catch (e) {
+      if (n !== this.#opens) return;
       this.status = this.file === null ? "error" : "ready";
       this.error = e instanceof Error ? e.message : String(e);
     }

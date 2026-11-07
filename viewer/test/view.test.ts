@@ -296,9 +296,8 @@ describe("a view file naming what the mosaic does not have", () => {
   const WRONG = settings({
     types: [
       { name: "Nothing", label: null, columns: null, page: null, names: {} },
-      { name: "Item", label: null, columns: ["size", "weight"], page: ["colour", "in_group"], names: { shade: "Shade" } },
+      { name: "Item", label: null, columns: ["size", "weight"], page: ["colour", "in_group"], names: { shade: "Shade", code: "Code" } },
     ],
-    export: { types: ["Ghost"] },
   });
 
   it("shows a notice for each, and leaves each out", async () => {
@@ -312,8 +311,9 @@ describe("a view file naming what the mosaic does not have", () => {
       "view file: types.Item.columns: Item has no property weight",
       "view file: types.Item.page: Item has no property or edge type colour",
       "view file: types.Item.names: Item has no property or edge type shade",
-      "view file: export.types: the mosaic has no node type Ghost",
     ]);
+    expect(shape.label("Item", "shade")).toBeNull();
+    expect(shape.label("Item", "code")).toBe("Code");
     file.close();
   });
 
@@ -369,5 +369,44 @@ describe("decided edges", () => {
   it("settings listing a type twice are refused", () => {
     const twice = { name: "A", label: null, columns: null, page: null, names: {} };
     expect(() => settings({ types: [twice, twice] })).toThrow(/types\[1\]\.name/);
+  });
+});
+
+describe("decided in review", () => {
+  it("a table's columns are declared properties only: an edge type leaving the type is a notice", async () => {
+    const file = await open();
+    const shape = new Shape(settings({ types: [{ name: "Item", label: null, columns: ["in_group", "size"], page: null, names: {} }] }), file);
+    expect(shape.columns("Item")).toEqual(["size"]);
+    expect(shape.notices).toEqual(["view file: types.Item.columns: Item has no property in_group"]);
+    file.close();
+  });
+
+  it("a name left out with a notice relabels nothing", async () => {
+    const file = await open();
+    const shape = new Shape(settings({ types: [{ name: "Item", label: null, columns: null, page: null, names: { label: "Title" } }] }), file);
+    expect(shape.notices).toEqual(["view file: types.Item.names: Item has no property or edge type label"]);
+    const view: Table = { route: route("Item"), columns: ["id", "label"], rows: [], page: 1, total: 0, pages: 1 };
+    const body = render(TableView, { props: { view, route: route("Item"), hrefFor: tableHref, nodeHref: hrefFor, onfilter: () => {}, shape } }).body;
+    expect(body).not.toContain(">Title<");
+    file.close();
+  });
+
+  it("export.types does not make a notice on the page: its meaning is M3.10's", async () => {
+    const file = await open();
+    expect(new Shape(settings({ export: { types: ["Ghost"] } }), file).notices).toEqual([]);
+    file.close();
+  });
+
+  it("a name listed twice in a list is refused", () => {
+    expect(() => settings({ types: [{ name: "A", label: null, columns: ["x", "x"], page: null, names: {} }] })).toThrow(/types\[0\]\.columns\[1\]/);
+  });
+
+  it("of two opens, the later one wins, whichever finishes first", async () => {
+    const viewer = new Viewer();
+    const first = viewer.open(reading("mosaic.mosaic"), "first.mosaic");
+    const second = viewer.open(reading("mosaic.mosaic"), "second.mosaic");
+    await Promise.all([second, first]);
+    expect(viewer.file?.name).toBe("second.mosaic");
+    expect(viewer.status).toBe("ready");
   });
 });
