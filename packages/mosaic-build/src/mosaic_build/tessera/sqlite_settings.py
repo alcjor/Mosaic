@@ -31,7 +31,7 @@ from mosaic_build.tessera.sqlite import SettingError, Settings, Table, Where, ch
 
 __all__ = ["SettingsFile", "from_json", "load_file", "read", "read_database"]
 
-_SETTINGS = ("tables",)
+_SETTINGS = ("tables", "notice")
 """The settings' keys."""
 _TABLE = ("type", "label", "summary", "props", "convert", "foreign_keys", "edge")
 """A table's settings."""
@@ -92,7 +92,8 @@ def from_json(value: object) -> Settings:
         if key not in _SETTINGS:
             raise SettingsError((key,), f"{key!r} is no setting; the settings are {_SETTINGS}")
     tables = _mapping(given.get("tables", {}), ("tables",), "table names to their settings")
-    return Settings(tables={t: _table(v, ("tables", t)) for t, v in tables.items()})
+    notice = None if "notice" not in given else _text(given["notice"], ("notice",))
+    return Settings(tables={t: _table(v, ("tables", t)) for t, v in tables.items()}, notice=notice)
 
 
 @dataclass(frozen=True)

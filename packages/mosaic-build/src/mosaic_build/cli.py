@@ -115,7 +115,10 @@ def make_parser() -> argparse.ArgumentParser:
         "--settings",
         type=Path,
         required=True,
-        help="YAML file in the shape of the tessera's header.settings",
+        help=(
+            "YAML file in the shape of the tessera's header.settings; an optional notice, "
+            "the source's licence or confidentiality marking, is its source's notice"
+        ),
     )
     csv_cmd.add_argument(
         "-o", "--output", type=Path, required=True, help="the new tessera file to write"
@@ -132,6 +135,8 @@ def make_parser() -> argparse.ArgumentParser:
             "one edge to the row it names. A table whose primary key is two foreign keys takes "
             "edge alone, its edge type: each row is one edge from the row its first key column "
             "names to the row its second names, with its other columns as the edge's props. "
+            "An optional notice, the database's licence or confidentiality marking, is the "
+            "notice of the tessera's source, and a mosaic carries it. "
             "The database is only read. A wrong setting, also a "
             "table or column the database does not have or a foreign key it does not declare, "
             "is an error naming the settings file, the line and the setting (exit status 1), "

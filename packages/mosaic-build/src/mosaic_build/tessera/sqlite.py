@@ -81,6 +81,7 @@ from mosaic_format.writer import (
 
 from mosaic_build import __version__
 from mosaic_build.tessera.convert import Conversion, check_conversions, prop_kinds
+from mosaic_build.tessera.notice import notice_problem
 
 __all__ = [
     "Built",
@@ -176,11 +177,18 @@ class Settings:
     """What shapes a SQLite tessera: the tables to read, each by its name in the database."""
 
     tables: Mapping[str, Table] = field(default_factory=dict)
+    notice: str | None = None
 
     def as_json(self) -> str:
         """The settings as canonical JSON text, for ``header.settings``; each table's type is
-        written out, and ``convert`` and ``foreign_keys`` only when they name something."""
-        return _json({"tables": {name: t.as_json(name) for name, t in self.tables.items()}})
+        written out, ``convert`` and ``foreign_keys`` only when they name something, and
+        ``notice`` only when set (plan M3.14)."""
+        value: dict[str, object] = {
+            "tables": {name: t.as_json(name) for name, t in self.tables.items()}
+        }
+        if self.notice is not None:
+            value["notice"] = self.notice
+        return _json(value)
 
 
 @dataclass(frozen=True)
@@ -280,7 +288,13 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
         Content(
             header=Header(kind="tessera", producer=PRODUCER, settings=settings.as_json()),
             sources=[
-                Source(id=name, kind="database", hash=hashlib.sha256(data).hexdigest(), path=name),
+                Source(
+                    id=name,
+                    kind="database",
+                    hash=hashlib.sha256(data).hexdigest(),
+                    path=name,
+                    notice=settings.notice,
+                ),
             ],
             types=made[0],
             nodes=made[1],
@@ -293,6 +307,9 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
 
 def check_settings(settings: Settings) -> None:
     """Refuse settings that cannot make a tessera whatever the database, naming the setting."""
+    problem = notice_problem(settings.notice)
+    if problem is not None:
+        raise SettingError(("notice",), f"settings: {problem}")
     if not settings.tables:
         raise SettingError(("tables",), "settings: tables names no table; name at least one")
     types: dict[str, str] = {}

@@ -25,6 +25,7 @@ from mosaic_format.yaml_core import load
 
 from mosaic_build.tessera.convert import Boolean, Conversion, Date, Integer, Number, Quantity
 from mosaic_build.tessera.csv import Link, LinkError, Settings, check_link, check_settings
+from mosaic_build.tessera.notice import notice_problem
 
 __all__ = ["SettingsError", "conversion", "from_json", "link", "read"]
 
@@ -152,6 +153,7 @@ def from_json(value: object) -> Settings:
         "delimiter",
         "convert",
         "links",
+        "notice",
     )
     for key in given:
         if key not in known:
@@ -168,7 +170,19 @@ def from_json(value: object) -> Settings:
         delimiter=str(_text(given.get("delimiter", defaults.delimiter), ("delimiter",))),
         convert={c: conversion(v, ("convert", c)) for c, v in convert.items()},
         links={c: link(c, v, ("links", c)) for c, v in links.items()},
+        notice=_notice(given),
     )
+
+
+def _notice(given: Mapping[str, object]) -> str | None:
+    """The ``notice`` setting, checked: text, not empty, without U+0000 (plan M3.14)."""
+    if "notice" not in given:
+        return None
+    notice = str(_text(given["notice"], ("notice",)))
+    problem = notice_problem(notice)
+    if problem is not None:
+        raise SettingsError(("notice",), problem)
+    return notice
 
 
 def read(path: str | os.PathLike[str]) -> Settings:
