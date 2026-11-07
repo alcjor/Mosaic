@@ -185,8 +185,8 @@ def export(
             files = viewer.checked_model(model)
         except viewer.ViewError as e:  # names the file and both hashes (section 6)
             raise ExportError(str(e)) from None
-    # With search: text a model directory given is not read: the export carries no model, as
-    # `mosaic view --model` serves one whatever the view file asks (answer B on #137).
+    # With search: text a model directory given is ignored, not even read, so a missing or wrong
+    # one is no error: the export carries no model (answer B on #137, "ignore the model").
     if output.exists() or output.is_symlink():
         raise ExportError(f"{output}: exists; an export is never overwritten")
     body = page(source.name, data, settings, built, files)
