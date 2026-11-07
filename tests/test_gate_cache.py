@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -87,6 +88,23 @@ def test_a_stop_after_a_passing_push_of_the_same_tree_skips_the_gate(repo: Path)
 def test_a_changed_tracked_file_runs_the_gate_again(repo: Path) -> None:
     push(repo)
     (repo / "a.txt").write_text("b\n", encoding="utf-8")
+    push(repo)
+    assert runs(repo) == 2
+
+
+def test_an_edit_that_keeps_size_and_timestamps_runs_the_gate_again(repo: Path) -> None:
+    # Git trusts an index entry whose size and timestamps still match the file, without reading
+    # it. An edit like that once let a changed tree skip the gate (CI on #133). Here the index
+    # entry is fresh, the edit keeps the size and the mtime, and ctime is not trusted, so only the
+    # file's content shows the change.
+    git(repo, "config", "core.trustctime", "false")
+    path = repo / "a.txt"
+    past = time.time_ns() - 100 * 1_000_000_000
+    os.utime(path, ns=(past, past))
+    git(repo, "update-index", "--refresh")
+    push(repo)
+    path.write_text("b\n", encoding="utf-8")
+    os.utime(path, ns=(past, past))
     push(repo)
     assert runs(repo) == 2
 

@@ -4,12 +4,15 @@
 # plus the uv and Bun versions. Only a pass is recorded, in .git (never in the tree), so a
 # failing tree always runs the gate again. MOSAIC_GATE_NOCACHE=1 forces a full run.
 
+# The temporary index starts empty, so git reads and hashes every file. A copy of the real
+# index would let git trust its recorded sizes and timestamps, and an edit that keeps them
+# would look unchanged (a changed tree once skipped the gate this way).
 gate_tree_id() {
-  local idx id
-  idx="$(mktemp)" || return 1
-  cp "$(git rev-parse --git-path index)" "$idx" 2>/dev/null || rm -f "$idx"
+  local dir idx id
+  dir="$(mktemp -d)" || return 1
+  idx="$dir/index"
   id="$(GIT_INDEX_FILE="$idx" git add -A . >/dev/null 2>&1 && GIT_INDEX_FILE="$idx" git write-tree)"
-  rm -f "$idx"
+  rm -rf "$dir"
   [ -n "$id" ] && printf '%s\n' "$id"
 }
 
