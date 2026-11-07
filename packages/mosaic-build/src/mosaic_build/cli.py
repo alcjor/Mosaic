@@ -43,8 +43,10 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   checked by their pinned hashes first, and the page searches by vectors as well; without it,
   by names and full text only.
 
-- ``mosaic export <file> [--view FILE] -o OUT.html`` writes the viewer page with a tessera or
-  mosaic inside as one new HTML file that opens offline (:mod:`mosaic_build.export`). It applies
+- ``mosaic export <file> [--view FILE] [-o OUT.html]`` writes the viewer page with a tessera or
+  mosaic inside as one new HTML file that opens offline (:mod:`mosaic_build.export`); without
+  ``-o``, the file's name with ``.html`` for its suffix, in the current directory (answer on
+  #131). It applies
   the reading rules first; a refused file, a wrong view file, a view file whose ``search`` is
   ``semantic`` (plan M3.9) or an existing ``OUT.html`` is an error naming it, and nothing is
   written. The built viewer is needed (``bun run build``).
@@ -228,7 +230,9 @@ def make_parser() -> argparse.ArgumentParser:
             "shaped by that view file; its search setting must be text (search: semantic, which "
             "carries the embedding model, comes later). A missing or refused file, a wrong view "
             "file or an existing output file is an error naming it (exit status 1), and nothing "
-            "is written. FILE and the view file are only read; the output is never overwritten. "
+            "is written. Without -o, the output is FILE's name with .html for its suffix, in the "
+            "current directory. FILE and the view file are only read; the output is never "
+            "overwritten. "
             "The viewer must be built first: bun run build."
         ),
     )
@@ -237,7 +241,11 @@ def make_parser() -> argparse.ArgumentParser:
         "--view", type=Path, metavar="FILE", help="view file (YAML) that shapes the page"
     )
     export_cmd.add_argument(
-        "-o", "--output", type=Path, required=True, metavar="FILE", help="the new HTML file"
+        "-o",
+        "--output",
+        type=Path,
+        metavar="FILE",
+        help="the new HTML file (default: FILE's name with .html, in the current directory)",
     )
 
     for name, milestone in PLANNED.items():
@@ -422,11 +430,12 @@ def _view(args: argparse.Namespace) -> int:
 
 def _export(args: argparse.Namespace) -> int:
     try:
-        size = exporter.export(args.file, args.output, args.view)
+        output: Path = args.output or exporter.default_output(args.file)
+        size = exporter.export(args.file, output, args.view)
     except exporter.ExportError as e:
         _error("export", e)
         return 1
-    print(f"{args.file}: exported to {args.output} ({size:,} bytes)")
+    print(f"{args.file}: exported to {output} ({size:,} bytes)")
     return 0
 
 

@@ -187,11 +187,56 @@ def test_an_existing_output_is_never_overwritten(
     assert out.read_text(encoding="utf-8") == "keep me"
 
 
-def test_the_output_is_needed(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as e:
-        main(["export", "a.mosaic"])
-    assert e.value.code == 2
-    assert "-o/--output" in capsys.readouterr().err
+def test_without_o_the_export_is_the_file_name_with_html_in_the_current_directory(
+    tmp_path: Path,
+    dist: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Answer on #131: (a) Reading B, an optional -o FILE with a default; (b) Reading A, kept.
+    mosaic, settings = source(tmp_path, "netflix.mosaic"), view_yaml(tmp_path)
+    here = tmp_path / "here"
+    here.mkdir()
+    monkeypatch.chdir(here)
+    assert main(["export", str(mosaic), "--view", str(settings)]) == 0
+    assert files_in(here) == ["netflix.html"]
+    assert "netflix.html" in capsys.readouterr().out
+    first = (here / "netflix.html").read_bytes()
+    assert unpacked(data_of(first.decode("utf-8"))["mosaic"]) == mosaic.read_bytes()
+    # Run twice: the second keeps the first export and exits 1.
+    assert main(["export", str(mosaic), "--view", str(settings)]) == 1
+    err = capsys.readouterr().err
+    assert err == "mosaic export: netflix.html: exists; an export is never overwritten\n"
+    assert (here / "netflix.html").read_bytes() == first
+
+
+@pytest.mark.parametrize(
+    ("name", "default"),
+    [
+        ("netflix.mosaic", "netflix.html"),
+        ("rows.tessera", "rows.html"),
+        ("archive.v2.mosaic", "archive.v2.html"),
+        ("plain", "plain.html"),
+    ],
+)
+def test_the_default_output_name(name: str, default: str) -> None:
+    assert export.default_output(Path("/elsewhere") / name) == Path(default)
+
+
+def test_a_refused_file_without_o_writes_nothing_and_keeps_an_earlier_export(
+    tmp_path: Path, dist: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    here = tmp_path / "here"
+    here.mkdir()
+    monkeypatch.chdir(here)
+    refused = tmp_path / "in" / "mosaic.mosaic"
+    refused.parent.mkdir()
+    shutil.copyfile(READING / REFUSED[0], refused)
+    assert main(["export", str(refused), "--view", str(view_yaml(tmp_path))]) == 1
+    assert files_in(here) == []
+    (here / "mosaic.html").write_text("earlier export", encoding="utf-8")
+    assert main(["export", str(refused), "--view", str(view_yaml(tmp_path))]) == 1
+    assert (here / "mosaic.html").read_text(encoding="utf-8") == "earlier export"
 
 
 def test_an_unbuilt_viewer_exits_1_saying_how_to_build_it(

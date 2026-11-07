@@ -100,6 +100,11 @@ def page(name: str, data: bytes, settings: dict[str, object], dist: Path) -> byt
     return out.encode("utf-8")
 
 
+def default_output(source: Path) -> Path:
+    """Where an export of ``source`` goes without ``-o``: its name with ``.html``, here (#131)."""
+    return Path(Path(source.name).with_suffix(".html").name)
+
+
 def export(source: Path, output: Path, view: Path | None = None, dist: Path | None = None) -> int:
     """Write the export of ``source`` to the new file ``output``; returns its size in bytes.
 
