@@ -1,0 +1,46 @@
+# View file for the Chinook fixture (docs/design.md, Implementation plan, "View file";
+# plans M3.5 and M3.3). Schema: views/view.schema.json.
+# mosaic view chinook.mosaic --view view.yaml
+search: semantic
+types:
+  Track:
+    label: Track
+    columns: [composer, milliseconds, unit_price]
+    page: [composer, milliseconds, bytes, unit_price, on_album, in_genre, encoded_as]
+    names:
+      milliseconds: Length (ms)
+      unit_price: Price
+      on_album: Album
+      in_genre: Genre
+      encoded_as: Media type
+  Album:
+    label: Album
+    page: [title, by]
+    names:
+      by: Artist
+  Artist:
+    label: Artist
+  Playlist:
+    label: Playlist
+    page: [name, contains]
+    names:
+      contains: Tracks
+  Genre:
+    label: Genre
+  Employee:
+    label: Employee
+    columns: [first_name, title, city, country]
+    page: [first_name, last_name, title, city, country, hire_date, reports_to]
+    names:
+      first_name: First name
+      last_name: Last name
+      hire_date: Hired
+      reports_to: Reports to
+  Customer:
+    label: Customer
+    columns: [first_name, company, country]
+    page: [first_name, last_name, company, city, country, supported_by]
+    names:
+      first_name: First name
+      last_name: Last name
+      supported_by: Support
