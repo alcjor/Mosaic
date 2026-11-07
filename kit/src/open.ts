@@ -117,11 +117,26 @@ export interface OpenOptions {
   readonly embedder?: QueryEmbedder;
 }
 
+/** A node type the file declares, with how many nodes it has (section 3.4). */
+export interface NodeType {
+  readonly name: string;
+  readonly count: number;
+}
+
+/** Most node types {@link SealedFile.nodeTypes} lists (section 3.8 step 4: bounded result size). */
+export const NODE_TYPE_LIMIT = 1000;
+
 /** A tessera or mosaic that passed the reading rules, open read-only. */
 export interface SealedFile {
   /** The name it was opened under. */
   readonly name: string;
   readonly header: Header;
+  /**
+   * The node types the file declares, by name (UTF-8 bytes), each with its node count: what a
+   * viewer lists as tables and the card lists as things (sections 3.4, 8.3). Only names of the
+   * form section 3.4 allows, at most {@link NODE_TYPE_LIMIT}.
+   */
+  readonly nodeTypes: readonly NodeType[];
   /** The time bound of one tool call, in milliseconds (section 3.8 step 4). */
   readonly timeLimitMs: number;
   /**
@@ -518,8 +533,25 @@ async function embedded(embedder: QueryEmbedder, query: string, limitMs: number,
   }
 }
 
+/** Node type names of the form section 3.4 allows. */
+const NODE_TYPE_NAME = /^[A-Z][A-Za-z0-9]*$/;
+
+/** The declared node types and their node counts, read once when the file opens. */
+function nodeTypes(db: Database): NodeType[] {
+  const rows = db.selectArrays(
+    `SELECT t.name, (SELECT count(*) FROM node AS n WHERE n.type = t.name)
+       FROM type AS t WHERE t.kind = 'node' AND length(t.name) <= 120
+      ORDER BY t.name COLLATE BINARY LIMIT ?`,
+    [NODE_TYPE_LIMIT],
+  );
+  return rows
+    .filter(([name]) => typeof name === "string" && NODE_TYPE_NAME.test(name))
+    .map(([name, count]) => ({ name: String(name), count: Number(count) }));
+}
+
 function sealedFile(db: Database, name: string, header: Header, deadline: Deadline, embedder?: QueryEmbedder): SealedFile {
   let open = true;
+  const types = nodeTypes(db);
   const mosaic = header.knowledge_hash;
   const vectorSearch =
     embedder !== undefined && header.vector_hash !== null && header.embed_model === embedder.model;
@@ -536,6 +568,7 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
   return {
     name,
     header,
+    nodeTypes: types,
     timeLimitMs: deadline.limitMs,
     vectorSearch,
     find: async (args) => {

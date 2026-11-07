@@ -11,7 +11,9 @@
  *
  * Twice: once with the mosaic named in the address (`?mosaic=`), once picked with the page's
  * file chooser. Each time it types QUERY in the search box and presses Enter, opens NODE_ID from
- * the results, then opens the first link of its node page. Playwright is not a dependency: the
+ * the results, then opens the first link of its node page. The first time it also opens the
+ * table of the type `Item`, sorts it by its last column both ways, filters it to values under 2,
+ * and opens the remaining row's node page. Playwright is not a dependency: the
  * agent environment provides it with its browser (`require("playwright")`).
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -83,6 +85,57 @@ async function walk(page: Page) {
   return { header, results, card: cardText, links, sources, opened, hash: new URL(page.url()).hash };
 }
 
+/** The tables: open a type's table, sort it both ways, filter it, then open a row's node page. */
+async function tables(page: Page, type: string) {
+  const ids = (p: Page) => p.locator('section[aria-label^="Table"] tbody a[data-id]').evaluateAll((as) => as.map((a) => a.getAttribute("data-id")));
+  const listed = await page.locator("a[data-type]").evaluateAll((as) => as.map((a) => a.getAttribute("data-type")));
+  await page.locator(`a[data-type="${type}"]`).click();
+  const table = page.locator(`section[aria-label="Table ${type}"]`);
+  await table.locator("tbody a[data-id]").first().waitFor();
+  const headers = await table.locator("thead th").allInnerTexts();
+  const rows = await ids(page);
+  // The filter form shows the column it will use: the first one, before any choice.
+  const firstColumn = await table.getByLabel("Column", { exact: true }).inputValue();
+  const column = (await table.locator("thead a[data-column]").last().getAttribute("data-column"))!;
+  await table.locator(`thead a[data-column="${column}"]`).click();
+  await table.locator('th[aria-sort="ascending"] a[data-column]').waitFor();
+  const ascending = await ids(page);
+  await table.locator(`thead a[data-column="${column}"]`).click();
+  await table.locator('th[aria-sort="descending"]').waitFor();
+  const descending = await ids(page);
+  await table.getByLabel("Column", { exact: true }).selectOption(column);
+  await table.getByLabel("Operator", { exact: true }).selectOption("<");
+  await table.getByLabel("Value kind", { exact: true }).selectOption("number");
+  await table.getByLabel("Value", { exact: true }).fill("2");
+  await table.getByRole("button", { name: "Filter" }).click();
+  await table.locator('ul[aria-label="Filters"]').waitFor();
+  await page.waitForFunction(() => document.querySelectorAll('section[aria-label^="Table"] tbody tr').length === 1);
+  const filtered = await ids(page);
+  const pager = await table.locator('nav[aria-label="Pages"]').innerText();
+  const first = filtered[0]!;
+  await table.locator(`tbody a[data-id="${first}"]`).click();
+  await page.locator(`article[aria-label="${first}"]`).waitFor();
+  const hash = new URL(page.url()).hash;
+  // A column picked in one table never carries over to another type's table.
+  await page.locator(`a[data-type="${type}"]`).click();
+  await table.locator("tbody a[data-id]").first().waitFor();
+  await table.getByLabel("Column", { exact: true }).selectOption(column);
+  const other = listed.find((t) => t !== type)!;
+  await page.locator(`a[data-type="${other}"]`).click();
+  const otherTable = page.locator(`section[aria-label="Table ${other}"]`);
+  await otherTable.locator("tbody a[data-id]").first().waitFor();
+  const otherColumn = await otherTable.getByLabel("Column", { exact: true }).inputValue();
+  await otherTable.getByLabel("Value", { exact: true }).fill("x");
+  await otherTable.getByRole("button", { name: "Filter" }).click();
+  await otherTable.locator('ul[aria-label="Filters"]').waitFor();
+  const otherWhere = new URLSearchParams(new URL(page.url()).hash.slice(1)).get("w");
+  const otherError = await otherTable.locator('[role="alert"]').count();
+  return {
+    listed, headers, rows, firstColumn, column, ascending, descending, filtered, pager, opened: first, hash,
+    other: { type: other, column: otherColumn, where: otherWhere, errors: otherError },
+  };
+}
+
 if (pageUrl !== undefined) {
   try {
     const page = await browser.newPage();
@@ -105,6 +158,7 @@ try {
   await page.goto(`http://localhost:${server.port}/?mosaic=${encodeURIComponent(basename(file))}`);
   const named = await walk(page);
   const namedMs = Math.round(performance.now() - started);
+  const tablesSeen = await tables(page, "Item");
 
   const second = await browser.newPage();
   second.on("pageerror", (e) => errors.push(e.message));
@@ -112,7 +166,7 @@ try {
   const empty = await second.locator("main").innerText();
   await second.locator('input[type="file"]').setInputFiles(file);
   const picked = await walk(second);
-  console.log(JSON.stringify({ named, picked, empty, errors, requests, named_ms: namedMs }));
+  console.log(JSON.stringify({ named, picked, tables: tablesSeen, empty, errors, requests, named_ms: namedMs }));
 } finally {
   await browser.close();
   server.stop(true);
