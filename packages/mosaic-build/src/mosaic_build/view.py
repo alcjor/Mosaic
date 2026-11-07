@@ -186,4 +186,4 @@ def serve(
     server = ThreadingHTTPServer((HOST, port), _handler(dist, name, data, model or {}))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, name="mosaic-view", daemon=True).start()
-    return server, page_url(server.server_address[1], name, model is not None)
+    return server, page_url(server.server_address[1], name, bool(model))
