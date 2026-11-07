@@ -79,7 +79,12 @@ export async function fetchNamedMosaic(
   const named = new URLSearchParams(search).get(MOSAIC_PARAM);
   if (named === null || named === "") return null;
   const url = new URL(named, base);
-  const response = await fetcher(url);
+  let response: Response;
+  try {
+    response = await fetcher(url);
+  } catch (e) {
+    throw new Error(`could not fetch ${named}: ${e instanceof Error ? e.message : String(e)}`);
+  }
   if (!response.ok) throw new Error(`could not fetch ${named}: ${response.status} ${response.statusText}`.trim());
   const name = decodeURIComponent(url.pathname.split("/").pop() ?? "") || named;
   return { bytes: new Uint8Array(await response.arrayBuffer()), name };

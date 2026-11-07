@@ -1,7 +1,7 @@
 /**
  * Where the viewer is, kept in the page's address after `#`, so the browser's back button,
  * links and bookmarks work without a server: `#q=<query>&node=<id>`, both optional. A link to
- * a node keeps the search beside it.
+ * a node keeps the search beside it. An empty `node` is no node.
  */
 
 export interface Route {
@@ -14,7 +14,8 @@ export interface Route {
 /** The route a location hash names; anything it does not name is empty. */
 export function parseRoute(hash: string): Route {
   const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
-  return { query: params.get("q") ?? "", node: params.get("node") };
+  const node = params.get("node");
+  return { query: params.get("q") ?? "", node: node === null || node === "" ? null : node };
 }
 
 /** The location hash of `route`, as {@link parseRoute} reads it. */
