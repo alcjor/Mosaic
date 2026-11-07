@@ -265,14 +265,14 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 
 **Viewer: chains and cards, not yet in a milestone.** A person browsing a mosaic often asks a question that is a fixed walk across the links: from a thing, along one kind of link, then another. The path between two things (UC-03) answers "how are these connected"; a chain answers "show me everything connected this way, and what matters about each thing on the way" (UC-16). These needs say what the viewer must let a person do; how is for the builders to decide. The mock-ups in `design/reference/viewer/` show one way to meet them and are not requirements.
 
-*Boundary.* These are needs of the reference viewer and its view file only. They change nothing in the file format, the pattern, the mosaic builder or the kit, and they must be met with what the kit already exposes. If a need cannot be met that way, that is a separate decision about the core, not something these needs imply.
+*Boundary.* These are needs of the reference viewer and its view file only. They change nothing in the file format, the pattern, the mosaic builder or the kit, and they must be met with what the kit already exposes. The one exception is V-4, which waits for the kit's `path` (planned for M7) and is not built before it. If any other need cannot be met with the kit as it is, that is a separate decision about the core, not something these needs imply.
 
 *Define a chain.*
 
 - **V-1.** The viewer lets a person define a chain as a start and an ordered list of steps, where each step follows one kind of link in one direction to the next thing.
 - **V-2.** The viewer lets any step be pinned to one particular thing, or left open to any thing of that type.
 - **V-3.** The viewer only offers steps the mosaic's types and links allow, so a chain that cannot be followed cannot be built.
-- **V-4.** The viewer can turn a path found between two things into a chain, so that "how these two connect" becomes "everything connected this way".
+- **V-4.** Once the kit has `path` (M7), the viewer can turn a path found between two things into a chain, so that "how these two connect" becomes "everything connected this way". Until then, chains are built only from steps the person picks (V-1).
 - **V-5.** The viewer lets a person extend, shorten or change a chain and see the effect without starting over.
 
 *Choose what each card shows.*
