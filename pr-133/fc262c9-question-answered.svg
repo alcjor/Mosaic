@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 1200 880" width="1200" height="880">
+<style>
+:root{--bg:#FBFAF7;--fg:#1B2A3D;--muted:#5B6878;--card:#FFFFFF;--line:#C9D1DB;--rec:#55701F;--recbg:#F1F5E6;--warn:#B5452F;--node:#EAF2FB;--nodeline:#2F6DB5;--code:#F2F0EA}
+@media (prefers-color-scheme: dark){:root{--bg:#141B24;--fg:#E8EDF3;--muted:#9AA7B6;--card:#1C2531;--line:#3A4A5E;--rec:#A9C46A;--recbg:#1F2B17;--warn:#EE8E77;--node:#1E3350;--nodeline:#6FA3E0;--code:#232D3A}}
+text{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--fg);font-size:13px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre}
+.bg{fill:var(--bg)} .card{fill:var(--card);stroke:var(--line);stroke-width:1}
+.rec{fill:var(--recbg);stroke:var(--rec);stroke-width:2} .code{fill:var(--code);stroke:var(--line)}
+.node{fill:var(--node);stroke:var(--nodeline);stroke-width:1.5} .ln{stroke:var(--line);stroke-width:1}
+.arrow{stroke:var(--fg);stroke-width:1.5;fill:none} .head{fill:var(--fg)}
+.muted{fill:var(--muted)} .h{font-size:16px;font-weight:650} .title{font-size:22px;font-weight:700}
+.sub{font-size:13.5px;fill:var(--muted)} .tag{fill:var(--rec);font-weight:700;font-size:12px;letter-spacing:.06em}
+.warn{fill:var(--warn)} .b{font-weight:650} .ok{fill:var(--rec);font-weight:650}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="bg" width="1200" height="880"/>
+<text x="24" y="42" class="title">M3.4 · Which parts of a tool answer must equal the expected answer?</text>
+<text x="24" y="66" class="sub">PR #133 · §8.1, §8.2, §11 (“a kit's answers match and are valid against answers.schema.json”) · the expected answers are this kit's own answers</text>
+
+<!-- example -->
+<rect class="card" x="24" y="86" width="1152" height="196" rx="10"/>
+<text x="44" y="112" class="h">The case: two kits, both following the spec, answer the same calls</text>
+<text x="44" y="136" class="mono muted">get {"id": "Artist:Queen"}   ·   neighbors of Employee:2</text>
+<rect class="code" x="44" y="148" width="552" height="120" rx="6"/>
+<text x="58" y="170" class="b">This kit (recorded in expected-answers.json)</text>
+<text x="58" y="192" class="mono">code        unknown_id</text>
+<text x="58" y="210" class="mono">message     get: no node has the id "Artist:Queen"; see …</text>
+<text x="58" y="228" class="mono">suggestions Artist:51, Track:1157, Track:2256, Track:2390, Album:331</text>
+<text x="58" y="246" class="mono">neighbors   the out edge, then the in edges</text>
+<rect class="code" x="612" y="148" width="544" height="120" rx="6"/>
+<text x="626" y="170" class="b">Another kit</text>
+<text x="626" y="192" class="mono">code        unknown_id                  <tspan class="ok">same</tspan></text>
+<text x="626" y="210" class="mono">message     unknown id Artist:Queen     <tspan class="warn">differs</tspan></text>
+<text x="626" y="228" class="mono">suggestions Artist:51                   <tspan class="warn">differs</tspan></text>
+<text x="626" y="246" class="mono">neighbors   the in edges, then the out  <tspan class="warn">differs</tspan></text>
+
+<!-- matrix -->
+<rect class="card" x="24" y="302" width="1152" height="424" rx="10"/>
+<rect class="rec" x="942" y="310" width="226" height="408" rx="8"/>
+<text x="44" y="336" class="muted b">Part of the answer</text>
+<text x="590" y="336" class="b" text-anchor="middle">1 · The whole answer</text>
+<text x="820" y="336" class="b" text-anchor="middle">2 · All but the message</text>
+<text x="1055" y="336" class="b" text-anchor="middle">3 · Only what the spec fixes</text>
+<text x="1055" y="354" class="tag" text-anchor="middle">CHOSEN: READING 3</text>
+<line class="ln" x1="44" y1="364" x2="1156" y2="364"/>
+
+<text x="44" y="388" class="b">Fixed by the spec</text>
+<text x="44" y="406" class="muted">data values, total, named error codes,</text>
+<text x="44" y="424" class="muted">tier and table order, cite rows' order</text>
+<text x="590" y="406" text-anchor="middle">exact</text>
+<text x="820" y="406" text-anchor="middle">exact</text>
+<text x="1055" y="406" text-anchor="middle">exact</text>
+<line class="ln" x1="44" y1="438" x2="1156" y2="438"/>
+
+<text x="44" y="462" class="b">error.message wording</text>
+<text x="44" y="480" class="muted">schema: a string, at most 400 characters</text>
+<text x="590" y="471" text-anchor="middle">exact</text>
+<text x="820" y="471" class="muted" text-anchor="middle">not compared</text>
+<text x="1055" y="471" class="muted" text-anchor="middle">not compared</text>
+<line class="ln" x1="44" y1="494" x2="1156" y2="494"/>
+
+<text x="44" y="518" class="b">Suggestions for an unknown id</text>
+<text x="44" y="536" class="muted">§8.1: “the closest matches from find”</text>
+<text x="590" y="527" text-anchor="middle">exact list</text>
+<text x="820" y="527" text-anchor="middle">exact list</text>
+<text x="1055" y="518" text-anchor="middle">node ids, at most 5,</text>
+<text x="1055" y="536" text-anchor="middle">including Artist:51, the best match</text>
+<line class="ln" x1="44" y1="550" x2="1156" y2="550"/>
+
+<text x="44" y="574" class="b">Order the spec doesn't fix</text>
+<text x="44" y="592" class="muted">neighbors edges; get links, aliases, ext. refs</text>
+<text x="590" y="583" text-anchor="middle">exact order</text>
+<text x="820" y="583" text-anchor="middle">exact order</text>
+<text x="1055" y="583" text-anchor="middle">compared as sets</text>
+<line class="ln" x1="44" y1="606" x2="1156" y2="606"/>
+
+<text x="44" y="630" class="b">A code the spec names none for</text>
+<text x="44" y="648" class="muted">cite of an edge that doesn't exist: unknown_edge</text>
+<text x="590" y="639" text-anchor="middle">exact</text>
+<text x="820" y="639" text-anchor="middle">exact</text>
+<text x="1055" y="630" text-anchor="middle">any code in the</text>
+<text x="1055" y="648" text-anchor="middle">schema's list</text>
+<line class="ln" x1="44" y1="662" x2="1156" y2="662"/>
+
+<text x="44" y="694" class="b">The other kit above</text>
+<text x="590" y="686" class="warn b" text-anchor="middle">FAILS</text>
+<text x="590" y="704" class="warn" text-anchor="middle">message, suggestions, order</text>
+<text x="820" y="686" class="warn b" text-anchor="middle">FAILS</text>
+<text x="820" y="704" class="warn" text-anchor="middle">suggestions, order</text>
+<text x="1055" y="694" class="ok" text-anchor="middle">PASSES</text>
+
+<!-- footer -->
+<rect class="card" x="24" y="746" width="1152" height="112" rx="10"/>
+<text x="44" y="772"><tspan class="b">Why the agent expects 3:</tspan> §11's cases test conformance to the spec, so a kit that follows the spec should pass them.</text>
+<text x="44" y="792">The file would still keep this kit's full answers, as examples.</text>
+<text x="44" y="820"><tspan class="b">What happens next:</tspan> under 1 the slice is ready as it is. Under 2 or 3 the comparison in tests/fixtures/tool_cases.py changes,</text>
+<text x="44" y="840">the tests follow, and a verifier and reviewer round runs. Either way the merge waits for you (expected-answers.json is protected).</text>
+<text x="1156" y="772" class="b" text-anchor="end">Answer on #133: 1, 2 or 3</text>
+</svg>
