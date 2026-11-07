@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 1200 640" width="1200" height="640">
+<style>
+:root{--bg:#FBFAF7;--fg:#1B2A3D;--muted:#5B6878;--card:#FFFFFF;--line:#C9D1DB;--rec:#55701F;--recbg:#F1F5E6;--warn:#B5452F;--node:#EAF2FB;--nodeline:#2F6DB5;--code:#F2F0EA}
+@media (prefers-color-scheme: dark){:root{--bg:#141B24;--fg:#E8EDF3;--muted:#9AA7B6;--card:#1C2531;--line:#3A4A5E;--rec:#A9C46A;--recbg:#1F2B17;--warn:#EE8E77;--node:#1E3350;--nodeline:#6FA3E0;--code:#232D3A}}
+text{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--fg);font-size:13px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre}
+.bg{fill:var(--bg)} .card{fill:var(--card);stroke:var(--line);stroke-width:1}
+.rec{fill:var(--recbg);stroke:var(--rec);stroke-width:2} .code{fill:var(--code);stroke:var(--line)}
+.node{fill:var(--node);stroke:var(--nodeline);stroke-width:1.5} .ln{stroke:var(--line);stroke-width:1}
+.arrow{stroke:var(--fg);stroke-width:1.5;fill:none} .head{fill:var(--fg)}
+.muted{fill:var(--muted)} .h{font-size:16px;font-weight:650} .title{font-size:22px;font-weight:700}
+.sub{font-size:13.5px;fill:var(--muted)} .tag{fill:var(--rec);font-weight:700;font-size:12px;letter-spacing:.06em}
+.warn{fill:var(--warn)} .b{font-weight:650} .ok{fill:var(--rec);font-weight:650}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="bg" width="1200" height="640"/>
+<text x="24" y="42" class="title">M3.10 · Question 2: what if export.types names a type the mosaic lacks?</text>
+<text x="24" y="66" class="sub">PR #140 · design.md View file · §5.6 (a target naming an undeclared type) · M3.5 (a wrong view file is an error naming file, line, setting)</text>
+
+<!-- setup -->
+<rect class="card" x="24" y="86" width="1152" height="104" rx="10"/>
+<text x="44" y="112" class="h">The case: two view files for the Netflix mosaic (types Title, Person, Country, Genre, Year)</text>
+<rect class="code" x="44" y="126" width="300" height="48" rx="6"/>
+<text x="58" y="148" class="mono">export:</text>
+<text x="58" y="166" class="mono">  types: [Title, Nope]</text>
+<text x="362" y="156" class="muted">or</text>
+<rect class="code" x="392" y="126" width="300" height="48" rx="6"/>
+<text x="406" y="148" class="mono">export:</text>
+<text x="406" y="166" class="mono">  types: []</text>
+<text x="714" y="148">Nope is not a node type of the mosaic;</text>
+<text x="714" y="166">[] names no type at all.</text>
+
+<!-- A -->
+<rect class="rec" x="24" y="210" width="566" height="300" rx="10"/>
+<text x="44" y="238" class="h">A · An error</text>
+<text x="570" y="238" class="tag" text-anchor="end">CHOSEN: A</text>
+<rect class="code" x="44" y="254" width="526" height="84" rx="6"/>
+<text x="58" y="278" class="mono">$ mosaic export netflix.mosaic --view v.yaml …</text>
+<text x="58" y="298" class="mono warn">mosaic export: v.yaml:3: view file: export.types:</text>
+<text x="58" y="316" class="mono warn">the mosaic has no node type Nope            (exit 1)</text>
+<text x="44" y="364">• For [], the same with “export.types is empty”.</text>
+<text x="44" y="388">• Nothing is written.</text>
+<text x="44" y="412">• Like building a target that names an undeclared type (§5.6).</text>
+<text x="44" y="452" class="ok">Why expected: a cut that names what isn't there is a</text>
+<text x="44" y="470" class="ok">wrong view file, and M3.5 makes a wrong view file an error.</text>
+
+<!-- B -->
+<rect class="card" x="610" y="210" width="566" height="300" rx="10"/>
+<text x="630" y="238" class="h">B · Carried, with a notice</text>
+<rect class="code" x="630" y="254" width="526" height="84" rx="6"/>
+<text x="644" y="278" class="mono">$ mosaic export netflix.mosaic --view v.yaml …</text>
+<text x="644" y="298" class="mono">netflix.mosaic: exported to export.html     (exit 0)</text>
+<text x="644" y="316" class="mono muted">carries Title only</text>
+<text x="630" y="364">• The page shows M3.6's notice: “export.types: the</text>
+<text x="642" y="382">mosaic has no node type Nope”.</text>
+<text x="630" y="406">• [] carries an empty mosaic.</text>
+<text x="630" y="452" class="warn">A typo in a type name ships an export missing that</text>
+<text x="630" y="470" class="warn">type; only someone opening the page sees the notice.</text>
+
+<!-- footer -->
+<rect class="card" x="24" y="530" width="1152" height="88" rx="10"/>
+<text x="44" y="556"><tspan class="b">Not asked, for context:</tspan> without export.types the export carries the mosaic as it is. The page's own types: list (what it shows)</text>
+<text x="44" y="576">is separate from export.types (what the file carries). A listed type that the cut lacks gets M3.6's notice (assumption 2 on the PR).</text>
+<text x="1156" y="604" class="b" text-anchor="end">Answer on #140: Q2 A or B</text>
+</svg>

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 1200 880" width="1200" height="880">
+<style>
+:root{--bg:#FBFAF7;--fg:#1B2A3D;--muted:#5B6878;--card:#FFFFFF;--line:#C9D1DB;--rec:#55701F;--recbg:#F1F5E6;--warn:#B5452F;--node:#EAF2FB;--nodeline:#2F6DB5;--code:#F2F0EA}
+@media (prefers-color-scheme: dark){:root{--bg:#141B24;--fg:#E8EDF3;--muted:#9AA7B6;--card:#1C2531;--line:#3A4A5E;--rec:#A9C46A;--recbg:#1F2B17;--warn:#EE8E77;--node:#1E3350;--nodeline:#6FA3E0;--code:#232D3A}}
+text{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--fg);font-size:13px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre}
+.bg{fill:var(--bg)} .card{fill:var(--card);stroke:var(--line);stroke-width:1}
+.rec{fill:var(--recbg);stroke:var(--rec);stroke-width:2} .code{fill:var(--code);stroke:var(--line)}
+.node{fill:var(--node);stroke:var(--nodeline);stroke-width:1.5} .ln{stroke:var(--line);stroke-width:1}
+.arrow{stroke:var(--fg);stroke-width:1.5;fill:none} .head{fill:var(--fg)}
+.muted{fill:var(--muted)} .h{font-size:16px;font-weight:650} .title{font-size:22px;font-weight:700}
+.sub{font-size:13.5px;fill:var(--muted)} .tag{fill:var(--rec);font-weight:700;font-size:12px;letter-spacing:.06em}
+.warn{fill:var(--warn)} .b{font-weight:650} .ok{fill:var(--rec);font-weight:650}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="bg" width="1200" height="880"/>
+<text x="24" y="42" class="title">M3.10 · Question 1: what does a cut export say about where it came from?</text>
+<text x="24" y="66" class="sub">PR #140 · design.md View file (“which types an export carries”) · §3.2 sources, §3.3 header, §3.5 via, §3.8 rule 3, §5.4 target types</text>
+
+<!-- setup -->
+<rect class="card" x="24" y="86" width="1152" height="150" rx="10"/>
+<text x="44" y="112" class="h">The case: the Netflix mosaic exported with only some types</text>
+<rect class="node" x="44" y="128" width="250" height="62" rx="8"/>
+<text x="58" y="152" class="mono b">netflix.mosaic</text>
+<text x="58" y="172" class="mono">knowledge 1a2b3c…</text>
+<path class="arrow" d="M294,159 L404,159" marker-end="url(#a)"/>
+<text x="349" y="150" class="mono muted" text-anchor="middle">mosaic export</text>
+<rect class="code" x="408" y="128" width="250" height="62" rx="8"/>
+<text x="422" y="152" class="mono">export:</text>
+<text x="422" y="172" class="mono">  types: [Title, Genre]</text>
+<path class="arrow" d="M658,159 L768,159" marker-end="url(#a)"/>
+<rect class="node" x="772" y="128" width="384" height="62" rx="8"/>
+<text x="786" y="152" class="mono b">export.html holds a cut mosaic</text>
+<text x="786" y="172" class="mono">Title, Genre only · knowledge 9f8e7d…</text>
+<text x="44" y="216"><tspan class="b">Same in every reading:</tspan> the cut holds only Title and Genre nodes and the edges between them, with its own hashes,</text>
+<text x="44" y="232">checked on open (§3.8), and the page shows the checked hash 9f8e7d…. The question is whether anything names 1a2b3c….</text>
+
+<!-- A -->
+<rect class="card" x="24" y="256" width="370" height="456" rx="10"/>
+<text x="44" y="284" class="h">A · A filter, no source recorded</text>
+<text x="44" y="314" class="muted b">Inside the cut file</text>
+<text x="44" y="336">• header pattern_hash, target, settings:</text>
+<text x="56" y="354">netflix.mosaic's, copied</text>
+<text x="44" y="378">• source rows: netflix.mosaic's, as they are</text>
+<text x="44" y="402">• evidence of a title: sid = the row for</text>
+<text x="56" y="420" class="mono">netflix_titles.csv</text><text x="190" y="420">, via = NULL</text>
+<text x="44" y="456" class="muted b">The page shows</text>
+<rect class="code" x="44" y="466" width="330" height="40" rx="6"/>
+<text x="58" y="491" class="mono">netflix.mosaic · 9f8e7d…</text>
+<text x="44" y="540" class="warn b">Nothing names 1a2b3c….</text>
+<text x="44" y="560" class="warn">The file never records that it is a cut,</text>
+<text x="44" y="578" class="warn">or of which mosaic.</text>
+
+<!-- B -->
+<rect class="rec" x="415" y="256" width="370" height="456" rx="10"/>
+<text x="435" y="284" class="h">B · A build, the source as its piece</text>
+<text x="435" y="302" class="tag">CHOSEN: B</text>
+<text x="435" y="314" class="muted b"></text>
+<text x="435" y="330" class="muted b">Inside the cut file</text>
+<text x="435" y="352">• built as a target with types [Title, Genre]</text>
+<text x="447" y="370">from netflix.mosaic, pinned by 1a2b3c…</text>
+<text x="435" y="394">• source gains</text><text x="533" y="394" class="mono">netflix  kind=mosaic  1a2b3c…</text>
+<text x="435" y="418">• evidence: sid = the copied netflix/… row,</text>
+<text x="447" y="436">via ends in 1a2b3c… (§3.5)</text>
+<text x="435" y="460">• header.pattern_hash: the export's pattern</text>
+<text x="435" y="494" class="muted b">The page shows</text>
+<rect class="code" x="435" y="504" width="330" height="58" rx="6"/>
+<text x="449" y="528" class="mono">netflix.mosaic · 9f8e7d…</text>
+<text x="449" y="548" class="mono ok">from netflix.mosaic 1a2b3c…</text>
+<text x="435" y="590">The caption is read from the file, so it is</text>
+<text x="435" y="608">checked with it.</text>
+<text x="435" y="646" class="ok">Why expected: pins and via already carry</text>
+<text x="435" y="664" class="ok">provenance (§3.2, §3.5, §3.9), and the same</text>
+<text x="435" y="682" class="ok">mosaic and types give the same cut (P5).</text>
+
+<!-- C -->
+<rect class="card" x="806" y="256" width="370" height="456" rx="10"/>
+<text x="826" y="284" class="h">C · The source noted beside the file</text>
+<text x="826" y="314" class="muted b">Inside the cut file</text>
+<text x="826" y="336">• as in A: no source row for the cut</text>
+<text x="826" y="360">• the HTML page around it records</text>
+<text x="838" y="378">1a2b3c…</text>
+<text x="826" y="456" class="muted b">The page shows</text>
+<rect class="code" x="826" y="466" width="330" height="58" rx="6"/>
+<text x="840" y="490" class="mono">netflix.mosaic · 9f8e7d…</text>
+<text x="840" y="510" class="mono">from netflix.mosaic 1a2b3c…</text>
+<text x="826" y="560" class="warn b">The mosaic itself doesn't say it.</text>
+<text x="826" y="580" class="warn">The caption is outside the hashed file, so</text>
+<text x="826" y="598" class="warn">nothing checks it, and a copy of the mosaic</text>
+<text x="826" y="616" class="warn">taken out of the page loses it.</text>
+
+<!-- footer -->
+<rect class="card" x="24" y="732" width="1152" height="126" rx="10"/>
+<text x="44" y="758" class="b">What a reader of the cut file can observe</text>
+<text x="44" y="784">A: header and sources identical to netflix.mosaic's, but fewer rows: the file never says it was cut.</text>
+<text x="44" y="806">B: one more source row (kind=mosaic, 1a2b3c…), via on every evidence row, and its own pattern_hash in the header.</text>
+<text x="44" y="828">C: the same file as A. Only the HTML page knows 1a2b3c….</text>
+<text x="1156" y="758" class="b" text-anchor="end">Answer on #140: Q1 A, B or C</text>
+</svg>
