@@ -6,9 +6,10 @@ its settings: ``type``, ``label``, ``summary``, ``props``, ``convert`` and ``for
 optional with :class:`Table`'s default (``type`` is the table's name; no label, summary, props,
 conversions or foreign keys). ``convert`` maps a prop column to a conversion written as its
 ``as_json`` form, as in a CSV tessera's settings file (``mosaic_build.tessera.settings``);
-``foreign_keys`` maps a foreign key's column to the name of its edge type. The tables keep the
-file's order. So the ``header.settings`` of a tessera, as a file, rebuilds that tessera from the
-same database.
+``foreign_keys`` maps a foreign key's column to the name of its edge type. A table whose primary
+key is two foreign keys takes ``edge`` alone, the name of the edge type each of its rows gives
+(plan M3.13). The tables keep the file's order. So the ``header.settings`` of a tessera, as a
+file, rebuilds that tessera from the same database.
 
 The file is read as YAML 1.2 core schema, which holds JSON, with duplicate keys refused. A key
 the settings do not have, a value of the wrong kind and settings the builder refuses, alone or
@@ -32,7 +33,7 @@ __all__ = ["SettingsFile", "from_json", "load_file", "read", "read_database"]
 
 _SETTINGS = ("tables",)
 """The settings' keys."""
-_TABLE = ("type", "label", "summary", "props", "convert", "foreign_keys")
+_TABLE = ("type", "label", "summary", "props", "convert", "foreign_keys", "edge")
 """A table's settings."""
 
 
@@ -80,6 +81,7 @@ def _table(value: object, where: _Where) -> Table:
         props=_texts(given.get("props", []), (*where, "props")),
         convert={c: conversion(v, (*where, "convert", c)) for c, v in convert.items()},
         foreign_keys={c: str(_text(e, (*where, "foreign_keys", c))) for c, e in fks.items()},
+        edge=None if "edge" not in given else _text(given["edge"], (*where, "edge")),
     )
 
 
