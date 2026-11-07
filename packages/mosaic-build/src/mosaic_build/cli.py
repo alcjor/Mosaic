@@ -43,12 +43,13 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   checked by their pinned hashes first, and the page searches by vectors as well; without it,
   by names and full text only.
 
-- ``mosaic export <file> [--view FILE] [-o OUT.html]`` writes the viewer page with a tessera or
-  mosaic inside as one new HTML file that opens offline (:mod:`mosaic_build.export`); without
-  ``-o``, the file's name with ``.html`` for its suffix, in the current directory (answer on
-  #131). It applies
-  the reading rules first; a refused file, a wrong view file, a view file whose ``search`` is
-  ``semantic`` (plan M3.9) or an existing ``OUT.html`` is an error naming it, and nothing is
+- ``mosaic export <file> [--view FILE] [-o OUT.html] [--model DIR]`` writes the viewer page
+  with a tessera or mosaic inside as one new HTML file that opens offline
+  (:mod:`mosaic_build.export`); without ``-o``, the file's name with ``.html`` for its suffix, in
+  the current directory (answer on #131). With ``search: semantic`` (the default) it carries the
+  embedding model from ``--model DIR``, checked by its pinned hashes, and the page searches by
+  vectors too. It applies the reading rules first; a refused file, a wrong view file, a missing
+  or wrong model file or an existing ``OUT.html`` is an error naming it, and nothing is
   written. The built viewer is needed (``bun run build``).
 
 Exit status: 0 when the command did what was asked (for ``view``, when it is stopped), 1 when a
@@ -227,13 +228,15 @@ def make_parser() -> argparse.ArgumentParser:
             "both hashes), then write the built viewer page with FILE inside as one new HTML file "
             "that opens offline with a double-click: the kit in the page checks both hashes when "
             "it opens and answers every search; nothing is fetched. With --view FILE the page is "
-            "shaped by that view file; its search setting must be text (search: semantic, which "
-            "carries the embedding model, comes later). A missing or refused file, a wrong view "
-            "file or an existing output file is an error naming it (exit status 1), and nothing "
-            "is written. Without -o, the output is FILE's name with .html for its suffix, in the "
-            "current directory. FILE and the view file are only read; the output is never "
-            "overwritten. "
-            "The viewer must be built first: bun run build."
+            "shaped by that view file. With its search setting semantic (the default), the export "
+            "carries the embedding model, from --model DIR, each file checked by its pinned "
+            "SHA-256 (section 6), and the page also searches by vectors; with search: text it "
+            "carries no model, and --model is not read. A missing or refused file, a wrong view "
+            "file, a missing or wrong model file or an existing output file is an error naming "
+            "it (exit status 1), and nothing is written. Without -o, the output is FILE's name "
+            "with .html for its suffix, in the current directory. FILE, the view file and the "
+            "model are only read; the output is never overwritten. The viewer must be built "
+            "first: bun run build."
         ),
     )
     export_cmd.add_argument("file", type=Path, help="the tessera or mosaic to export (only read)")
@@ -246,6 +249,12 @@ def make_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="FILE",
         help="the new HTML file (default: FILE's name with .html, in the current directory)",
+    )
+    export_cmd.add_argument(
+        "--model",
+        type=Path,
+        metavar="DIR",
+        help="directory of the embedding model files (section 6), for search: semantic",
     )
 
     for name, milestone in PLANNED.items():
@@ -431,7 +440,7 @@ def _view(args: argparse.Namespace) -> int:
 def _export(args: argparse.Namespace) -> int:
     try:
         output: Path = args.output or exporter.default_output(args.file)
-        size = exporter.export(args.file, output, args.view)
+        size = exporter.export(args.file, output, args.view, model=args.model)
     except exporter.ExportError as e:
         _error("export", e)
         return 1

@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 from mosaic_build import export, view, view_file
 from mosaic_build.cli import main
+from mosaic_build.mosaic import vectors
 
 from tests.conftest import REPO
 
@@ -160,7 +161,7 @@ def test_a_wrong_view_file_exits_1_with_its_error_and_writes_nothing(
 
 
 @pytest.mark.parametrize("text", [None, "search: semantic\n", "theme: dark\n"])
-def test_search_semantic_is_not_built_yet_and_writes_nothing(
+def test_search_semantic_without_the_model_exits_1_asking_for_it_and_writes_nothing(
     text: str | None, tmp_path: Path, dist: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     out = tmp_path / "export.html"
@@ -169,8 +170,111 @@ def test_search_semantic_is_not_built_yet_and_writes_nothing(
         args += ["--view", str(view_yaml(tmp_path, text))]
     assert main(args) == 1
     err = capsys.readouterr().err
-    assert "search is semantic" in err and "M3.9" in err
+    assert "search is semantic" in err and "--model DIR" in err
     assert not out.exists()
+
+
+MODEL_BYTES = b"onnx model bytes"
+TOKENIZER_BYTES = b'{"tokenizer": true}'
+
+
+@pytest.fixture
+def model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A stand-in for the model of section 6, pinned by its own hashes."""
+    directory = tmp_path / "model"
+    (directory / "onnx").mkdir(parents=True)
+    (directory / "onnx" / "model_quantized.onnx").write_bytes(MODEL_BYTES)
+    (directory / "tokenizer.json").write_bytes(TOKENIZER_BYTES)
+    pinned = vectors.Model(
+        name=vectors.MODEL.name,
+        repository=vectors.MODEL.repository,
+        revision=vectors.MODEL.revision,
+        licence=vectors.MODEL.licence,
+        files=(
+            vectors.PinnedFile(
+                "onnx/model_quantized.onnx", hashlib.sha256(MODEL_BYTES).hexdigest()
+            ),
+            vectors.PinnedFile("tokenizer.json", hashlib.sha256(TOKENIZER_BYTES).hexdigest()),
+        ),
+    )
+    monkeypatch.setattr(view, "MODEL", pinned)
+    monkeypatch.setattr(export, "MODEL", pinned)
+    return directory
+
+
+SEMANTIC = "search: semantic\ntypes:\n  Item: {}\n"
+
+
+def test_search_semantic_carries_the_model_and_onnx_runtime(
+    tmp_path: Path, dist: Path, model: Path
+) -> None:
+    out = tmp_path / "export.html"
+    settings = view_yaml(tmp_path, SEMANTIC)
+    args = ["export", str(source(tmp_path)), "--view", str(settings), "-o", str(out)]
+    assert main([*args, "--model", str(model)]) == 0
+    data = data_of(out.read_text(encoding="utf-8"))
+    assert sorted(data) == ["model", "mosaic", "name", "ort", "sqlite", "view"]
+    files, ort = data["model"], data["ort"]
+    assert isinstance(files, dict) and isinstance(ort, dict)
+    assert unpacked(files["model"]) == MODEL_BYTES
+    assert unpacked(files["tokenizer"]) == TOKENIZER_BYTES
+    assert unpacked(ort["module"]) == (dist / "assets" / "ort.wasm.bundle.min-C3.js").read_bytes()
+    assert unpacked(ort["wasm"]) == ONNX
+    assert data["view"] == view_file.read(settings).as_json()
+
+
+@pytest.mark.parametrize("broken", ["missing", "changed"])
+def test_a_missing_or_wrong_model_file_exits_1_naming_it_and_writes_nothing(
+    broken: str, tmp_path: Path, dist: Path, model: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    tokenizer = model / "tokenizer.json"
+    if broken == "missing":
+        tokenizer.unlink()
+    else:
+        tokenizer.write_bytes(b"another tokenizer")
+    out = tmp_path / "export.html"
+    settings = view_yaml(tmp_path, SEMANTIC)
+    args = ["export", str(source(tmp_path)), "--view", str(settings), "-o", str(out)]
+    assert main([*args, "--model", str(model)]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith(f"mosaic export: {tokenizer}: model file tokenizer.json")
+    if broken == "changed":
+        assert hashlib.sha256(b"another tokenizer").hexdigest() in err
+        assert hashlib.sha256(TOKENIZER_BYTES).hexdigest() in err
+    assert not out.exists()
+
+
+def test_a_model_directory_that_is_not_there_exits_1_naming_it(
+    tmp_path: Path, dist: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "export.html"
+    missing = tmp_path / "no-model"
+    settings = view_yaml(tmp_path, SEMANTIC)
+    args = ["export", str(source(tmp_path)), "--view", str(settings), "-o", str(out)]
+    assert main([*args, "--model", str(missing)]) == 1
+    assert str(missing) in capsys.readouterr().err
+    assert not out.exists()
+
+
+def test_search_text_with_a_model_writes_the_text_export_without_it(
+    tmp_path: Path, dist: Path, model: Path
+) -> None:
+    # Answer B on #137: as `mosaic view --model` does, the model is not used with search: text.
+    out = tmp_path / "export.html"
+    args = ["export", str(source(tmp_path)), "--view", str(view_yaml(tmp_path)), "-o", str(out)]
+    assert main([*args, "--model", str(model)]) == 0
+    data = data_of(out.read_text(encoding="utf-8"))
+    assert sorted(data) == ["mosaic", "name", "sqlite", "view"]
+    plain = tmp_path / "plain.html"
+    assert main([*args[:-1], str(plain)]) == 0
+    assert out.read_bytes() == plain.read_bytes()
+
+
+def test_search_text_does_not_read_the_model_directory(tmp_path: Path, dist: Path) -> None:
+    out = tmp_path / "export.html"
+    args = ["export", str(source(tmp_path)), "--view", str(view_yaml(tmp_path)), "-o", str(out)]
+    assert main([*args, "--model", str(tmp_path / "no-model")]) == 0
+    assert "model" not in data_of(out.read_text(encoding="utf-8"))
 
 
 def test_an_existing_output_is_never_overwritten(

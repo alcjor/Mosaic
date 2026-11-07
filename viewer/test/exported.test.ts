@@ -21,7 +21,29 @@ describe("an export's data", () => {
     expect(found.view).toEqual({ ...DEFAULT_VIEW, search: "text" });
   });
 
+  it("an export with search: semantic also gives the model's files and ONNX Runtime", async () => {
+    const empty = b64(new Uint8Array());
+    const text = (t: string) => b64(new TextEncoder().encode(t));
+    const found = await parseExport(
+      JSON.stringify({
+        name: "m",
+        mosaic: empty,
+        sqlite: empty,
+        view: { search: "semantic" },
+        model: { model: text("onnx"), tokenizer: text("{}") },
+        ort: { module: text("export const env = {};"), wasm: b64(new Uint8Array([0, 97, 115, 109])) },
+      }),
+    );
+    expect(new TextDecoder().decode(found.model!.files.model)).toBe("onnx");
+    expect(new TextDecoder().decode(found.model!.files.tokenizer)).toBe("{}");
+    expect(new TextDecoder().decode(found.model!.ortModule)).toBe("export const env = {};");
+    expect(found.model!.ortWasm).toEqual(new Uint8Array([0, 97, 115, 109]));
+    const plain = await parseExport(JSON.stringify({ name: "m", mosaic: empty, sqlite: empty, view: {} }));
+    expect(plain.model).toBeNull();
+  });
+
   it.each([
+    [JSON.stringify({ name: "m", mosaic: b64(new Uint8Array()), sqlite: b64(new Uint8Array()), view: {}, model: 3 }), /model must be an object/],
     ["not json", /not JSON/],
     ["[]", /must be an object/],
     [JSON.stringify({ name: "", mosaic: "", sqlite: "", view: {} }), /name/],

@@ -21,6 +21,7 @@ import {
   type ModelFiles,
   type NeighborEdge,
   type QueryEmbedder,
+  type Runtime,
   type SealedFile,
 } from "@mosaic/kit";
 
@@ -108,9 +109,12 @@ export async function fetchNamedModel(search: string, base: string, fetcher: typ
   return { model: model!, tokenizer: tokenizer! };
 }
 
-/** The query embedder of section 6 from the model's files, which the kit checks by their hashes. */
-export function loadModel(files: ModelFiles): Promise<QueryEmbedder> {
-  return loadEmbedder(files);
+/**
+ * The query embedder of section 6 from the model's files, which the kit checks by their hashes;
+ * with `runtime`, ONNX Runtime as an export gives it.
+ */
+export function loadModel(files: ModelFiles, runtime?: Runtime): Promise<QueryEmbedder> {
+  return loadEmbedder(files, runtime);
 }
 
 /** The mosaic the page's address names with `?mosaic=<url>`, fetched as bytes, or null. */

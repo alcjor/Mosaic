@@ -9,7 +9,8 @@
  * Euclidean norm. The vector stays at full precision: scoring never turns it into bits.
  *
  * ONNX Runtime is loaded only by {@link loadEmbedder}, so the bare kit (no vector tier) does not
- * carry it.
+ * carry it. A page that cannot fetch files (a single-file export opened from `file://`) gives it
+ * the runtime instead: the module, and its WebAssembly as bytes ({@link Runtime}).
  */
 import { Sha256 } from "./sha256.js";
 import { WordPiece } from "./wordpiece.js";
@@ -72,6 +73,15 @@ export function pool(hidden: Float32Array, dimensions: number = DIMENSIONS): Flo
   return Float32Array.from(first, (x) => x / norm);
 }
 
+/** ONNX Runtime's WebAssembly-only build, as `import("onnxruntime-web/wasm")` gives it. */
+export type OrtModule = typeof import("onnxruntime-web/wasm");
+
+/** ONNX Runtime given to {@link loadEmbedder}: the module, and its WebAssembly's bytes. */
+export interface Runtime {
+  readonly module: OrtModule;
+  readonly wasm: Uint8Array;
+}
+
 export interface ModelFiles {
   /** The bytes of `onnx/model_quantized.onnx`. */
   readonly model: Uint8Array;
@@ -79,12 +89,17 @@ export interface ModelFiles {
   readonly tokenizer: Uint8Array;
 }
 
-/** The model of section 6 from its files, which must be the pinned ones. */
-export async function loadEmbedder(files: ModelFiles): Promise<QueryEmbedder> {
+/**
+ * The model of section 6 from its files, which must be the pinned ones. With `runtime`, ONNX
+ * Runtime is that module, loading its WebAssembly from the bytes given; without, it is imported
+ * and fetches its WebAssembly beside the kit's script.
+ */
+export async function loadEmbedder(files: ModelFiles, runtime?: Runtime): Promise<QueryEmbedder> {
   check(files.model, MODEL.modelFile);
   check(files.tokenizer, MODEL.tokenizer);
   const tokenizer = new WordPiece(new TextDecoder("utf-8", { fatal: true }).decode(files.tokenizer));
-  const ort = await import("onnxruntime-web/wasm");
+  const ort = runtime?.module ?? (await import("onnxruntime-web/wasm"));
+  if (runtime) ort.env.wasm.wasmBinary = runtime.wasm.slice().buffer;
   ort.env.wasm.numThreads = 1;
   ort.env.logLevel = "error";
   const session = await ort.InferenceSession.create(files.model.slice(), {
