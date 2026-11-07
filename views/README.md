@@ -7,6 +7,7 @@ columns, what a node page shows, labels, theme, which types an export carries, a
 - `view.schema.json`: its JSON Schema (not a normative file).
 - `example.yaml`: every setting, with its default in a comment.
 
-Every key is optional, so an empty view file, or none, gives M2's viewer. The reader
-is `mosaic_build.view_file`; each fixture's view file is
-`conformance/fixtures/<fixture>/view.yaml`.
+Every key is optional, so an empty view file, or none, gives M2's viewer. A key
+written with no value is an error, not its default: write a type with no settings
+as `Person: {}`, not `Person:`. The reader is `mosaic_build.view_file`; each
+fixture's view file is `conformance/fixtures/<fixture>/view.yaml`.
