@@ -671,6 +671,56 @@
         }
       }
     },
+    "get-long-name": {
+      "tool": "get",
+      "arguments": {
+        "id": "Track:1144"
+      },
+      "answer": {
+        "tool": "get",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Track:1144",
+          "type": "Track",
+          "label": "Homecoming / The Death Of St. Jimmy / East 12th St. / Nobody Likes You / Rock And Roll Girlfriend / We're Coming Home Ag…",
+          "summary": null,
+          "props": {
+            "bytes": 18139840,
+            "composer": "Mike Dirnt/Tré Cool",
+            "milliseconds": 558602,
+            "name": "Homecoming / The Death Of St. Jimmy / East 12th St. / Nobody Likes You / Rock And Roll Girlfriend / We're Coming Home Again",
+            "unit_price": 0.99
+          },
+          "aliases": [],
+          "aliases_total": 0,
+          "external_refs": [],
+          "external_refs_total": 0,
+          "links": [
+            {
+              "edge": "contains",
+              "direction": "in",
+              "count": 2
+            },
+            {
+              "edge": "encoded_as",
+              "direction": "out",
+              "count": 1
+            },
+            {
+              "edge": "in_genre",
+              "direction": "out",
+              "count": 1
+            },
+            {
+              "edge": "on_album",
+              "direction": "out",
+              "count": 1
+            }
+          ],
+          "links_total": 4
+        }
+      }
+    },
     "get-unknown": {
       "tool": "get",
       "arguments": {
@@ -823,6 +873,47 @@
         }
       }
     },
+    "neighbors-both": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Employee:2",
+        "direction": "both"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "id": "Employee:2",
+          "edges": [
+            {
+              "edge": "reports_to",
+              "direction": "out",
+              "id": "Employee:1",
+              "label": "Adams"
+            },
+            {
+              "edge": "reports_to",
+              "direction": "in",
+              "id": "Employee:3",
+              "label": "Peacock"
+            },
+            {
+              "edge": "reports_to",
+              "direction": "in",
+              "id": "Employee:4",
+              "label": "Park"
+            },
+            {
+              "edge": "reports_to",
+              "direction": "in",
+              "id": "Employee:5",
+              "label": "Johnson"
+            }
+          ],
+          "total": 4
+        }
+      }
+    },
     "neighbors-unknown-edge": {
       "tool": "neighbors",
       "arguments": {
@@ -852,6 +943,23 @@
           "code": "bad_argument",
           "message": "neighbors' direction must be out, in or both, not \"sideways\"",
           "suggestions": []
+        }
+      }
+    },
+    "neighbors-unknown-id": {
+      "tool": "neighbors",
+      "arguments": {
+        "id": "Playlist:Grunge"
+      },
+      "answer": {
+        "tool": "neighbors",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_id",
+          "message": "neighbors: no node has the id \"Playlist:Grunge\"; see the suggestions",
+          "suggestions": [
+            "Playlist:16"
+          ]
         }
       }
     },
@@ -1556,6 +1664,243 @@
         }
       }
     },
+    "table-where-list": {
+      "tool": "table",
+      "arguments": {
+        "type": "Customer",
+        "columns": [
+          "first_name",
+          "company",
+          "country"
+        ],
+        "where": [
+          {
+            "column": "country",
+            "op": "=",
+            "value": "USA"
+          },
+          {
+            "column": "company",
+            "op": "!=",
+            "value": "Google Inc."
+          }
+        ],
+        "order": "first_name"
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Customer",
+          "columns": [
+            "id",
+            "first_name",
+            "company",
+            "country"
+          ],
+          "rows": [
+            [
+              "Customer:20",
+              "Dan",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:24",
+              "Frank",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:22",
+              "Heather",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:17",
+              "Jack",
+              "Microsoft Corporation",
+              "USA"
+            ],
+            [
+              "Customer:23",
+              "John",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:28",
+              "Julia",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:21",
+              "Kathy",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:18",
+              "Michelle",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:27",
+              "Patrick",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:26",
+              "Richard",
+              null,
+              "USA"
+            ],
+            [
+              "Customer:19",
+              "Tim",
+              "Apple Inc.",
+              "USA"
+            ],
+            [
+              "Customer:25",
+              "Victor",
+              null,
+              "USA"
+            ]
+          ],
+          "page": 1,
+          "total": 12
+        }
+      }
+    },
+    "table-order-missing-last": {
+      "tool": "table",
+      "arguments": {
+        "type": "Track",
+        "columns": [
+          "name",
+          "composer",
+          "in_genre"
+        ],
+        "where": {
+          "column": "in_genre",
+          "op": "contains",
+          "value": "heavy metal"
+        },
+        "order": {
+          "column": "composer",
+          "direction": "desc"
+        },
+        "page": 2
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Track",
+          "columns": [
+            "id",
+            "name",
+            "composer",
+            "in_genre"
+          ],
+          "rows": [
+            [
+              "Track:1245",
+              "Wildest Dreams",
+              "Adrian Smith/Steve Harris",
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1252",
+              "Paschendale",
+              "Adrian Smith/Steve Harris",
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1253",
+              "Face In The Sand",
+              "Adrian Smith/Bruce Dickinson/Steve Harris",
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1303",
+              "Die With Your Boots On",
+              "Adrian Smith/Bruce Dickinson/Steve Harris",
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1251",
+              "New Frontier",
+              "Adrian Smith/Bruce Dickinson/Nicko McBrain",
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1287",
+              "Intro- Churchill S Speech",
+              null,
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1288",
+              "Aces High",
+              null,
+              [
+                "Heavy Metal"
+              ]
+            ],
+            [
+              "Track:1301",
+              "Acacia Avenue",
+              null,
+              [
+                "Heavy Metal"
+              ]
+            ]
+          ],
+          "page": 2,
+          "total": 28
+        }
+      }
+    },
+    "table-page-past-end": {
+      "tool": "table",
+      "arguments": {
+        "type": "Genre",
+        "page": 3
+      },
+      "answer": {
+        "tool": "table",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "data": {
+          "type": "Genre",
+          "columns": [
+            "id",
+            "label",
+            "name"
+          ],
+          "rows": [],
+          "page": 3,
+          "total": 25
+        }
+      }
+    },
     "table-unknown-column": {
       "tool": "table",
       "arguments": {
@@ -1662,6 +2007,23 @@
           "suggestions": [
             "Album:201"
           ]
+        }
+      }
+    },
+    "cite-edge-unknown": {
+      "tool": "cite",
+      "arguments": {
+        "from": "Playlist:18",
+        "type": "contains",
+        "to": "Track:1"
+      },
+      "answer": {
+        "tool": "cite",
+        "mosaic": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
+        "error": {
+          "code": "unknown_edge",
+          "message": "no \"contains\" edge goes from \"Playlist:18\" to \"Track:1\"",
+          "suggestions": []
         }
       }
     }
