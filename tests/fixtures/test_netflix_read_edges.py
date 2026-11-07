@@ -26,7 +26,7 @@ import pytest
 from mosaic_build.mosaic import vectors as v
 
 from tests.conftest import MODEL, REPO
-from tests.fixtures.test_netflix_read import QUERY, TITLE, Run, built  # noqa: F401
+from tests.fixtures.test_netflix_read import QUERY, TITLE, Run
 from tests.test_cli import entry_point
 
 pytestmark = pytest.mark.slow
@@ -40,7 +40,7 @@ AGREEMENT = 15
 
 @pytest.fixture(scope="module")
 def netflix(request: pytest.FixtureRequest) -> tuple[Path, Run]:
-    """The mosaic ``test_netflix_read.built`` builds, with vectors, in a new directory."""
+    """The Netflix mosaic built with vectors (``built`` in tests/fixtures/conftest.py)."""
     return request.getfixturevalue("built")  # type: ignore[no-any-return]
 
 
