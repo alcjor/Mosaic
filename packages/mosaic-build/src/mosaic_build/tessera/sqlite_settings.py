@@ -12,8 +12,8 @@ same database.
 
 The file is read as YAML 1.2 core schema, which holds JSON, with duplicate keys refused. A key
 the settings do not have, a value of the wrong kind and settings the builder refuses, alone or
-for the database (:func:`build`: a table or column it does not have, a foreign key it does not
-declare), are errors naming the file, the line and the setting. Nothing is guessed.
+for the database (:func:`read_database`: a table or column it does not have, a foreign key it
+does not declare), are errors naming the file, the line and the setting. Nothing is guessed.
 """
 
 import os
@@ -21,14 +21,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from mosaic_format.writer import Content, seal
+from mosaic_format.writer import Content
 from mosaic_format.yaml_core import Document, load
 
 from mosaic_build.tessera import sqlite
 from mosaic_build.tessera.settings import SettingsError, conversion
 from mosaic_build.tessera.sqlite import SettingError, Settings, Table, Where, check_settings
 
-__all__ = ["SettingsFile", "build", "from_json", "load_file", "read", "read_database"]
+__all__ = ["SettingsFile", "from_json", "load_file", "read", "read_database"]
 
 _SETTINGS = ("tables",)
 """The settings' keys."""
@@ -150,16 +150,3 @@ def read_database(
         return sqlite.read(source, settings.settings)
     except SettingError as e:
         raise ValueError(f"{settings.at(e.where)}: {e}") from None
-
-
-def build(
-    source: str | os.PathLike[str], out: str | os.PathLike[str], settings: SettingsFile
-) -> sqlite.Built:
-    """Write the tessera of the SQLite database ``source`` to ``out``, shaped by ``settings``.
-
-    The database is read in full first (:func:`read_database`), so nothing is written when it
-    or the settings are refused.
-    """
-    made, report = read_database(source, settings)
-    sealed = seal(out, made)
-    return sqlite.Built(sealed.path, sealed.knowledge_hash, sealed.vector_hash, report)
