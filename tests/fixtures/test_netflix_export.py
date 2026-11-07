@@ -17,7 +17,8 @@ import pytest
 from mosaic_build.cli import main
 
 from tests.conftest import REPO
-from tests.fixtures.test_netflix_read import TITLE, Run, built  # noqa: F401 (the module's fixture)
+from tests.fixtures.test_netflix import Run
+from tests.fixtures.test_netflix_read import TITLE
 
 pytestmark = pytest.mark.slow
 
@@ -25,7 +26,7 @@ VIEW = REPO / "conformance" / "fixtures" / "netflix" / "view.yaml"
 
 
 def test_the_netflix_export_opens_offline_and_finds_a_title(
-    built: tuple[Path, Run],  # noqa: F811
+    built: tuple[Path, Run],
     tmp_path: Path,
 ) -> None:
     bun = shutil.which("bun")
