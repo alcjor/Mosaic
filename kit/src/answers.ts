@@ -86,6 +86,31 @@ export interface CiteAnswer {
   };
 }
 
+/** One edge as `neighbors` gives it. */
+export interface NeighborEdge {
+  readonly edge: string;
+  /** `out` when the edge leaves the node asked about, `in` when it reaches it. */
+  readonly direction: "out" | "in";
+  /** The other node's id. */
+  readonly id: string;
+  /** The other node's label, cut at 120 characters with the marker; null when it has none. */
+  readonly label: string | null;
+  /** The edge's qualifier (section 3.4), present when it is not empty. */
+  readonly qualifier?: string;
+}
+
+export interface NeighborsAnswer {
+  readonly tool: "neighbors";
+  readonly mosaic: string;
+  readonly data: {
+    /** The id asked about. */
+    readonly id: string;
+    readonly edges: readonly NeighborEdge[];
+    /** How many edges `edge` and `direction` keep; the list holds at most 20. */
+    readonly total: number;
+  };
+}
+
 /** The error codes of `answers.schema.json`. */
 export type ErrorCode =
   | "unknown_id"
@@ -106,7 +131,7 @@ export interface ErrorAnswer {
   };
 }
 
-export type Answer = FindAnswer | GetAnswer | CiteAnswer | ErrorAnswer;
+export type Answer = FindAnswer | GetAnswer | NeighborsAnswer | CiteAnswer | ErrorAnswer;
 
 /** The longest error message `answers.schema.json` allows. */
 const MESSAGE_LIMIT = 400;

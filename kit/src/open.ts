@@ -26,7 +26,15 @@
  * grows with the file's size alone; the tools bound their own queries.
  */
 import sqlite3InitModule, { type Database, type Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import { type CiteAnswer, type ErrorAnswer, type FindAnswer, type GetAnswer, ToolError, errorAnswer } from "./answers.js";
+import {
+  type CiteAnswer,
+  type ErrorAnswer,
+  type FindAnswer,
+  type GetAnswer,
+  type NeighborsAnswer,
+  ToolError,
+  errorAnswer,
+} from "./answers.js";
 import { Deadline, TIME_LIMIT_MS } from "./bounds.js";
 import { APPLICATION_ID, FORMAT_VERSION, USER_VERSION, type ToolName } from "./constants.js";
 import { cite } from "./cite.js";
@@ -35,6 +43,7 @@ import { find, findArgs, hasWords } from "./find.js";
 import { FORMAT_SQL } from "./format-sql.js";
 import { get } from "./get.js";
 import { UnhashableError, knowledgeHash, vectorHash } from "./hashes.js";
+import { neighbors } from "./neighbors.js";
 
 /** Format versions this kit implements (section 9). */
 export const IMPLEMENTED_VERSIONS: readonly string[] = [FORMAT_VERSION];
@@ -128,6 +137,12 @@ export interface SealedFile {
    * external references and link counts, or an error answer naming the closest matches.
    */
   get(args: unknown): Promise<GetAnswer | ErrorAnswer>;
+  /**
+   * `neighbors` (section 8.1): the edges of the node `args.id`, optionally of one `args.edge`
+   * type and `args.direction`, each with the other node's id and label, and the total count, or
+   * an error answer.
+   */
+  neighbors(args: unknown): Promise<NeighborsAnswer | ErrorAnswer>;
   /**
    * `cite` (section 8.1): the evidence of the node `args.id`, or of the edge `args.from`,
    * `args.type`, `args.to`, or an error answer.
@@ -533,6 +548,7 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
       return answer("find", () => find(db, mosaic, args, vq), startedAt);
     },
     get: async (args) => answer("get", () => get(db, mosaic, args)),
+    neighbors: async (args) => answer("neighbors", () => neighbors(db, mosaic, args)),
     cite: async (args) => answer("cite", () => cite(db, mosaic, args)),
     close() {
       if (open) db.close();
