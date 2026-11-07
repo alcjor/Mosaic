@@ -17,8 +17,10 @@ conversions, and the foreign keys that become edges. They are recorded in ``head
   beyond +/-(2**53 - 1), section 3.1), a real a JSON number, text a string; NULL makes no prop.
   A column declares the kind its values have: ``integer``, ``number`` (integers and reals),
   ``text`` (also for a column with no values), or ``json`` when it holds text and numbers. A
-  blob, a real that is not finite and text holding U+0000 are refused, naming the row and the
-  column. Labels and summaries are the column's value as text, NULL none.
+  blob, a real that is not finite, text holding U+0000 and text that is not UTF-8 are refused,
+  naming the row and the column. A real that is an integer beyond +/-(2**53 - 1) is written as
+  an integer would be, so it is a string too. Labels and summaries are the column's value as
+  text, NULL none.
 - **Conversions** are the CSV builder's (``mosaic_build.tessera.convert``), declared per prop
   column. A conversion reads a value's text (as for keys); a value it cannot read keeps its kind
   and is listed in the :class:`Report` by ``<table>.<column>`` and the row's key.
@@ -33,7 +35,8 @@ conversions, and the foreign keys that become edges. They are recorded in ``head
 - **Reading.** The file is read once, as bytes; its hash and its content come from those bytes,
   which are opened in memory, read-only. The source file is never opened for writing and no
   file is made beside it (principle 8). A database with a ``-wal`` or ``-journal`` file beside
-  it is refused: its content is not the file's bytes alone.
+  it is refused: its content is not the file's bytes alone. So is a tessera or a mosaic (its
+  ``application_id``, section 3.1), which a tessera's source never is (section 4.1, ADR-003).
 - **JSON text** (``settings``, ``props``) is in the canonical form of RFC 8785 (section 3.1).
 
 Errors name the file, and the table, row and column or the setting at fault.
@@ -80,7 +83,22 @@ MAGIC = b"SQLite format 3\x00"
 LOGS = ("-wal", "-journal")
 """Files beside a database that hold content its own bytes do not."""
 
+FILE_ID = 0x4D4F5341
+"""``PRAGMA application_id`` of every tessera and mosaic (section 3.1)."""
+
+
+class _Undecodable(bytes):
+    """Text whose bytes are not UTF-8, kept so the row and column can be named."""
+
+
 type _Value = int | float | str | bytes | None
+
+
+def _text(raw: bytes) -> str | _Undecodable:
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return _Undecodable(raw)
 
 
 @dataclass(frozen=True)
@@ -272,7 +290,12 @@ def _open(name: str, data: bytes) -> sqlite3.Connection:
         # A database in write-ahead log mode with no log beside it: its pages are all in the
         # file. SQLite opens such an image in memory only in rollback mode.
         image[18] = image[19] = 1
+    if len(image) >= 72 and int.from_bytes(image[68:72], "big") == FILE_ID:
+        raise ValueError(
+            f"{name}: is a tessera or a mosaic, which a tessera's source never is (4.1, ADR-003)"
+        )
     con = sqlite3.connect(":memory:")
+    con.text_factory = _text
     try:
         con.deserialize(bytes(image))
         con.execute("PRAGMA query_only = ON")
@@ -368,6 +391,8 @@ def _text_of(value: _Value) -> str:
 
 def _check(at: str, column: str, value: _Value) -> None:
     """Refuse a value no file can hold."""
+    if isinstance(value, _Undecodable):
+        raise ValueError(f"{at}: {column!r} holds text that is not UTF-8 (3.1)")
     if isinstance(value, bytes):
         raise ValueError(f"{at}: {column!r} holds a blob, which a tessera cannot hold as a value")
     if isinstance(value, float) and not math.isfinite(value):
@@ -379,6 +404,8 @@ def _check(at: str, column: str, value: _Value) -> None:
 def _prop(value: int | float | str) -> object:
     if isinstance(value, int) and abs(value) > MAX_SAFE_INTEGER:
         return str(value)  # section 3.1
+    if isinstance(value, float) and value.is_integer() and MAX_SAFE_INTEGER < abs(value) < 1e21:
+        return _text_of(value)  # written as an integer, so stored as a string too (3.1)
     return value
 
 
@@ -469,7 +496,7 @@ def _read(
 def _key(name: str, table: str, column: str, value: _Value, seen: set[str]) -> str:
     """A row's key from its primary key value; refused when no node id can hold it."""
     at = f"{name}: table {table!r}"
-    if value is None or isinstance(value, bytes):
+    if value is None or (isinstance(value, bytes) and not isinstance(value, _Undecodable)):
         what = "NULL" if value is None else "a blob"
         raise ValueError(f"{at}: a row's key column {column!r} is {what}; a key is text")
     _check(at, column, value)
