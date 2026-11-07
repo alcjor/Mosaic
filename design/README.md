@@ -1,17 +1,19 @@
 # Design system
 
 Mosaic's visual identity and the viewer's app style. **The source of truth is the
-MOSAIC Design System artifact**; this folder is a copy of its text and tokens so
+MOSAIC Design System artifact**; this folder is a copy of its text, tokens and assets so
 code can use them and tests can enforce them.
 
 | File | What |
 | --- | --- |
+| `assets/` | Logos, state icons and imagery, as SVG and PNG files ready to use |
 | `tokens.json` | Colours (light "Paper" and dark "Navy ground" themes), type, spacing, radii |
 | `brand-book.md` | The brand book: naming, voice, colour roles, the shard motif, logo, **section 6: App** (the viewer's components and states) |
 | `components/*.md` | Guidelines per component |
 | `reference/viewer/` | Mock-ups of the viewer, for reference only: they illustrate needs in `docs/design.md` and bind nothing (see its README) |
 
-Logos, icons and imagery stay in the design system's asset store.
+Logos, icons and imagery are copied into `assets/` (see its README); the design system's asset
+store stays their source.
 
 ## How it is enforced
 
