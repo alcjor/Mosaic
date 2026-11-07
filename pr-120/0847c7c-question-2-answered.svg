@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 1200 770" width="1200" height="770">
+<style>
+:root{--bg:#FBFAF7;--fg:#1B2A3D;--muted:#5B6878;--card:#FFFFFF;--line:#C9D1DB;--rec:#55701F;--recbg:#F1F5E6;--warn:#B5452F;--node:#EAF2FB;--nodeline:#2F6DB5;--code:#F2F0EA}
+@media (prefers-color-scheme: dark){:root{--bg:#141B24;--fg:#E8EDF3;--muted:#9AA7B6;--card:#1C2531;--line:#3A4A5E;--rec:#A9C46A;--recbg:#1F2B17;--warn:#EE8E77;--node:#1E3350;--nodeline:#6FA3E0;--code:#232D3A}}
+text{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--fg);font-size:13px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre}
+.bg{fill:var(--bg)} .card{fill:var(--card);stroke:var(--line);stroke-width:1}
+.rec{fill:var(--recbg);stroke:var(--rec);stroke-width:2} .code{fill:var(--code);stroke:var(--line)}
+.node{fill:var(--node);stroke:var(--nodeline);stroke-width:1.5} .ln{stroke:var(--line);stroke-width:1}
+.arrow{stroke:var(--fg);stroke-width:1.5;fill:none} .head{fill:var(--fg)}
+.muted{fill:var(--muted)} .h{font-size:16px;font-weight:650} .title{font-size:22px;font-weight:700}
+.sub{font-size:13.5px;fill:var(--muted)} .tag{fill:var(--rec);font-weight:700;font-size:12px;letter-spacing:.06em}
+.warn{fill:var(--warn)} .b{font-weight:650} .ok{fill:var(--rec);font-weight:650}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="bg" width="1200" height="770"/>
+<text x="24" y="42" class="title">M3.5 · Question 2: does a type the view file leaves out vanish?</text>
+<text x="24" y="66" class="sub">PR #120 · docs/design.md, View file (“sets which types appear”) · the design doesn't say whether a type left out is still reachable</text>
+
+<!-- setup -->
+<rect class="card" x="24" y="86" width="1152" height="120" rx="10"/>
+<text x="44" y="112" class="h">The case: this view file on the Netflix mosaic (node types Title, Person, Genre)</text>
+<rect class="code" x="44" y="126" width="300" height="64" rx="6"/>
+<text x="58" y="148" class="mono">types:</text>
+<text x="58" y="166" class="mono">  Title:</text>
+<text x="58" y="184" class="mono">    columns: [release_year]</text>
+<text x="370" y="148"><tspan class="b">Same in both readings:</tspan> the page lists only Title, and Title's table shows</text>
+<text x="370" y="166">each title's name and its release year. Person and Genre are not in the type list.</text>
+<text x="370" y="184" class="muted">The question is only about search and links to a Person or Genre node.</text>
+
+<!-- Reading A -->
+<rect class="rec" x="24" y="226" width="566" height="420" rx="10"/>
+<text x="44" y="254" class="h">Reading A · Hidden from the list and tables only</text>
+<text x="570" y="254" class="tag" text-anchor="end">CHOSEN: READING A</text>
+<text x="44" y="286" class="muted">Search</text>
+<rect class="card" x="44" y="294" width="526" height="32" rx="6"/>
+<text x="58" y="315" class="mono">Martin Scorsese</text>
+<rect class="card" x="44" y="330" width="526" height="34" rx="6"/>
+<text x="58" y="352"><tspan class="muted">Person · </tspan><tspan class="b">Martin Scorsese</tspan></text>
+<text x="556" y="352" class="ok" text-anchor="end">found</text>
+<text x="44" y="396" class="muted">Node page of a title</text>
+<rect class="card" x="44" y="404" width="526" height="84" rx="6"/>
+<text x="58" y="428" class="b">The Irishman</text>
+<text x="58" y="452" class="muted">directed_by</text>
+<text x="160" y="452" class="ok" text-decoration="underline">Martin Scorsese →</text>
+<text x="300" y="452" class="muted">opens that Person's node page</text>
+<text x="58" y="474" class="muted">release_year  2019</text>
+<text x="44" y="524">• The view file decides what the page lists, not what exists.</text>
+<text x="44" y="546">• Search and links still reach every node of the mosaic.</text>
+<text x="44" y="590" class="ok">Why expected: hiding a type from the list keeps</text>
+<text x="44" y="608" class="ok">its nodes reachable; nothing in the mosaic is lost.</text>
+
+<!-- Reading B -->
+<rect class="card" x="610" y="226" width="566" height="420" rx="10"/>
+<text x="630" y="254" class="h">Reading B · Gone from the page entirely</text>
+<text x="630" y="286" class="muted">Search</text>
+<rect class="card" x="630" y="294" width="526" height="32" rx="6"/>
+<text x="644" y="315" class="mono">Martin Scorsese</text>
+<rect class="card" x="630" y="330" width="526" height="34" rx="6"/>
+<text x="644" y="352" class="muted">No results</text>
+<text x="1142" y="352" class="warn b" text-anchor="end">not found</text>
+<text x="630" y="396" class="muted">Node page of a title</text>
+<rect class="card" x="630" y="404" width="526" height="84" rx="6"/>
+<text x="644" y="428" class="b">The Irishman</text>
+<text x="644" y="452" class="muted">directed_by</text>
+<text x="746" y="452">Martin Scorsese</text>
+<text x="886" y="452" class="muted">plain text, no page</text>
+<text x="644" y="474" class="muted">release_year  2019</text>
+<text x="630" y="524">• The view file is a filter: a type not named in it is</text>
+<text x="642" y="542">not searchable and has no node pages.</text>
+
+<!-- footer -->
+<rect class="card" x="24" y="666" width="1152" height="82" rx="10"/>
+<text x="44" y="692"><tspan class="b">Proposed with either reading:</tspan> the kit's find and neighbors (what agents call) are not shaped by the view file;</text>
+<text x="44" y="712">it only shapes the page people see. Which types an export file carries is a separate question (M3.10).</text>
+<text x="1156" y="736" class="b" text-anchor="end">Answer on #120: A or B</text>
+</svg>

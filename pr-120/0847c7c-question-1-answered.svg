@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 1200 800" width="1200" height="800">
+<style>
+:root{--bg:#FBFAF7;--fg:#1B2A3D;--muted:#5B6878;--card:#FFFFFF;--line:#C9D1DB;--rec:#55701F;--recbg:#F1F5E6;--warn:#B5452F;--node:#EAF2FB;--nodeline:#2F6DB5;--code:#F2F0EA}
+@media (prefers-color-scheme: dark){:root{--bg:#141B24;--fg:#E8EDF3;--muted:#9AA7B6;--card:#1C2531;--line:#3A4A5E;--rec:#A9C46A;--recbg:#1F2B17;--warn:#EE8E77;--node:#1E3350;--nodeline:#6FA3E0;--code:#232D3A}}
+text{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--fg);font-size:13px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre}
+.bg{fill:var(--bg)} .card{fill:var(--card);stroke:var(--line);stroke-width:1}
+.rec{fill:var(--recbg);stroke:var(--rec);stroke-width:2} .code{fill:var(--code);stroke:var(--line)}
+.node{fill:var(--node);stroke:var(--nodeline);stroke-width:1.5} .ln{stroke:var(--line);stroke-width:1}
+.arrow{stroke:var(--fg);stroke-width:1.5;fill:none} .head{fill:var(--fg)}
+.muted{fill:var(--muted)} .h{font-size:16px;font-weight:650} .title{font-size:22px;font-weight:700}
+.sub{font-size:13.5px;fill:var(--muted)} .tag{fill:var(--rec);font-weight:700;font-size:12px;letter-spacing:.06em}
+.warn{fill:var(--warn)} .b{font-weight:650} .ok{fill:var(--rec);font-weight:650}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="bg" width="1200" height="800"/>
+<text x="24" y="42" class="title">M3.5 · Question 1: what keys does a view file have, and their defaults?</text>
+<text x="24" y="66" class="sub">PR #120 · docs/design.md, View file: it “sets which types appear, columns, what a node page shows, labels, theme, which types an export</text>
+<text x="24" y="84" class="sub">carries, and search: semantic or search: text”, but not under which keys. A view file is a format a CLI user writes, so it's yours to fix.</text>
+
+<!-- table -->
+<rect class="card" x="24" y="104" width="1152" height="350" rx="10"/>
+<text x="44" y="132" class="h">The proposal (views/example.yaml on the PR branch): every key optional</text>
+<text x="44" y="162" class="muted b">Key</text>
+<text x="300" y="162" class="muted b">Values</text>
+<text x="530" y="162" class="muted b">What it sets</text>
+<text x="880" y="162" class="muted b">Default when absent</text>
+<line class="ln" x1="44" y1="172" x2="1156" y2="172"/>
+
+<text x="44" y="196" class="mono">search</text><text x="300" y="196" class="mono">semantic | text</text><text x="530" y="196">search field mode (and export size)</text><text x="880" y="196" class="mono">semantic</text>
+<line class="ln" x1="44" y1="208" x2="1156" y2="208"/>
+<text x="44" y="232" class="mono">theme</text><text x="300" y="232" class="mono">auto | light | dark</text><text x="530" y="232">page theme</text><text x="880" y="232" class="mono">auto <tspan class="muted">(follows the system)</tspan></text>
+<line class="ln" x1="44" y1="244" x2="1156" y2="244"/>
+<text x="44" y="268" class="mono">types</text><text x="300" y="268">map: type name → its settings</text><text x="530" y="268">which types appear, in the order written</text><text x="880" y="268">every node type, by name</text>
+<line class="ln" x1="44" y1="280" x2="1156" y2="280"/>
+<text x="44" y="304" class="mono">types.&lt;T&gt;.label</text><text x="300" y="304">text</text><text x="530" y="304">shown instead of the type's name</text><text x="880" y="304">the type name</text>
+<line class="ln" x1="44" y1="316" x2="1156" y2="316"/>
+<text x="44" y="340" class="mono">types.&lt;T&gt;.columns</text><text x="300" y="340">list of properties</text><text x="530" y="340">its table: node name, then these</text><text x="880" y="340">every declared property</text>
+<line class="ln" x1="44" y1="352" x2="1156" y2="352"/>
+<text x="44" y="376" class="mono">types.&lt;T&gt;.page</text><text x="300" y="376">list of properties and edges</text><text x="530" y="376">its node page, in this order</text><text x="880" y="376">every property and edge type</text>
+<line class="ln" x1="44" y1="388" x2="1156" y2="388"/>
+<text x="44" y="412" class="mono">types.&lt;T&gt;.names</text><text x="300" y="412">map: name → label</text><text x="530" y="412">labels for its property and edge names</text><text x="880" y="412">the names as stored</text>
+<line class="ln" x1="44" y1="424" x2="1156" y2="424"/>
+<text x="44" y="446" class="mono">export.types</text><text x="300" y="446">list of types</text><text x="530" y="446">which types an export carries</text><text x="880" y="446" class="muted">meaning and default asked in M3.10</text>
+
+<!-- example -->
+<rect class="code" x="24" y="474" width="420" height="232" rx="10"/>
+<text x="40" y="498" class="mono muted"># example, for Netflix</text>
+<text x="40" y="518" class="mono">search: semantic</text>
+<text x="40" y="536" class="mono">theme: auto</text>
+<text x="40" y="554" class="mono">types:</text>
+<text x="40" y="572" class="mono">  Title:</text>
+<text x="40" y="590" class="mono">    label: Film or show</text>
+<text x="40" y="608" class="mono">    columns: [release_year, rating]</text>
+<text x="40" y="626" class="mono">    page: [release_year, directed_by, …]</text>
+<text x="40" y="644" class="mono">    names: {release_year: Year}</text>
+<text x="40" y="662" class="mono">  Person: {}</text>
+<text x="40" y="680" class="mono">  Genre: {}</text>
+<text x="40" y="698" class="mono">export: {types: [Title, Person, Genre]}</text>
+
+<!-- observable choices -->
+<rect class="card" x="464" y="474" width="712" height="232" rx="10"/>
+<text x="484" y="500" class="h">Choices inside the proposal that a reader can see</text>
+<text x="484" y="530" class="b">1. Order</text>
+<text x="650" y="530">Types appear in the order the file writes them (not alphabetical).</text>
+<text x="484" y="560" class="b">2. Two kinds of label</text>
+<text x="650" y="560"><tspan class="mono">label</tspan> renames the type; <tspan class="mono">names</tspan> renames its properties and edges.</text>
+<text x="484" y="590" class="b">3. Search default</text>
+<text x="650" y="590"><tspan class="mono">semantic</tspan> when absent (so an export carries the ~25 MB model).</text>
+<text x="484" y="620" class="b">4. No file = M2</text>
+<text x="650" y="620">An empty view file, or none, gives exactly the viewer M2 has.</text>
+<text x="484" y="660" class="ok">Chosen: accepted as proposed.</text>
+<text x="484" y="682" class="muted">Note: a wrong key or value is an error naming the file, line and setting.</text>
+
+<!-- answer -->
+<rect class="rec" x="24" y="726" width="1152" height="52" rx="10"/>
+<text x="44" y="757" class="b">Answer on #120:</text>
+<text x="160" y="757">“accept as proposed”, or name the keys, values or defaults to change (for example “search defaults to text”).</text>
+</svg>
