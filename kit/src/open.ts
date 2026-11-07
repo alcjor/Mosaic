@@ -32,6 +32,7 @@ import {
   type FindAnswer,
   type GetAnswer,
   type NeighborsAnswer,
+  type TableAnswer,
   ToolError,
   errorAnswer,
 } from "./answers.js";
@@ -44,6 +45,7 @@ import { FORMAT_SQL } from "./format-sql.js";
 import { get } from "./get.js";
 import { UnhashableError, knowledgeHash, vectorHash } from "./hashes.js";
 import { neighbors } from "./neighbors.js";
+import { table } from "./table.js";
 
 /** Format versions this kit implements (section 9). */
 export const IMPLEMENTED_VERSIONS: readonly string[] = [FORMAT_VERSION];
@@ -143,6 +145,12 @@ export interface SealedFile {
    * an error answer.
    */
   neighbors(args: unknown): Promise<NeighborsAnswer | ErrorAnswer>;
+  /**
+   * `table` (section 8.1): the nodes of the type `args.type`, a page of 20 rows with the node's
+   * id and its declared properties as columns, optionally `args.columns`, `args.where`,
+   * `args.order` and `args.page`, or an error answer.
+   */
+  table(args: unknown): Promise<TableAnswer | ErrorAnswer>;
   /**
    * `cite` (section 8.1): the evidence of the node `args.id`, or of the edge `args.from`,
    * `args.type`, `args.to`, or an error answer.
@@ -549,6 +557,7 @@ function sealedFile(db: Database, name: string, header: Header, deadline: Deadli
     },
     get: async (args) => answer("get", () => get(db, mosaic, args)),
     neighbors: async (args) => answer("neighbors", () => neighbors(db, mosaic, args)),
+    table: async (args) => answer("table", () => table(db, mosaic, args, () => deadline.checkpoint())),
     cite: async (args) => answer("cite", () => cite(db, mosaic, args)),
     close() {
       if (open) db.close();
