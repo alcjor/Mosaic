@@ -7,7 +7,10 @@
    * the address's `?mosaic=<url>`, and nothing is asked of a server but the file itself. When the
    * address also names the model (`?model=<url>`, from `mosaic view --model`), it is loaded in
    * the page first, so `find` searches by vectors too; a model that fails to load is shown as an
-   * error and the page searches by names and full text only (section 3.8).
+   * error and the page searches by names and full text only (section 3.8). The view file's
+   * settings, from the address's `?view=<url>` (lib/view.ts), shape the page: the types listed,
+   * their labels, columns and node pages, the theme and the search mode; what they name that the
+   * mosaic does not have is shown as a notice, and the page still opens.
    */
   import { onMount } from "svelte";
   import EntityCard from "./components/EntityCard.svelte";
@@ -18,9 +21,15 @@
   import TypeList from "./components/TypeList.svelte";
   import { fetchNamedModel, fetchNamedMosaic, loadModel, shortHash } from "./lib/mosaic.js";
   import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
+  import { applyTheme, fetchNamedView } from "./lib/view.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
   let { viewer = new Viewer() }: { viewer?: Viewer } = $props();
+
+  /** Why the view file's settings could not be read; the page then uses the defaults. */
+  let viewError = $state<string | null>(null);
+
+  $effect(() => applyTheme(document.documentElement, viewer.view.theme));
 
   const hrefFor = (id: string): string => routeHash({ query: viewer.query, node: id });
   const tableHref = (table: TableRoute): string => routeHash({ query: viewer.query, node: null, table });
@@ -68,9 +77,17 @@
           viewer.modelError = `search by names and full text only: ${e instanceof Error ? e.message : String(e)}`;
         }
       })();
+      const view = (async () => {
+        try {
+          const settings = await fetchNamedView(location.search, location.href);
+          if (settings) await viewer.setView(settings);
+        } catch (e) {
+          viewError = e instanceof Error ? e.message : String(e);
+        }
+      })();
       try {
         const named = await fetchNamedMosaic(location.search, location.href);
-        await model;
+        await Promise.all([model, view]);
         if (named) await opened(named.bytes, named.name);
       } catch (e) {
         viewer.status = "error";
@@ -91,7 +108,9 @@
   <SearchField
     value={viewer.query}
     disabled={viewer.file === null}
+    mode={viewer.mode}
     onsearch={(query) => (location.hash = routeHash({ query, node: viewer.nodeId }))}
+    onmode={(mode) => void viewer.setMode(mode)}
   />
   <label class="open caption">
     Open a mosaic
@@ -107,6 +126,16 @@
 {#if viewer.modelError}
   <p class="banner body-screen" role="alert">{viewer.modelError}</p>
 {/if}
+{#if viewError}
+  <p class="banner body-screen" role="alert">{viewError}</p>
+{/if}
+{#if viewer.shape && viewer.shape.notices.length > 0}
+  <ul class="notices body-screen" role="status" aria-label="View file notices">
+    {#each viewer.shape.notices as notice, i (i)}
+      <li>{notice}</li>
+    {/each}
+  </ul>
+{/if}
 
 {#if viewer.file === null}
   <main class="start">
@@ -116,16 +145,28 @@
   <main class="columns">
     <nav class="results" aria-label="Results">
       {#if viewer.results}
-        <ResultList view={viewer.results} selected={viewer.nodeId} {hrefFor} />
+        <ResultList view={viewer.results} selected={viewer.nodeId} {hrefFor} typeLabel={(type) => viewer.shape?.typeLabel(type) ?? type} />
       {:else}
         <p class="empty body-screen">Search for a name, an alias or words in the text.</p>
       {/if}
-      <TypeList types={viewer.file.nodeTypes} selected={viewer.tableRoute?.type ?? null} hrefFor={typeHref} />
+      <TypeList
+        types={viewer.shape?.types ?? viewer.file.nodeTypes}
+        selected={viewer.tableRoute?.type ?? null}
+        hrefFor={typeHref}
+        labelFor={(type) => viewer.shape?.typeLabel(type) ?? type}
+      />
     </nav>
     {#if viewer.tableRoute}
       <div class="wide">
         {#key viewer.tableRoute.type}
-          <TableView view={viewer.table} route={viewer.tableRoute} hrefFor={tableHref} nodeHref={hrefFor} onfilter={filtered} />
+          <TableView
+            view={viewer.table}
+            route={viewer.tableRoute}
+            hrefFor={tableHref}
+            nodeHref={hrefFor}
+            onfilter={filtered}
+            shape={viewer.shape}
+          />
         {/key}
       </div>
     {:else if viewer.page && "message" in viewer.page}
@@ -142,8 +183,8 @@
       </section>
       <aside class="context"></aside>
     {:else if viewer.page}
-      <section class="entity"><EntityCard node={viewer.page.node} /></section>
-      <aside class="context" aria-label="Links and sources"><NodeContext view={viewer.page} {hrefFor} /></aside>
+      <section class="entity"><EntityCard node={viewer.page.node} shape={viewer.shape} /></section>
+      <aside class="context" aria-label="Links and sources"><NodeContext view={viewer.page} {hrefFor} shape={viewer.shape} /></aside>
     {:else}
       <section class="entity"><p class="empty body-screen">Pick a result to see its page.</p></section>
       <aside class="context"></aside>
@@ -204,6 +245,15 @@
     border-radius: var(--radius-md);
     background: var(--majolica-tint);
     color: var(--majolica-text);
+  }
+
+  .notices {
+    margin: var(--space-3) var(--space-4);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
+    border-inline-start: 3px solid var(--status-warning);
+    border-radius: var(--radius-md);
+    background: var(--surface-tint);
+    color: var(--ink);
   }
 
   .start {

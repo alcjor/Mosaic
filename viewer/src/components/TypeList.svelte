@@ -1,5 +1,8 @@
 <script lang="ts">
-  /** The node types the mosaic declares, each opening its table, with its node count. */
+  /**
+   * The node types the page lists (all the mosaic declares, or the view file's, in its order),
+   * each opening its table, with its node count and its label.
+   */
   import type { NodeType } from "@mosaic/kit";
   import TypeChip from "./TypeChip.svelte";
 
@@ -7,7 +10,13 @@
     types,
     selected = null,
     hrefFor,
-  }: { types: readonly NodeType[]; selected?: string | null; hrefFor: (type: string) => string } = $props();
+    labelFor = (type: string) => type,
+  }: {
+    types: readonly NodeType[];
+    selected?: string | null;
+    hrefFor: (type: string) => string;
+    labelFor?: (type: string) => string;
+  } = $props();
 </script>
 
 <h2 class="heading section-label">Tables</h2>
@@ -24,7 +33,7 @@
         aria-current={type.name === selected ? "page" : undefined}
         data-type={type.name}
       >
-        <TypeChip type={type.name} />
+        <TypeChip type={type.name} label={labelFor(type.name)} />
         <span class="count caption">{type.count}</span>
       </a>
     </li>

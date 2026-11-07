@@ -10,7 +10,13 @@
     view,
     selected = null,
     hrefFor,
-  }: { view: SearchView | ToolFailure; selected?: string | null; hrefFor: (id: string) => string } = $props();
+    typeLabel = (type: string) => type,
+  }: {
+    view: SearchView | ToolFailure;
+    selected?: string | null;
+    hrefFor: (id: string) => string;
+    typeLabel?: (type: string) => string;
+  } = $props();
 </script>
 
 {#if "message" in view}
@@ -34,7 +40,7 @@
               data-match={result.match}
             >
               <span class="label panel-title">{result.label ?? result.id}</span>
-              <span class="meta caption"><span class="code-text">{result.type}</span> · <span class="code-text">{result.id}</span></span>
+              <span class="meta caption"><span class="code-text">{typeLabel(result.type)}</span> · <span class="code-text">{result.id}</span></span>
               <span class="tag caption">{TIER_NAMES[result.match]}</span>
             </a>
           </li>

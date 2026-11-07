@@ -14,6 +14,7 @@ export {
   REFUSAL_RULES,
   openFile,
   type Header,
+  type EdgeType,
   type NodeType,
   type OpenOptions,
   type RefusalRule,

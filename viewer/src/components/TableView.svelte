@@ -2,11 +2,13 @@
   /**
    * TableView (brand book, section 6): one page of `table` for a node type. The column headers
    * sort, the filter form adds a `where` condition, and the pager moves through pages; each is a
-   * new `table` call through the page's address. A row's id opens its node page.
+   * new `table` call through the page's address. A row's id opens its node page. With a view
+   * file, the type and its columns carry the file's labels.
    */
   import type { ToolFailure } from "../lib/mosaic.js";
   import { OPERATORS, type Condition, type TableRoute } from "../lib/route.js";
   import { cellText, filterValue, type TableView } from "../lib/tables.js";
+  import type { Shape } from "../lib/view.js";
 
   let {
     view,
@@ -14,13 +16,17 @@
     hrefFor,
     nodeHref,
     onfilter,
+    shape = null,
   }: {
     view: TableView | ToolFailure | null;
     route: TableRoute;
     hrefFor: (route: TableRoute) => string;
     nodeHref: (id: string) => string;
     onfilter: (condition: Condition) => void;
+    shape?: Shape | null;
   } = $props();
+
+  const named = (column: string): string => shape?.label(route.type, column) ?? column;
 
   let column = $state("");
   let op = $state<Condition["op"]>("=");
@@ -66,7 +72,7 @@
 </script>
 
 <section class="table-view" aria-label={`Table ${route.type}`} data-type={route.type}>
-  <h1 class="title category">{route.type}</h1>
+  <h1 class="title category">{shape?.typeLabel(route.type) ?? route.type}</h1>
 
   {#if route.where.length > 0}
     <ul class="filters" aria-label="Filters">
@@ -87,7 +93,7 @@
     <form class="filter-form" aria-label="Add a filter" onsubmit={submit}>
       <select class="control caption" name="column" aria-label="Column" bind:value={column}>
         {#each columns as name (name)}
-          <option value={name}>{name}</option>
+          <option value={name}>{named(name)}</option>
         {/each}
       </select>
       <select class="control caption" name="op" aria-label="Operator" bind:value={op}>
@@ -121,7 +127,7 @@
             {#each columns as name (name)}
               <th scope="col" class="head caption" aria-sort={sortState(name)}>
                 <a href={hrefFor(sorted(name))} class:sorted={sortState(name) !== "none"} data-column={name}
-                  >{name}{sortState(name) === "ascending" ? " ↑" : sortState(name) === "descending" ? " ↓" : ""}</a
+                  >{named(name)}{sortState(name) === "ascending" ? " ↑" : sortState(name) === "descending" ? " ↓" : ""}</a
                 >
               </th>
             {/each}
