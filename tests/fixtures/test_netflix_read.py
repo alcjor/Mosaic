@@ -31,7 +31,7 @@ import pytest
 from mosaic_format.hashes import knowledge_hash, vector_hash
 
 from tests.conftest import MODEL, REPO
-from tests.fixtures.test_netflix import Run, _run
+from tests.fixtures.test_netflix import Run
 from tests.test_cli import entry_point
 
 pytestmark = pytest.mark.slow
@@ -39,31 +39,6 @@ pytestmark = pytest.mark.slow
 QUERY = "high school chemistry teacher becomes a drug dealer"
 TITLE = "Title:s5941"
 """The title the query describes by its meaning; its name shares no word with the query."""
-
-
-@pytest.fixture(scope="module")
-def built(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Run]:
-    """The Netflix mosaic, built with vectors in a new, empty directory."""
-    fetched = subprocess.run(
-        [sys.executable, "-I", str(REPO / "scripts" / "fetch_fixtures.py")],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-    )
-    assert "ok   netflix-titles" in fetched.stdout, fetched.stdout + fetched.stderr
-    model = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "fetch_model.py"), "--dest", str(MODEL)],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-    )
-    assert model.returncode == 0, model.stdout + model.stderr
-    directory = tmp_path_factory.mktemp("netflix-read") / "run"
-    run = _run(directory)
-    assert run.vectors == run.nodes > 0
-    return directory / "out" / "default.mosaic", run
 
 
 def _open_in_kit(path: Path) -> subprocess.CompletedProcess[str]:

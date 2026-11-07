@@ -17,10 +17,10 @@ knowledge hash, vector hash and model are those ``expected-hashes.json`` records
 import json
 import shutil
 import subprocess
-import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -30,6 +30,9 @@ from mosaic_format.yaml_core import load
 from tests.conftest import MODEL, REPO, SPEC
 from tests.fixtures.expected import differences, load_expected
 from tests.test_cli import entry_point
+
+if TYPE_CHECKING:
+    from tests.fixtures.conftest import NetflixBuilds
 
 BUILD_BUDGET_SECONDS = 15 * 60
 """ADR-007: building the Netflix mosaic, vectors included, takes under 15 minutes."""
@@ -160,25 +163,10 @@ def _run(directory: Path) -> Run:
 
 
 @pytest.fixture(scope="module")
-def runs(tmp_path_factory: pytest.TempPathFactory) -> tuple[Run, Run]:
-    fetched = subprocess.run(
-        [sys.executable, "-I", str(REPO / "scripts" / "fetch_fixtures.py")],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-    )
-    assert "ok   netflix-titles" in fetched.stdout, fetched.stdout + fetched.stderr
-    model = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "fetch_model.py"), "--dest", str(MODEL)],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-    )
-    assert model.returncode == 0, model.stdout + model.stderr
-    base = tmp_path_factory.mktemp("netflix")
-    first, second = _run(base / "first"), _run(base / "second")
+def runs(netflix_builds: NetflixBuilds) -> tuple[Run, Run]:
+    """Two clean builds of the fixture (tests/fixtures/conftest.py, reused while the inputs are
+    unchanged)."""
+    first, second = netflix_builds.first, netflix_builds.second
     for label, run in (("first", first), ("second", second)):
         timings = ", ".join(f"{step} {s:.1f} s" for step, s in run.seconds.items())
         print(

@@ -27,6 +27,8 @@ code, not the builder's account of it.
 
 Read-only commands only: `git diff`, `git log`, `git show`,
 `gh pr view`, `gh pr diff`, `uv run pytest` (to confirm a suspicion), `uv run mosaic`.
+Don't rerun the slow tests (`-m slow`) to review: check the verifier's slow-test command
+and output in the PR, and rerun them only to confirm a specific suspicion.
 
 ## What to check, in this order
 
