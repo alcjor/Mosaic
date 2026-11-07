@@ -77,6 +77,7 @@ from mosaic_build.tessera.convert import (
     check_conversions,
     prop_kinds,
 )
+from mosaic_build.tessera.notice import notice_problem
 
 __all__ = [
     "Boolean",
@@ -164,6 +165,7 @@ class Settings:
     delimiter: str = ","
     convert: Mapping[str, Conversion] = field(default_factory=dict)
     links: Mapping[str, Link] = field(default_factory=dict)
+    notice: str | None = None
 
     def as_json(self) -> str:
         """The settings as canonical JSON text, for ``header.settings``.
@@ -184,6 +186,8 @@ class Settings:
             value["convert"] = {c: v.as_json() for c, v in self.convert.items()}
         if self.links:
             value["links"] = {c: v.as_json() for c, v in self.links.items()}
+        if self.notice is not None:
+            value["notice"] = self.notice
         return _json(value)
 
 
@@ -309,7 +313,13 @@ def read(source: str | os.PathLike[str], settings: Settings) -> tuple[Content, R
     made = Content(
         header=Header(kind="tessera", producer=PRODUCER, settings=settings.as_json()),
         sources=[
-            Source(id=name, kind="file", hash=hashlib.sha256(data).hexdigest(), path=name),
+            Source(
+                id=name,
+                kind="file",
+                hash=hashlib.sha256(data).hexdigest(),
+                path=name,
+                notice=settings.notice,
+            ),
         ],
         types=[
             Type(
@@ -412,6 +422,9 @@ def check_settings(settings: Settings) -> None:
         raise ValueError(f"settings: props name {duplicates[0]!r} twice")
     check_conversions(settings.props, settings.convert)
     check_links(settings)
+    problem = notice_problem(settings.notice)
+    if problem is not None:
+        raise ValueError(f"settings: {problem}")
 
 
 def _decode(name: str, data: bytes, encoding: str) -> str:
