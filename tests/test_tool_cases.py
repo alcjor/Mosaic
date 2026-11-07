@@ -154,3 +154,138 @@ def test_the_slow_test_fails_when_the_expected_file_changes(
     monkeypatch.setattr(test_chinook_tools, "FILE", changed)
     with pytest.raises(AssertionError, match=name):
         test_chinook_tools.test_every_case_gives_its_expected_answer(answers)
+
+
+# --- what must match: reading 3, the maintainer's answer on #133 -------------------------------
+#
+# Equal: data values, `total`, the error codes the spec names for a case (`unknown_id`, section
+# 8.1; `unknown_column`, section 8.6), tier and `table` order, `cite` rows in evidence order.
+# Not compared exactly: `error.message` (not at all); suggestions (node ids, at most 5, with the
+# expected first one); lists whose order the spec does not fix (`neighbors` edges; `get` links,
+# aliases and external references), as sets; a case the spec names no code for, any code of the
+# schema's list.
+
+
+def _case(name: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The one-case file and a copy of its answer, to change."""
+    return {name: CASES[name]}, {name: copy.deepcopy(CASES[name]["answer"])}
+
+
+def test_an_error_message_is_not_compared() -> None:
+    cases, answers = _case("get-unknown")
+    answers["get-unknown"]["error"]["message"] = "unknown id Artist:Queen"
+    assert differences(cases, answers) == []
+
+
+def test_suggestions_may_be_fewer_if_they_keep_the_expected_first_one() -> None:
+    cases, answers = _case("get-unknown")
+    answers["get-unknown"]["error"]["suggestions"] = ["Artist:51"]
+    assert differences(cases, answers) == []
+    answers["get-unknown"]["error"]["suggestions"] = ["Track:1157", "Artist:51", "Album:1"]
+    assert differences(cases, answers) == []
+
+
+@pytest.mark.parametrize(
+    "suggestions",
+    [
+        [],
+        ["Track:1157"],
+        ["Artist:51", "Album:1", "Album:2", "Album:3", "Album:4", "Album:5"],
+        ["Artist:51", "not an id"],
+        ["Artist:51", "Artist:99999"],
+    ],
+)
+def test_suggestions_without_the_first_too_many_or_not_node_ids_differ(
+    suggestions: list[str],
+) -> None:
+    cases, answers = _case("get-unknown")
+    answers["get-unknown"]["error"]["suggestions"] = suggestions
+    node_ids = {"Artist:51", "Track:1157", "Album:1", "Album:2", "Album:3", "Album:4", "Album:5"}
+    assert differences(cases, answers, node_ids=node_ids)
+
+
+def test_without_the_mosaic_suggestions_are_checked_as_ids() -> None:
+    cases, answers = _case("get-unknown")
+    answers["get-unknown"]["error"]["suggestions"] = ["Artist:51", "Artist:99999"]
+    assert differences(cases, answers) == []
+    answers["get-unknown"]["error"]["suggestions"] = ["Artist:51", "no colon"]
+    assert differences(cases, answers)
+
+
+@pytest.mark.parametrize("name", ["get-unknown", "neighbors-unknown-id", "table-unknown-column"])
+def test_a_code_the_spec_names_must_be_equal(name: str) -> None:
+    cases, answers = _case(name)
+    answers[name]["error"]["code"] = "bad_argument"
+    assert differences(cases, answers)
+
+
+@pytest.mark.parametrize(
+    "name", ["cite-edge-unknown", "neighbors-unknown-edge", "find-unknown-type", "table-bad-op"]
+)
+def test_a_case_the_spec_names_no_code_for_takes_any_code_of_the_schema(name: str) -> None:
+    cases, answers = _case(name)
+    answers[name]["error"]["code"] = "bad_argument"
+    assert differences(cases, answers) == []
+    answers[name]["error"]["code"] = "not_a_code"
+    assert differences(cases, answers)
+
+
+def test_an_error_where_an_answer_is_expected_differs_and_so_does_the_reverse() -> None:
+    cases, answers = _case("get-track")
+    error = {"code": "unknown_id", "message": "", "suggestions": []}
+    answers["get-track"] = {"tool": "get", "mosaic": answers["get-track"]["mosaic"], "error": error}
+    assert differences(cases, answers)
+    cases, answers = _case("get-unknown")
+    answers["get-unknown"] = copy.deepcopy(CASES["get-track"]["answer"])
+    assert differences(cases, answers)
+
+
+@pytest.mark.parametrize(
+    ("name", "path"),
+    [
+        ("neighbors-both", ("data", "edges")),
+        ("get-track", ("data", "links")),
+    ],
+)
+def test_lists_the_spec_does_not_order_are_compared_as_sets(
+    name: str, path: tuple[str, str]
+) -> None:
+    cases, answers = _case(name)
+    listed = answers[name][path[0]][path[1]]
+    assert len(listed) > 1
+    listed.reverse()
+    assert differences(cases, answers) == []
+    listed.pop()
+    assert differences(cases, answers)
+
+
+@pytest.mark.parametrize(
+    ("name", "path"),
+    [
+        ("find-text", ("data", "results")),
+        ("table-order-missing-last", ("data", "rows")),
+        ("table-page-2", ("data", "rows")),
+    ],
+)
+def test_lists_the_spec_orders_must_keep_their_order(name: str, path: tuple[str, str]) -> None:
+    cases, answers = _case(name)
+    answers[name][path[0]][path[1]].reverse()
+    assert differences(cases, answers)
+
+
+@pytest.mark.parametrize(
+    ("name", "change"),
+    [
+        ("find-text", lambda a: a["data"].__setitem__("total", 9)),
+        ("get-track", lambda a: a["data"]["props"].__setitem__("bytes", 1)),
+        ("get-long-name", lambda a: a["data"].__setitem__("label", a["data"]["label"][:-1])),
+        ("cite-edge", lambda a: a["data"]["evidence"][0].__setitem__("locator", "x")),
+        ("table-page-2", lambda a: a["data"].__setitem__("page", 1)),
+        ("neighbors-both", lambda a: a["data"]["edges"][0].__setitem__("label", "Other")),
+        ("find-vector", lambda a: a.__setitem__("mosaic", "f" * 64)),
+    ],
+)
+def test_data_values_must_be_equal(name: str, change: Any) -> None:
+    cases, answers = _case(name)
+    change(answers[name])
+    assert differences(cases, answers)
