@@ -61,11 +61,17 @@ export class Viewer {
   /** Search in `mode`; an open mosaic is opened again, and its search and pages asked again. */
   async setMode(mode: SearchMode): Promise<void> {
     if (mode === this.mode) return;
+    const previous = this.mode;
     this.mode = mode;
     const opened = this.#opened;
     if (opened === null) return;
     const { query, nodeId, tableRoute } = this;
+    const before = this.file;
     await this.open(opened.bytes, opened.name);
+    if (this.file === before) {
+      this.mode = previous; // the open failed: the file still searches as before
+      return;
+    }
     await Promise.all([this.search(query), this.show(nodeId), this.showTable(tableRoute)]);
   }
 
