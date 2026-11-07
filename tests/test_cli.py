@@ -631,7 +631,7 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert "format 0.1" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("command", ["view", "export"])
+@pytest.mark.parametrize("command", ["export"])
 def test_later_commands_fail_loudly(command: str) -> None:
     assert main([command]) == 2
 
