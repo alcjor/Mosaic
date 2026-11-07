@@ -190,7 +190,12 @@ def make_parser() -> argparse.ArgumentParser:
             "vectors: it gets the embedding model's files of section 6 from DIR, each checked "
             "by its pinned SHA-256 (a file with another hash is an error naming it and both "
             "hashes, exit status 1, and no page opens). Without it, the page searches by names "
-            "and full text only."
+            "and full text only. With --view FILE, the page is shaped by that view file (which "
+            "types appear, columns, node pages, labels, theme and search mode); a wrong view "
+            "file is an error naming the file, the line and the setting (exit status 1), and no "
+            "page opens. The command watches the view file and the page reloads its settings "
+            "when it is saved; a file saved with an error keeps the page as it was and shows "
+            "the error. The view file is only read."
         ),
     )
     view_cmd.add_argument("file", type=Path, help="the tessera or mosaic to open (only read)")
@@ -199,6 +204,12 @@ def make_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="DIR",
         help="directory of the embedding model files (section 6), for search by vectors",
+    )
+    view_cmd.add_argument(
+        "--view",
+        type=Path,
+        metavar="FILE",
+        help="view file (YAML) that shapes the page; reloaded when saved (only read)",
     )
 
     for name, milestone in PLANNED.items():
@@ -359,11 +370,13 @@ def _view(args: argparse.Namespace) -> int:
     try:
         data = viewer.checked_bytes(path)
         model = None if args.model is None else viewer.checked_model(args.model)
+        if args.view is not None:
+            viewer.checked_view(args.view)
         dist = viewer.viewer_dist()
     except viewer.ViewError as e:
         _error("view", e)
         return 1
-    server, url = viewer.serve(dist, path.name, data, model=model)
+    server, url = viewer.serve(dist, path.name, data, model=model, view=args.view)
     stopped = threading.Event()
     try:
         print(f"{path}: ok; viewer at {url} (Ctrl-C to stop)", flush=True)

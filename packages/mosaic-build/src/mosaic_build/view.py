@@ -23,11 +23,21 @@ page opens. Those bytes are served at ``/model/<path>`` and the address names th
 (``&model=model/``), so the page loads the model at runtime and ``find`` lists vector matches.
 Nothing else in the directory is served. Without a model, the address names none and the page
 searches by names and full text only (section 3.8).
+
+With a view file (``mosaic view FILE --view VIEW``, plan M3.7), the command reads it once before
+any page opens (:func:`checked_view`); a wrong one is M3.5's error and no page opens. The page
+then gets its settings at ``/view.json`` (``ViewSettings.as_json``), read from the file again on
+each request, and the address names them (``&view=view.json``). The page asks again every second
+and is reshaped when they change, so a saved file reaches it without restarting the command
+(docs/design.md, View file: "mosaic view watches it and reloads the page on save"). A file saved
+with an error answers 422 with that error, ``{"error": ...}``, and the page keeps what it shows.
+The view file is only read.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import mimetypes
 import threading
 from http import HTTPStatus
@@ -38,6 +48,7 @@ from urllib.parse import quote, unquote, urlsplit
 from mosaic_format.reader import FileRefusedError
 from mosaic_format.reader import open as open_sealed
 
+from mosaic_build import view_file
 from mosaic_build.mosaic.vectors import MODEL
 
 VIEWER_DIST = Path(__file__).resolve().parents[4] / "viewer" / "dist"
@@ -51,6 +62,9 @@ FILE_PREFIX = "/file/"
 
 MODEL_PREFIX = "/model/"
 """Where the model's files are served, each under its path in the model's repository."""
+
+VIEW_PATH = "/view.json"
+"""Where the view file's current settings are served, as JSON."""
 
 TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -108,6 +122,25 @@ def checked_model(directory: Path) -> dict[str, bytes]:
     return files
 
 
+def checked_view(path: Path) -> dict[str, object]:
+    """The settings of the view file ``path``, as the page takes them, or a :class:`ViewError`."""
+    try:
+        return view_file.read(path).as_json()
+    except OSError as e:
+        raise ViewError(f"{path}: view file cannot be read: {e.strerror or e}") from None
+    except ValueError as e:  # names the file, the line and the setting (M3.5)
+        raise ViewError(str(e)) from None
+
+
+def _view_answer(path: Path) -> tuple[int, bytes]:
+    """The status and JSON body ``/view.json`` answers with, from the view file as it is now."""
+    try:
+        status, data = HTTPStatus.OK, checked_view(path)
+    except ViewError as e:
+        status, data = HTTPStatus.UNPROCESSABLE_CONTENT, {"error": str(e)}
+    return status, json.dumps(data, ensure_ascii=False).encode("utf-8")
+
+
 def viewer_dist(dist: Path | None = None) -> Path:
     """The built viewer's directory, or a :class:`ViewError` saying how to build it."""
     directory = VIEWER_DIST if dist is None else dist
@@ -116,14 +149,18 @@ def viewer_dist(dist: Path | None = None) -> Path:
     return directory.resolve()
 
 
-def page_url(port: int, name: str, model: bool = False) -> str:
-    """The address of the viewer page with the mosaic ``name`` (and the model) loaded."""
+def page_url(port: int, name: str, model: bool = False, view: bool = False) -> str:
+    """The address of the viewer page with the mosaic ``name`` (the model, the view) loaded."""
     url = f"http://{HOST}:{port}/?mosaic={quote(FILE_PREFIX[1:] + quote(name), safe='')}"
-    return url + f"&model={quote(MODEL_PREFIX[1:], safe='')}" if model else url
+    if model:
+        url += f"&model={quote(MODEL_PREFIX[1:], safe='')}"
+    if view:
+        url += f"&view={quote(VIEW_PATH[1:], safe='')}"
+    return url
 
 
 def _handler(
-    dist: Path, name: str, data: bytes, model: dict[str, bytes]
+    dist: Path, name: str, data: bytes, model: dict[str, bytes], view: Path | None
 ) -> type[BaseHTTPRequestHandler]:
     file_path = FILE_PREFIX + quote(name)
     model_paths = {MODEL_PREFIX + quote(path): body for path, body in model.items()}
@@ -134,6 +171,8 @@ def _handler(
 
         def _body(self) -> tuple[bytes, str] | None:
             path = urlsplit(self.path).path
+            if path == VIEW_PATH and view is not None:
+                return b"", "application/json"  # answered by _answer, from the file as it is now
             if path == file_path:
                 return data, "application/vnd.sqlite3"
             if path in model_paths:
@@ -156,7 +195,10 @@ def _handler(
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
             body, kind = found
-            self.send_response(HTTPStatus.OK)
+            status = HTTPStatus.OK
+            if view is not None and urlsplit(self.path).path == VIEW_PATH:
+                status, body = _view_answer(view)
+            self.send_response(status)
             self.send_header("Content-Type", kind)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
@@ -177,13 +219,19 @@ def _handler(
 
 
 def serve(
-    dist: Path, name: str, data: bytes, port: int = 0, model: dict[str, bytes] | None = None
+    dist: Path,
+    name: str,
+    data: bytes,
+    port: int = 0,
+    model: dict[str, bytes] | None = None,
+    view: Path | None = None,
 ) -> tuple[ThreadingHTTPServer, str]:
-    """Serve the viewer, the mosaic's bytes and the model's, in a background thread.
+    """Serve the viewer, the mosaic's bytes, the model's and the view file's settings.
 
-    Returns the server and the page's address; ``model`` is :func:`checked_model`'s result.
+    Runs in a background thread. Returns the server and the page's address; ``model`` is
+    :func:`checked_model`'s result, and ``view`` a view file :func:`checked_view` accepted.
     """
-    server = ThreadingHTTPServer((HOST, port), _handler(dist, name, data, model or {}))
+    server = ThreadingHTTPServer((HOST, port), _handler(dist, name, data, model or {}, view))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, name="mosaic-view", daemon=True).start()
-    return server, page_url(server.server_address[1], name, bool(model))
+    return server, page_url(server.server_address[1], name, bool(model), view is not None)

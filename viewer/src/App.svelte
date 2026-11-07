@@ -10,7 +10,9 @@
    * error and the page searches by names and full text only (section 3.8). The view file's
    * settings, from the address's `?view=<url>` (lib/view.ts), shape the page: the types listed,
    * their labels, columns and node pages, the theme and the search mode; what they name that the
-   * mosaic does not have is shown as a notice, and the page still opens.
+   * mosaic does not have is shown as a notice, and the page still opens. The page asks for them
+   * again every second, so a view file saved under `mosaic view` reshapes it; settings that
+   * cannot be read (a file saved with an error) are shown as an error and the page stays as it was.
    */
   import { onMount } from "svelte";
   import EntityCard from "./components/EntityCard.svelte";
@@ -21,13 +23,14 @@
   import TypeList from "./components/TypeList.svelte";
   import { fetchNamedModel, fetchNamedMosaic, loadModel, shortHash } from "./lib/mosaic.js";
   import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
-  import { applyTheme, fetchNamedView } from "./lib/view.js";
+  import { applyTheme, watchView } from "./lib/view.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
   let { viewer = new Viewer() }: { viewer?: Viewer } = $props();
 
   /** Why the view file's settings could not be read; the page then uses the defaults. */
   let viewError = $state<string | null>(null);
+  let stopWatching: () => void = () => {};
 
   $effect(() => applyTheme(document.documentElement, viewer.view.theme));
 
@@ -77,14 +80,18 @@
           viewer.modelError = `search by names and full text only: ${e instanceof Error ? e.message : String(e)}`;
         }
       })();
-      const view = (async () => {
-        try {
-          const settings = await fetchNamedView(location.search, location.href);
-          if (settings) await viewer.setView(settings);
-        } catch (e) {
-          viewError = e instanceof Error ? e.message : String(e);
-        }
-      })();
+      let first: () => void = () => {};
+      const view = new Promise<void>((resolve) => (first = resolve));
+      stopWatching = watchView(
+        location.search,
+        location.href,
+        (settings) => void viewer.setView(settings).then(first),
+        (error) => {
+          viewError = error;
+          first();
+        },
+      );
+      if (!new URLSearchParams(location.search).get("view")) first();
       try {
         const named = await fetchNamedMosaic(location.search, location.href);
         await Promise.all([model, view]);
@@ -94,7 +101,10 @@
         viewer.error = e instanceof Error ? e.message : String(e);
       }
     })();
-    return () => window.removeEventListener("hashchange", follow);
+    return () => {
+      window.removeEventListener("hashchange", follow);
+      stopWatching();
+    };
   });
 </script>
 

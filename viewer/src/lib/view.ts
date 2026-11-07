@@ -112,24 +112,97 @@ export function parseView(data: unknown): ViewSettings {
   };
 }
 
-/** The view file's settings the address's `?view=<url>` names, fetched as JSON, or null. */
-export async function fetchNamedView(search: string, base: string, fetcher: typeof fetch = fetch): Promise<ViewSettings | null> {
+/** The address of the view file's settings that `?view=<url>` names, or null. */
+function namedView(search: string, base: string): URL | null {
   const named = new URLSearchParams(search).get(VIEW_PARAM);
-  if (named === null || named === "") return null;
+  return named === null || named === "" ? null : new URL(named, base);
+}
+
+/** The settings' JSON text at `url`; an answer `{"error": ...}` (`mosaic view`) throws that error. */
+async function settingsText(url: URL, fetcher: typeof fetch): Promise<string> {
   let response: Response;
   try {
-    response = await fetcher(new URL(named, base));
+    response = await fetcher(url, { cache: "no-store" });
   } catch (e) {
     throw new Error(`could not fetch the view file's settings: ${e instanceof Error ? e.message : String(e)}`);
   }
-  if (!response.ok) throw new Error(`could not fetch the view file's settings: ${response.status} ${response.statusText}`.trim());
+  const body = await response.text();
+  if (!response.ok) {
+    let error: unknown;
+    try {
+      error = (JSON.parse(body) as { error?: unknown }).error;
+    } catch {
+      error = undefined;
+    }
+    if (typeof error === "string" && error !== "") throw new Error(error);
+    throw new Error(`could not fetch the view file's settings: ${response.status} ${response.statusText}`.trim());
+  }
+  return body;
+}
+
+function parsedText(text: string): ViewSettings {
   let data: unknown;
   try {
-    data = await response.json();
+    data = JSON.parse(text);
   } catch {
     throw new Error("view file: the settings are not JSON");
   }
   return parseView(data);
+}
+
+/** The view file's settings the address's `?view=<url>` names, fetched as JSON, or null. */
+export async function fetchNamedView(search: string, base: string, fetcher: typeof fetch = fetch): Promise<ViewSettings | null> {
+  const url = namedView(search, base);
+  return url === null ? null : parsedText(await settingsText(url, fetcher));
+}
+
+/** How often the page asks `mosaic view` for the view file's settings again, in milliseconds. */
+export const WATCH_MS = 1000;
+
+/**
+ * Ask for the settings `?view=<url>` names every `everyMs`, and call `changed` with the new
+ * settings each time their text changes, or `failed` with the error while they cannot be read
+ * (a file saved with an error); `failed(null)` once they can be read again. Returns a function
+ * that stops watching. Without `?view=`, nothing is watched.
+ */
+export function watchView(
+  search: string,
+  base: string,
+  changed: (view: ViewSettings) => void,
+  failed: (error: string | null) => void,
+  { fetcher = fetch, everyMs = WATCH_MS, initial = null }: { fetcher?: typeof fetch; everyMs?: number; initial?: string | null } = {},
+): () => void {
+  const url = namedView(search, base);
+  if (url === null) return () => {};
+  let last = initial;
+  let failing = false;
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const tick = async (): Promise<void> => {
+    try {
+      const text = await settingsText(url, fetcher);
+      const view = parsedText(text);
+      if (stopped) return;
+      if (failing) {
+        failing = false;
+        failed(null);
+      }
+      if (text !== last) {
+        last = text;
+        changed(view);
+      }
+    } catch (e) {
+      if (stopped) return;
+      failing = true;
+      failed(e instanceof Error ? e.message : String(e));
+    }
+    if (!stopped) timer = setTimeout(() => void tick(), everyMs);
+  };
+  void tick();
+  return () => {
+    stopped = true;
+    if (timer !== undefined) clearTimeout(timer);
+  };
 }
 
 /** What {@link Shape} needs of an open mosaic. */
