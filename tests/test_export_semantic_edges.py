@@ -563,21 +563,24 @@ def test_a_wrong_view_file_is_refused_before_the_model_matters(
 # --- search: text and --model ----------------------------------------------------------------
 
 
-def test_search_text_with_a_good_model_is_an_error_and_writes_nothing(
-    tmp_path: Path, dist: Path, model: Path, capsys: pytest.CaptureFixture[str]
+# Answer B on #137 (after the verifier wrote these): with search: text the model is not used,
+# as `mosaic view --model` does; the export is the text export and exits 0.
+
+
+def test_search_text_with_a_good_model_writes_the_text_export(
+    tmp_path: Path, dist: Path, model: Path
 ) -> None:
     code, out = run_export(tmp_path, model, text=TEXT)
-    assert code == 1
-    assert "model" in capsys.readouterr().err
-    assert not out.exists()
+    assert code == 0 and out.exists()
+    page = out.read_text(encoding="utf-8")
+    assert '"model":{' not in page and '"ort":{' not in page
 
 
-def test_search_text_with_a_missing_model_directory_is_still_an_error_and_writes_nothing(
-    tmp_path: Path, dist: Path, capsys: pytest.CaptureFixture[str]
+def test_search_text_with_a_missing_model_directory_writes_the_text_export(
+    tmp_path: Path, dist: Path
 ) -> None:
     code, out = run_export(tmp_path, tmp_path / "no-model", text=TEXT)
-    assert code == 1 and capsys.readouterr().err != ""
-    assert not out.exists()
+    assert code == 0 and out.exists()
 
 
 def test_search_semantic_without_a_model_names_the_option_and_writes_nothing(

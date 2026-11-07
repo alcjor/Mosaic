@@ -231,7 +231,7 @@ def make_parser() -> argparse.ArgumentParser:
             "shaped by that view file. With its search setting semantic (the default), the export "
             "carries the embedding model, from --model DIR, each file checked by its pinned "
             "SHA-256 (section 6), and the page also searches by vectors; with search: text it "
-            "carries no model, and --model is an error. A missing or refused file, a wrong view "
+            "carries no model, and --model is not read. A missing or refused file, a wrong view "
             "file, a missing or wrong model file or an existing output file is an error naming "
             "it (exit status 1), and nothing is written. Without -o, the output is FILE's name "
             "with .html for its suffix, in the current directory. FILE, the view file and the "

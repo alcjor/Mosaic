@@ -256,14 +256,25 @@ def test_a_model_directory_that_is_not_there_exits_1_naming_it(
     assert not out.exists()
 
 
-def test_search_text_with_a_model_exits_1_and_writes_nothing(
-    tmp_path: Path, dist: Path, model: Path, capsys: pytest.CaptureFixture[str]
+def test_search_text_with_a_model_writes_the_text_export_without_it(
+    tmp_path: Path, dist: Path, model: Path
 ) -> None:
+    # Answer B on #137: as `mosaic view --model` does, the model is not used with search: text.
     out = tmp_path / "export.html"
     args = ["export", str(source(tmp_path)), "--view", str(view_yaml(tmp_path)), "-o", str(out)]
-    assert main([*args, "--model", str(model)]) == 1
-    assert "search is text" in capsys.readouterr().err
-    assert not out.exists()
+    assert main([*args, "--model", str(model)]) == 0
+    data = data_of(out.read_text(encoding="utf-8"))
+    assert sorted(data) == ["mosaic", "name", "sqlite", "view"]
+    plain = tmp_path / "plain.html"
+    assert main([*args[:-1], str(plain)]) == 0
+    assert out.read_bytes() == plain.read_bytes()
+
+
+def test_search_text_does_not_read_the_model_directory(tmp_path: Path, dist: Path) -> None:
+    out = tmp_path / "export.html"
+    args = ["export", str(source(tmp_path)), "--view", str(view_yaml(tmp_path)), "-o", str(out)]
+    assert main([*args, "--model", str(tmp_path / "no-model")]) == 0
+    assert "model" not in data_of(out.read_text(encoding="utf-8"))
 
 
 def test_an_existing_output_is_never_overwritten(

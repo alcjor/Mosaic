@@ -154,10 +154,11 @@ def export(
 
     With ``search: semantic`` (the default) the export carries the embedding model from the
     directory ``model``, each file checked by its pinned SHA-256 as ``mosaic view --model``
-    checks them, and ONNX Runtime; with ``search: text`` it carries neither.
+    checks them, and ONNX Runtime; with ``search: text`` it carries neither, and ``model`` is
+    not read (answer B on #137).
 
     Raises :class:`ExportError` (nothing written) for a refused mosaic, a wrong view file, a
-    missing, wrong or unasked-for model, an existing ``output`` or an unbuilt viewer.
+    missing or wrong model, an existing ``output`` or an unbuilt viewer.
     """
     try:
         data = viewer.checked_bytes(source)
@@ -184,11 +185,8 @@ def export(
             files = viewer.checked_model(model)
         except viewer.ViewError as e:  # names the file and both hashes (section 6)
             raise ExportError(str(e)) from None
-    elif model is not None:
-        raise ExportError(
-            f"{where}: view file: search is text, so the export carries no model; "
-            "--model is for search: semantic"
-        )
+    # With search: text a model directory given is not read: the export carries no model, as
+    # `mosaic view --model` serves one whatever the view file asks (answer B on #137).
     if output.exists() or output.is_symlink():
         raise ExportError(f"{output}: exists; an export is never overwritten")
     body = page(source.name, data, settings, built, files)
