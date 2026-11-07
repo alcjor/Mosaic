@@ -92,8 +92,11 @@ def _handler(dist: Path, name: str, data: bytes) -> type[BaseHTTPRequestHandler]
             if path == file_path:
                 return data, "application/vnd.sqlite3"
             relative = unquote(path).lstrip("/") or "index.html"
-            local = (dist / relative).resolve()
-            if not local.is_relative_to(dist) or not local.is_file():
+            try:
+                local = (dist / relative).resolve()
+                if not local.is_relative_to(dist) or not local.is_file():
+                    return None
+            except (OSError, ValueError):  # a name no file can have, such as one holding NUL
                 return None
             kind = TYPES.get(local.suffix) or mimetypes.guess_type(local.name)[0]
             return local.read_bytes(), kind or "application/octet-stream"

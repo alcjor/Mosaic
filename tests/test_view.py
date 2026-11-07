@@ -218,6 +218,9 @@ def test_the_server_hands_out_only_the_viewer_and_the_mosaic(dist: Path, tmp_pat
             "/assets/%2e%2e%2f%2e%2e%2fsecret.txt",
             "/assets",
             "/nothing",
+            "/%00",
+            "/assets/%00.js",
+            "/" + "a" * 5000,
         ]:
             assert get(root + path)[0] == 404, path
         post = urllib.request.Request(f"{root}/file/m.mosaic", data=b"x", method="POST")
