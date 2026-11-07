@@ -2,9 +2,10 @@
  * A single-file export (`mosaic export`, plan M3.8): the page with the mosaic inside, opened
  * offline from `file://` with a double-click (docs/design.md, Implementation plan, Viewer). The
  * export holds, beside the page's own script, one JSON element: the mosaic's name and bytes, the
- * view file's settings (`ViewSettings.as_json`) and SQLite's WebAssembly, the bytes gzip-compressed
- * and then base64. The page unpacks them with the browser's own `DecompressionStream` and reads them from the document and asks nothing of a network: the kit opens the bytes by the
- * reading rules, both hashes checked (section 3.8), as it opens any file.
+ * view file's settings (`ViewSettings.as_json`) and SQLite's WebAssembly, the bytes
+ * gzip-compressed and then base64. The page unpacks them with the browser's own
+ * `DecompressionStream` and asks nothing of a network: the kit opens the bytes by the reading
+ * rules, both hashes checked (section 3.8), as it opens any file.
  */
 import { parseView, type ViewSettings } from "./view.js";
 

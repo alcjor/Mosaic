@@ -13,6 +13,7 @@ import base64
 import gzip
 import hashlib
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -282,3 +283,32 @@ def test_the_same_inputs_give_the_same_export(tmp_path: Path, dist: Path) -> Non
     export.export(mosaic, one, settings)
     export.export(mosaic, two, settings)
     assert one.read_bytes() == two.read_bytes()
+
+
+@pytest.mark.parametrize("given", [".", "/"])
+def test_a_path_with_no_file_name_exits_1_naming_it(
+    given: str,
+    tmp_path: Path,
+    dist: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert main(["export", given, "--view", str(view_yaml(tmp_path))]) == 1
+    assert capsys.readouterr().err == f"mosaic export: {given}: no such file\n"
+    assert not [p for p in files_in(tmp_path) if p.endswith(".html") and not p.startswith("dist")]
+
+
+def test_a_file_name_that_is_not_utf8_exits_1_and_writes_nothing(
+    tmp_path: Path, dist: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    directory = tmp_path / "in"
+    directory.mkdir()
+    raw = os.fsencode(directory) + b"/bad\xff.mosaic"
+    shutil.copyfile(READING / "mosaic.mosaic", raw)
+    path = Path(os.fsdecode(raw))
+    out = tmp_path / "out.html"
+    assert main(["export", str(path), "--view", str(view_yaml(tmp_path)), "-o", str(out)]) == 1
+    err = capsys.readouterr().err
+    assert "bad\\xff.mosaic: its file name is not UTF-8 text" in err
+    assert not out.exists()

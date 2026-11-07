@@ -101,7 +101,12 @@ def page(name: str, data: bytes, settings: dict[str, object], dist: Path) -> byt
 
 
 def default_output(source: Path) -> Path:
-    """Where an export of ``source`` goes without ``-o``: its name with ``.html``, here (#131)."""
+    """Where an export of ``source`` goes without ``-o``: its name with ``.html``, here (#131).
+
+    Raises :class:`ExportError` for a path with no file name, such as ``.`` or ``/``.
+    """
+    if not source.name or source.name in (".", ".."):
+        raise ExportError(f"{source}: no such file")
     return Path(Path(source.name).with_suffix(".html").name)
 
 
@@ -117,6 +122,13 @@ def export(source: Path, output: Path, view: Path | None = None, dist: Path | No
         built = viewer.viewer_dist(dist)
     except viewer.ViewError as e:  # a view file's names the file, the line and the setting (M3.5)
         raise ExportError(str(e)) from None
+    try:
+        source.name.encode("utf-8")
+    except UnicodeEncodeError:
+        shown = str(source).encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+        raise ExportError(
+            f"{shown}: its file name is not UTF-8 text, so the page cannot name it"
+        ) from None
     if settings["search"] != "text":
         where = "the default view file" if view is None else str(view)
         raise ExportError(
