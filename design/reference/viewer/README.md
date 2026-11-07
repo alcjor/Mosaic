@@ -8,7 +8,7 @@ reworked shell. They illustrate the needs; they are **not** requirements.
 | `1-node-page.png` | A node's page: search in the header, a type rail, links as sentences, sources and provenance on the right, a status bar | Brand book section 6 (Shell) |
 | `2-graph-schema.png` | The mosaic's types and edge types as one map, with counts | Graph explorer (later) |
 | `3-graph-neighbourhood.png` | A node and its neighbours grouped by edge type; extra neighbours folded into bundles; a proposal | UC-03, graph explorer (later) |
-| `4-graph-path.png` | The path between two things, with each step's source | UC-03; needs the kit's `path` (M7) |
+| `4-graph-path.png` | The path between two things, with each step's source | UC-03; needs the kit's `path` (M8) |
 | `5-chains.png` | A chain shown as cards per step and as a joined table, with card fields chosen per type | UC-16, "Viewer: chains and cards" |
 | `6-table.png` | A node type as rows, with linked columns and the source's column layout | UC-04 |
 | `7-graph-overview.png` | The whole mosaic as shards, one per thing (experimental) | Graph explorer (later) |

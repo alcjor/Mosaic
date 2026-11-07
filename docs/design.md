@@ -250,29 +250,30 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 | M1 | Netflix, build side | CSV importer that can turn a column into linked things (optionally split on a separator: directors, cast, countries, genres, years) and convert dates and mixed fields, mosaic builder (8 steps, build report, strict), `mosaic check`; the Netflix mosaic builds with the same knowledge hash in repeated clean local builds |
 | M2 | Netflix, read side | Vectors in the builder; TypeScript kit with `find`, `get`, `neighbors`, `table`, `cite`; `mosaic view` explores the Netflix mosaic with semantic search |
 | M3 | First milestone complete | View files, single-file export with both search settings, the Chinook fixture and its tool cases pass |
-| M4 | Several pieces | OpenFlights: merging pieces, qualifiers, weak ids, notices |
-| M5 | Text and mentions | Document and code tessera builders, link rules from mentions, `source_text`; the PX4 fixture |
-| M6 | AI input | AI step in tessera builders, pattern assistant, proposals end to end |
-| M7 | Agents | Generated card, `path`, MCP server in Node, the benchmark with small models |
-| M8 | Freeze 0.1 | Python wrapper, 100,000-node budgets in CI, the full conformance suite passes, spec frozen |
+| M4 | Project site | The project site needs S-1 to S-22 (below) are met: the site is published from `main`, every tutorial runs in a test, the gallery shows the Netflix and Chinook examples with their expected knowledge hashes, and the gate checks documentation completeness, switched on only after the gaps it finds in `main` are filled |
+| M5 | Several pieces | OpenFlights: merging pieces, qualifiers, weak ids, notices |
+| M6 | Text and mentions | Document and code tessera builders, link rules from mentions, `source_text`; the PX4 fixture |
+| M7 | AI input | AI step in tessera builders, pattern assistant, proposals end to end |
+| M8 | Agents | Generated card, `path`, MCP server in Node, the benchmark with small models |
+| M9 | Freeze 0.1 | Python wrapper, 100,000-node budgets in CI, the full conformance suite passes, spec frozen |
 
-**Building GUI, after M4.** Once the pattern format has settled through real use, the viewer gains tools for people who are not programmers. Each is a front end to the files, never a separate store, and none edits the graph:
+**Building GUI, after M5.** Once the pattern format has settled through real use, the viewer gains tools for people who are not programmers. Each is a front end to the files, never a separate store, and none edits the graph:
 
 - **Pattern editor:** pick tesserae, map piece types to types, choose keys and normalisation, define edges from mention roles, and preview the mosaic. Every change is written to `pattern.yaml` as clean YAML that diffs well in Git.
 - **Import wizard for table sources:** choose a CSV file or a database, pick the key and the columns, and get an ordinary tessera.
-- **Proposal review:** accept or reject proposals, written to `proposals.yaml`; the home of the pattern assistant (M6).
+- **Proposal review:** accept or reject proposals, written to `proposals.yaml`; the home of the pattern assistant (M7).
 - **Facts typed by hand** go through a source, such as a spreadsheet template turned into a tessera, never straight into a mosaic: corrections belong in sources, and a new build follows.
 
 **Viewer: chains and cards, not yet in a milestone.** A person browsing a mosaic often asks a question that is a fixed walk across the links: from a thing, along one kind of link, then another. The path between two things (UC-03) answers "how are these connected"; a chain answers "show me everything connected this way, and what matters about each thing on the way" (UC-16). These needs say what the viewer must let a person do; how is for the builders to decide. The mock-ups in `design/reference/viewer/` show one way to meet them and are not requirements.
 
-*Boundary.* These are needs of the reference viewer and its view file only. They change nothing in the file format, the pattern, the mosaic builder or the kit, and they must be met with what the kit already exposes. The one exception is V-4, which waits for the kit's `path` (planned for M7) and is not built before it. If any other need cannot be met with the kit as it is, that is a separate decision about the core, not something these needs imply.
+*Boundary.* These are needs of the reference viewer and its view file only. They change nothing in the file format, the pattern, the mosaic builder or the kit, and they must be met with what the kit already exposes. The one exception is V-4, which waits for the kit's `path` (planned for M8) and is not built before it. If any other need cannot be met with the kit as it is, that is a separate decision about the core, not something these needs imply.
 
 *Define a chain.*
 
 - **V-1.** The viewer lets a person define a chain as a start and an ordered list of steps, where each step follows one kind of link in one direction to the next thing.
 - **V-2.** The viewer lets any step be pinned to one particular thing, or left open to any thing of that type.
 - **V-3.** The viewer only offers steps the mosaic's types and links allow, so a chain that cannot be followed cannot be built.
-- **V-4.** Once the kit has `path` (M7), the viewer can turn a path found between two things into a chain, so that "how these two connect" becomes "everything connected this way". Until then, chains are built only from steps the person picks (V-1).
+- **V-4.** Once the kit has `path` (M8), the viewer can turn a path found between two things into a chain, so that "how these two connect" becomes "everything connected this way". Until then, chains are built only from steps the person picks (V-1).
 - **V-5.** The viewer lets a person extend, shorten or change a chain and see the effect without starting over.
 
 *Choose what each card shows.*
@@ -296,6 +297,50 @@ No dates: each milestone starts when the one before passes. M1 to M3 are the fir
 - **V-16.** Anyone who opens the same mosaic with the same view file sees the same chains and cards, in `mosaic view` and in the single-file export alike, offline.
 - **V-17.** The viewer can link to one chain, with its pinned steps and filters, so a colleague lands on exactly the same results.
 - **V-18.** A view file whose chains or cards name types, links or properties the mosaic does not have still opens; the viewer reports what it could not apply instead of failing.
+
+**Project site, M4.** One public site for Mosaic: what it is, how to use it, a reference generated from the code and the formats, tutorials, and working examples built from the fixtures. These needs say what the site must offer a visitor; the generator, layout and hosting details are for the builders to decide.
+
+*Boundary.* The site documents Mosaic and changes nothing in the file format, the pattern, the mosaic builder or the kit. Everything on it comes from the repository: files in it, output generated from them, or fixture sources fetched by their pinned hash.
+
+*The site as a whole.*
+
+- **S-1.** The site is published from `main` at one public address and shows what `main` holds; there is no second copy of any text to keep in step.
+- **S-2.** The site follows the design system: the tokens, the brand book's docs site layout (a navy header band with the dark lockup; each state icon heads the docs about its state) and the files in `design/assets/`, in both the light and the dark theme.
+- **S-3.** A visitor can search the whole site, and the search runs in the page, with no server beyond static hosting.
+- **S-4.** Every page works at phone width and meets the brand book's states for focus, hover and contrast.
+
+*Landing page.*
+
+- **S-5.** The landing page says on one screen what Mosaic is, who it is for and how it works, with the brand book's core lines word for word, the build strip and the six rules, and leads to a live example and to getting started.
+- **S-6.** The site never presents as available what is not built yet: each part says whether it exists today or which milestone brings it.
+
+*Reference, generated.*
+
+- **S-7.** Every CLI command and option has a reference entry generated from the CLI itself.
+- **S-8.** The kit's public interface is documented from its code: each tool with its arguments, its answer and its errors, and every exported type.
+- **S-9.** Every field of the pattern, the proposals file, the view file, the build report and the kit's answers has an entry with its meaning, whether it is required, its allowed values and a link to the specification section that defines it.
+- **S-10.** The specification, the ADRs and this design document can be read on the site, with the same text as in the repository.
+- **S-11.** Every tool case in `conformance/` appears as an example: the call and the answer the kit gives.
+- **S-12.** Contributors find a separate reference of the Python packages, generated from their docstrings and kept apart from the user reference.
+- **S-13.** The gate fails when a public kit export, a tool's arguments or answer, a CLI command or option, or a field of a format has no description. Descriptions that belong in `spec/` reach it through pull requests that wait for the maintainer, like any change to the normative files.
+
+*Tutorials.*
+
+- **S-14.** Step-by-step tutorials take a newcomer from installing Mosaic to a built, explored and exported mosaic, using the fixtures, and cover only what is already built.
+- **S-15.** Every command and every output a tutorial shows comes from running it: a test runs each tutorial and fails when a command fails or its output differs from the page.
+
+*Examples from the fixtures.*
+
+- **S-16.** Each published fixture has a page with its source, its licence and notice, its pattern, its view file, its build report and its knowledge hash.
+- **S-17.** From that page a visitor opens the fixture's single-file export in the browser, installing nothing, and can download the `.mosaic` file.
+- **S-18.** Only fixtures whose licence the maintainer has confirmed in `conformance/fixtures/manifest.json` are published, each with its notice.
+- **S-19.** A published mosaic is the one a clean build makes: the site shows its expected knowledge hash and never publishes a mosaic whose hash differs.
+- **S-20.** Examples open quickly on an ordinary connection; at least one offers semantic search.
+
+*Building and publishing.*
+
+- **S-21.** The site is rebuilt and published when `main` changes something it shows, and is not rebuilt for changes it does not show.
+- **S-22.** A broken link, a failed generation or a failed check stops the site's build and leaves the published site at its last good version; the same site can be built and previewed locally with one command.
 
 ### Constraints, assumptions and risks
 
