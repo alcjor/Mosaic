@@ -1,7 +1,9 @@
 # SQLite import settings for the Chinook fixture (docs/spec-0.1.md section 11; plan M3.3).
 # mosaic import sqlite Chinook_Sqlite.sqlite --settings settings.yaml -o chinook.tessera
 # The music catalogue, its playlists and the staff and customers who look after it. Invoice and
-# InvoiceLine are left out: they are sales records with no name to search by.
+# InvoiceLine are left out: they are sales records with no name to search by. The notice is the
+# database's MIT copyright line, which the mosaic carries (the maintainer's answer on #125).
+notice: "Chinook Database. Copyright (c) 2008-2024 Luis Rocha. MIT License."
 tables:
   Artist:
     label: Name

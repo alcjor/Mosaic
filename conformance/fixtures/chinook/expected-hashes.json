@@ -2,7 +2,7 @@
   "comment": "The expected Chinook mosaic (docs/spec-0.1.md section 11): what a clean build of pattern.yaml from the tessera it pins gives, per target. knowledge_hash is section 3.6, vector_hash section 3.7, embed_model the model of section 6. Proposed by the pair (plan M3.3) from two clean local builds; changing it needs the maintainer's review (CODEOWNERS).",
   "mosaics": {
     "default": {
-      "knowledge_hash": "8ba66b015116c5c6b74fc5e22058eb879f1083ba0c89cb8a084e91c680e932a8",
+      "knowledge_hash": "5281bee975865d5b5570b7ba991b22bff527bac0b773c0107c54a242650e7327",
       "vector_hash": "2f8f500f9e48762f55cba804d5ec43e470606f6a1d36d4dce182c3358ea6da4e",
       "embed_model": "snowflake-arctic-embed-xs@e6aa5e656466a73d7c3111e9a3378bd13e5b93af30eaac2b3f13fd56692589a1"
     }
