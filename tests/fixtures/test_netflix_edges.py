@@ -166,6 +166,32 @@ def flow(fetched: None, tmp_path_factory: pytest.TempPathFactory) -> Flow:
     )  # fmt: skip
 
 
+NO_VECTORS = "\nmosaics:\n  default: {vectors: false}\n"
+"""The fixture's one target with vectors off. Section 3.6: the knowledge hash does not cover
+vectors (``test_netflix.py`` checks the two builds give the same one), so the tests below that
+are about pins, ``strict``, budgets and where the command runs build without vectors and compare
+with ``plain``, not with ``flow``. A vector build takes about 130 s, one without about 15 s."""
+
+
+@dataclass(frozen=True)
+class Plain:
+    mosaic: Path
+    report: dict[str, object]
+
+
+@pytest.fixture(scope="module")
+def plain(flow: Flow, tmp_path_factory: pytest.TempPathFactory) -> Plain:
+    """The flow's pieces built again with vectors off, from a new directory."""
+    directory = tmp_path_factory.mktemp("netflix-plain")
+    pattern = _pattern_with(directory, mosaics=NO_VECTORS)
+    out = directory / "out"
+    _ok("build", pattern, "--pieces", flow.pieces, "-o", out, cwd=directory)
+    report = json.loads((out / "build-report.json").read_text(encoding="utf-8"))
+    assert report["vector_hash"] is None
+    assert _knowledge_hash(out / "default.mosaic") == flow.mosaic_hash
+    return Plain(out / "default.mosaic", report)
+
+
 def _trim(text: str) -> str:
     return text.strip(WHITE_SPACE)
 
@@ -261,7 +287,7 @@ def test_a_pin_of_seven_characters_is_refused(flow: Flow, tmp_path: Path) -> Non
 def test_a_pin_of_eight_characters_builds_the_same_mosaic(flow: Flow, tmp_path: Path) -> None:
     # Section 5.1: a prefix of at least 8 characters that matches one file resolves it.
     _, pinned = _pin()
-    pattern = _pattern_with(tmp_path, pin=pinned[:8])
+    pattern = _pattern_with(tmp_path, pin=pinned[:8], mosaics=NO_VECTORS)
     out = tmp_path / "out"
     _ok("build", pattern, "--pieces", flow.pieces, "-o", out, cwd=tmp_path)
     assert _knowledge_hash(out / "default.mosaic") == flow.mosaic_hash
@@ -499,7 +525,9 @@ def test_the_report_lists_every_declared_type_with_its_count(flow: Flow) -> None
 def test_a_strict_target_builds_the_same_knowledge_hash(flow: Flow, tmp_path: Path) -> None:
     # Sections 5.4 and 7.3: strict fails only on conflicts, alias conflicts and unmatched
     # mentions; the fixture has none, and the header (target, settings) is not hashed (3.6).
-    pattern = _pattern_with(tmp_path, mosaics="\nmosaics:\n  tight: {strict: true}\n")
+    pattern = _pattern_with(
+        tmp_path, mosaics="\nmosaics:\n  tight: {strict: true, vectors: false}\n"
+    )
     out = tmp_path / "out"
     _ok("build", pattern, "--pieces", flow.pieces, "-o", out, cwd=tmp_path)
     assert _knowledge_hash(out / "tight.mosaic") == flow.mosaic_hash
@@ -524,11 +552,13 @@ def test_a_target_the_pattern_does_not_define_fails(flow: Flow, tmp_path: Path) 
 
 
 def test_a_budget_below_the_file_size_fails_and_leaves_no_mosaic(
-    flow: Flow, tmp_path: Path
+    flow: Flow, plain: Plain, tmp_path: Path
 ) -> None:
     # Sections 5.4 and 7.1 step 8: over budget fails, no mosaic is written; 7.3: the report gives
     # the removed file's hashes and size, with counts filled.
-    pattern = _pattern_with(tmp_path, mosaics="\nmosaics:\n  small: {budget: 1 MB}\n")
+    pattern = _pattern_with(
+        tmp_path, mosaics="\nmosaics:\n  small: {budget: 1 MB, vectors: false}\n"
+    )
     out = tmp_path / "out"
     done = _run("build", pattern, "--pieces", flow.pieces, "-o", out, cwd=tmp_path)
     assert done.returncode != 0
@@ -537,16 +567,18 @@ def test_a_budget_below_the_file_size_fails_and_leaves_no_mosaic(
     _schema().validate(report)
     assert (report["outcome"], report["reason"]) == ("failed", "over_budget")
     assert report["knowledge_hash"] == flow.mosaic_hash
-    assert report["file_size"] == flow.report["file_size"]
-    assert report["counts"] == flow.report["counts"]
+    assert report["file_size"] == plain.report["file_size"]
+    assert report["counts"] == plain.report["counts"] == flow.report["counts"]
 
 
-def test_a_budget_of_the_exact_file_size_builds(flow: Flow, tmp_path: Path) -> None:
+def test_a_budget_of_the_exact_file_size_builds(flow: Flow, plain: Plain, tmp_path: Path) -> None:
     # Section 5.4: the build fails when the mosaic is *larger* than the budget, in decimal units
     # compared with the size of the sealed file; equal is allowed.
-    size = flow.report["file_size"]
+    size = plain.report["file_size"]
     assert isinstance(size, int)
-    pattern = _pattern_with(tmp_path, mosaics=f"\nmosaics:\n  exact: {{budget: {size} B}}\n")
+    pattern = _pattern_with(
+        tmp_path, mosaics=f"\nmosaics:\n  exact: {{budget: {size} B, vectors: false}}\n"
+    )
     out = tmp_path / "out"
     done = _run("build", pattern, "--pieces", flow.pieces, "-o", out, cwd=tmp_path)
     if done.returncode != 0 and "invalid" in (done.stdout + done.stderr).lower():
@@ -559,14 +591,16 @@ def test_a_budget_of_the_exact_file_size_builds(flow: Flow, tmp_path: Path) -> N
 
 
 def test_the_mosaic_does_not_depend_on_where_or_how_the_command_runs(
-    flow: Flow, tmp_path: Path
+    flow: Flow, plain: Plain, tmp_path: Path
 ) -> None:
     # Section 7 / principle 5: the output directory and the working directory are not inputs.
+    # (With vectors: test_netflix.py builds twice in two directories and compares the bytes.)
     other = tmp_path / "elsewhere" / "deeper"
     other.mkdir(parents=True)
+    pattern = _pattern_with(tmp_path, mosaics=NO_VECTORS)
     out = other / "result"
-    _ok("build", FIXTURE / "pattern.yaml", "--pieces", flow.pieces, "-o", out, cwd=other)
-    assert (out / "default.mosaic").read_bytes() == flow.mosaic.read_bytes()
+    _ok("build", pattern, "--pieces", flow.pieces, "-o", out, cwd=other)
+    assert (out / "default.mosaic").read_bytes() == plain.mosaic.read_bytes()
 
 
 def test_the_tessera_hash_does_not_depend_on_environment(flow: Flow, tmp_path: Path) -> None:
