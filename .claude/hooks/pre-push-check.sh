@@ -6,7 +6,10 @@ if ! printf '%s' "$input" | grep -qE '"command"[[:space:]]*:[[:space:]]*"[^"]*gi
   exit 0
 fi
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}" || exit 0
-if ! out="$(./scripts/check-fast.sh 2>&1)"; then
+. .claude/hooks/gate-cache.sh
+# This exact tree already passed (an earlier push, a sheet publish, a retry): nothing to check.
+gate_passed_already && exit 0
+if ! out="$(gate_run)"; then
   printf 'Push blocked: scripts/check-fast.sh failed locally. Fix it, rerun, then push.\n\n%s\n' "$(printf '%s' "$out" | tail -60)" >&2
   exit 2
 fi
