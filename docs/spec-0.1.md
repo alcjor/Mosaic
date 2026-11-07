@@ -371,7 +371,7 @@ A kit opens one or more mosaics (section 3.8) and offers these tools. Every tool
 | `get` | `id` | The node: type, label, summary, properties, aliases, external references, and link counts per edge type and direction |
 | `neighbors` | `id`, optional `edge`, `direction` (`out`, `in`, `both`), `limit` (default 20) | Edges with the other node's id and label, and the total count |
 | `path` | `from`, `to`, optional `max_hops` (default and maximum 4) | The shortest path ignoring direction, as a list of edges, or a statement that none exists within the limit |
-| `table` | `type`, optional `columns`, `where`, `order`, `page` | Rows of one node type with its declared properties as columns; `where` allows `=`, `!=`, `<`, `<=`, `>`, `>=` and `contains` on declared properties only, never raw SQL |
+| `table` | `type`, optional `columns`, `where`, `order`, `page` | Rows of one node type, laid out as a source table would show them: the node's id, then one cell per column, where a column is a declared property, the node's `key`, `label` or `summary`, or an edge type leaving the type (section 8.6); `where` allows `=`, `!=`, `<`, `<=`, `>`, `>=` and `contains` on any column, never raw SQL |
 | `cite` | `id` of a node, or an edge as `from`, `type`, `to` | Evidence rows: source id and hash, locator, method, confidence, snippet |
 
 An unknown id MUST return an error naming the closest matches from `find`, never an empty success.
@@ -425,6 +425,14 @@ Sensor:TEMP-3 | Inlet temperature | unit=°C; range=0..100
 Step:FOP-PWR-001/2 | Switch heater A on
 Step:FOP-PWR-001/2 --reads--> Sensor:TEMP-3
 ```
+
+#### 8.6 Decisions (7 November 2026)
+
+- **`table` shows a source's table.** A mosaic made from a table (the Netflix titles CSV, say) can be read back as that table, one row per node and one column per source column. A column name means, in this order: a declared property of the type; one of the node's fields `key`, `label` and `summary`; an edge type whose `from_type` is the type. Any other name in `columns`, `where` or `order` is an `unknown_column` error, never an empty answer.
+- **Rows.** `data.columns` is `id`, then the columns shown; each row is the node's id, then one cell per column. A property's cell is its value as stored, a string, number, boolean, list or object, or null when the node has none (a stored JSON null included). A field's cell is its text, or null when the node has none. An edge's cell is the list of the labels of the nodes the type's edges lead to from this node, one per node, in the order of those nodes' ids (UTF-8 bytes), with null for a node without a label; it is an empty list when there are none, and it is not cut at 20 items. Without `columns`, the columns are `label`, then the declared properties in the order the type declares them, 20 columns in all; with `columns`, those named, at most 20, each once. Text is cut as section 8.2 says: labels at 120 characters, in edge cells too, and summaries, keys and property text at 400.
+- **`where`** is one condition `{column, op, value}` or a list of 1 to 20, all of which must hold; `value` is a string, a number or a boolean. A condition compares a value only with a value of its own kind (text with text by UTF-8 bytes, numbers by value, booleans with booleans), so `=`, `<`, `<=`, `>` and `>=` never hold on a node with no value or a value of another kind, and `!=` holds on every node whose value is not equal to the given one, nodes with no value included. `contains` takes text and ignores case, comparing both sides after the Unicode default lowercase mapping: it holds on text that contains the given text, and on a list with a text item that contains it.
+- **`order`** is a column name, `{column, direction}` with `asc` (the default) or `desc`, or a list of 1 to 20 of these. Values sort in groups that keep this order in both directions: booleans (`false` before `true`), numbers, text (UTF-8 bytes), lists, objects (each by its JSON text), and last the nodes with no value; `desc` reverses the order inside each group. Ties, and calls without `order`, go by id (UTF-8 bytes).
+- **`page`** is a whole number from 1; each page holds 20 rows, and `total` counts every node of the type that `where` keeps.
 
 ### 9. Versioning
 
