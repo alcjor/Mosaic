@@ -5,7 +5,7 @@
  * - `edge` keeps the edges of that declared edge type; a name the mosaic does not declare as an
  *   edge type is `unknown_edge`, never an empty success.
  * - `direction` is `out` (edges that leave the node), `in` (edges that reach it) or `both`, the
- *   default. A loop is listed once each way, as `get` counts it.
+ *   default (decision A on #112). A loop is listed once each way, as `get` counts it.
  * - Edges come by edge type (UTF-8 bytes), `out` before `in`, then by the other node's id and the
  *   qualifier (UTF-8 bytes), as `get` orders its link counts; `limit` (default and at most 20)
  *   cuts the list, and `total` counts every edge that `edge` and `direction` keep.

@@ -185,6 +185,23 @@ describe("neighbors (section 8.1)", () => {
   });
 });
 
+describe("decision A on #112: no direction means both (section 8.1)", () => {
+  it("a call without direction lists the edges that leave and reach the node, as direction both", async () => {
+    const file = await open(SAMPLE);
+    const data = await linked(file, { id: "Probe:TMP-4" });
+    expect(data.edges).toEqual([
+      { edge: "feeds", direction: "in", id: "Probe:TMP-3", label: "Inlet temperature" },
+      { edge: "reads", direction: "in", id: "Step:S2", label: "Check the outlet" },
+    ]);
+    expect(data.total).toBe(2);
+    expect(await linked(file, { id: "Probe:TMP-4", direction: "both" })).toEqual(data);
+    const mixed = await linked(file, { id: "Probe:TMP-3", edge: "feeds" });
+    expect(mixed.edges.map((e) => e.direction)).toEqual(["out", "out", "in", "in"]);
+    expect(mixed.total).toBe(4);
+    file.close();
+  });
+});
+
 describe("neighbors: an unknown id is an error naming the closest matches from find (section 8.1)", () => {
   it("names the node whose key the id holds", async () => {
     const file = await open(SAMPLE);
