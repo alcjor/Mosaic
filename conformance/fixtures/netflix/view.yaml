@@ -1,0 +1,25 @@
+# View file for the Netflix titles fixture (docs/design.md, Implementation plan, "View file";
+# plan M3.5). Schema: views/view.schema.json.
+# mosaic view netflix.mosaic --view view.yaml
+search: semantic
+types:
+  Title:
+    label: Title
+    columns: [type, release_year, rating, duration, duration_unit]
+    page: [type, release_year, date_added, rating, duration, duration_unit,
+           directed_by, features, listed_in, made_in]
+    names:
+      type: Kind
+      release_year: Released
+      date_added: Added
+      duration_unit: Unit
+      directed_by: Directed by
+      features: Cast
+      listed_in: Genres
+      made_in: Countries
+  Person:
+    label: Person
+  Genre:
+    label: Genre
+  Country:
+    label: Country
