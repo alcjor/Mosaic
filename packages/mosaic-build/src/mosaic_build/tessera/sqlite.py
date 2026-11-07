@@ -379,7 +379,8 @@ def _shapes(con: sqlite3.Connection, name: str, settings: Settings) -> dict[str,
 
 def _columns(con: sqlite3.Connection, table: str) -> tuple[list[str], list[str]]:
     """A table's columns and its primary key's columns, in key order."""
-    info = con.execute(f"PRAGMA table_info({_q(table)})").fetchall()
+    # table_xinfo also lists generated columns (hidden 2 and 3); 1 is a virtual table's hidden one.
+    info = [r for r in con.execute(f"PRAGMA table_xinfo({_q(table)})") if int(r[6]) != 1]
     columns = [str(row[1]) for row in info]
     key = [str(row[1]) for row in sorted(info, key=lambda r: int(r[5])) if int(row[5]) > 0]
     return columns, key
