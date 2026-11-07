@@ -8,7 +8,7 @@ uv run --locked ruff check .
 uv run --locked ruff format --check .
 uv run --locked ty check
 uv run --locked lint-imports
-uv run --locked pytest -m "not slow"
+uv run --locked pytest -m "not slow" -n auto
 bun run lint
 bun run typecheck
 bun run test
