@@ -13,6 +13,7 @@ export {
   NODE_TYPE_LIMIT,
   REFUSAL_RULES,
   openFile,
+  useSqliteWasm,
   type Header,
   type EdgeType,
   type NodeType,
