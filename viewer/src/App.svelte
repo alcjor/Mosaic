@@ -13,6 +13,9 @@
    * mosaic does not have is shown as a notice, and the page still opens. The page asks for them
    * again every second, so a view file saved under `mosaic view` reshapes it; settings that
    * cannot be read (a file saved with an error) are shown as an error and the page stays as it was.
+   * A single-file export (lib/exported.ts) holds its mosaic, its view file's settings and SQLite's
+   * WebAssembly in the document: the page opens them, fetches nothing, watches nothing, and says
+   * it is a read-only export (brand book, section 6, Shell).
    */
   import { onMount } from "svelte";
   import EntityCard from "./components/EntityCard.svelte";
@@ -23,10 +26,12 @@
   import TypeList from "./components/TypeList.svelte";
   import { fetchNamedModel, fetchNamedMosaic, loadModel, shortHash } from "./lib/mosaic.js";
   import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
+  import { useSqliteWasm } from "@mosaic/kit";
+  import { readExport } from "./lib/exported.js";
   import { applyTheme, watchView } from "./lib/view.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
-  let { viewer = new Viewer() }: { viewer?: Viewer } = $props();
+  let { viewer = new Viewer(), exported = false }: { viewer?: Viewer; exported?: boolean } = $props();
 
   /** Why the view file's settings could not be read; the page then uses the defaults. */
   let viewError = $state<string | null>(null);
@@ -69,9 +74,29 @@
     if (chosen) await opened(new Uint8Array(await chosen.arrayBuffer()), chosen.name);
   }
 
+  /** Open the export the document holds; true when it holds one. */
+  async function openExport(): Promise<boolean> {
+    let found;
+    try {
+      found = readExport(document);
+    } catch (e) {
+      viewer.status = "error";
+      viewer.error = e instanceof Error ? e.message : String(e);
+      exported = true;
+      return true;
+    }
+    if (found === null) return false;
+    exported = true;
+    useSqliteWasm(found.sqlite);
+    await viewer.setView(found.view);
+    await opened(found.mosaic, found.name);
+    return true;
+  }
+
   onMount(() => {
     window.addEventListener("hashchange", follow);
     void (async () => {
+      if (await openExport()) return;
       const model = (async () => {
         try {
           const files = await fetchNamedModel(location.search, location.href);
@@ -122,6 +147,9 @@
     onsearch={(query) => (location.hash = routeHash({ query, node: viewer.nodeId }))}
     onmode={(mode) => void viewer.setMode(mode)}
   />
+  {#if exported}
+    <span class="export caption">Read-only export</span>
+  {/if}
   <label class="open caption">
     Open a mosaic
     <input class="file" type="file" accept=".mosaic" onchange={picked} />
@@ -226,6 +254,10 @@
   .hash {
     color: var(--shard-4);
     opacity: 0.8;
+  }
+
+  .export {
+    color: var(--shard-4);
   }
 
   .open {

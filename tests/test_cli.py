@@ -631,9 +631,11 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert "format 0.1" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("command", ["export"])
-def test_later_commands_fail_loudly(command: str) -> None:
-    assert main([command]) == 2
+def test_export_without_its_arguments_fails_loudly() -> None:
+    # Export is built (M3.8); a bare `mosaic export` is a command line not understood.
+    with pytest.raises(SystemExit) as exit_info:
+        main(["export"])
+    assert exit_info.value.code == 2
 
 
 def test_hashes_printed_are_full_hashes(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

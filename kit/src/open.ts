@@ -194,10 +194,22 @@ export interface SealedFile {
 }
 
 let engine: Promise<Sqlite3Static> | undefined;
+let engineBytes: Uint8Array | undefined;
+
+/**
+ * Load SQLite's WebAssembly from `bytes` instead of fetching it beside the kit's script: for a
+ * page that cannot fetch files, such as one opened from `file://` (a single-file export). Call
+ * it before the first {@link openFile}; once SQLite is loaded it cannot change.
+ */
+export function useSqliteWasm(bytes: Uint8Array): void {
+  if (engine !== undefined) throw new Error("SQLite is already loaded; give its WebAssembly before the first openFile");
+  engineBytes = bytes;
+}
 
 /** SQLite WebAssembly, loaded once. */
 function sqlite(): Promise<Sqlite3Static> {
-  engine ??= sqlite3InitModule().then((s) => {
+  const init = sqlite3InitModule as unknown as (module?: { wasmBinary?: Uint8Array }) => Promise<Sqlite3Static>;
+  engine ??= init(engineBytes === undefined ? undefined : { wasmBinary: engineBytes }).then((s) => {
     // The engine warns on the console for every failed statement; a refused file is an
     // answer here, not a fault, and the error says what failed.
     const config = (s as unknown as { config?: { warn?: (...args: unknown[]) => void } }).config;

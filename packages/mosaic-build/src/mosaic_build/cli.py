@@ -43,6 +43,12 @@ Subcommands arrive milestone by milestone (docs/design.md, Part 1, "Milestones")
   checked by their pinned hashes first, and the page searches by vectors as well; without it,
   by names and full text only.
 
+- ``mosaic export <file> [--view FILE] -o OUT.html`` writes the viewer page with a tessera or
+  mosaic inside as one new HTML file that opens offline (:mod:`mosaic_build.export`). It applies
+  the reading rules first; a refused file, a wrong view file, a view file whose ``search`` is
+  ``semantic`` (plan M3.9) or an existing ``OUT.html`` is an error naming it, and nothing is
+  written. The built viewer is needed (``bun run build``).
+
 Exit status: 0 when the command did what was asked (for ``view``, when it is stopped), 1 when a
 build failed, a check found violations, an input could not be read or a file could not be
 viewed, 2 for a command line that is not understood.
@@ -67,6 +73,7 @@ from mosaic_format.writer import seal
 from mosaic_format.yaml_core import YamlError, load
 
 from mosaic_build import __version__
+from mosaic_build import export as exporter
 from mosaic_build import view as viewer
 from mosaic_build.mosaic import BuildError, build
 from mosaic_build.mosaic.pieces import piece_paths
@@ -76,9 +83,7 @@ from mosaic_build.tessera import settings as csv_settings
 from mosaic_build.tessera import sqlite_settings
 from mosaic_build.tessera.sqlite import Built
 
-PLANNED = {
-    "export": "M3",
-}
+PLANNED: dict[str, str] = {}
 """Commands of later milestones, which say so and exit with status 2."""
 
 SQLITE_MAGIC = b"SQLite format 3\x00"
@@ -210,6 +215,29 @@ def make_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="FILE",
         help="view file (YAML) that shapes the page; reloaded when saved (only read)",
+    )
+
+    export_cmd = sub.add_parser(
+        "export",
+        help="save the viewer page with a tessera or mosaic inside as one HTML file",
+        description=(
+            "Check FILE by the reading rules (section 3.8: container, schema, header, version and "
+            "both hashes), then write the built viewer page with FILE inside as one new HTML file "
+            "that opens offline with a double-click: the kit in the page checks both hashes when "
+            "it opens and answers every search; nothing is fetched. With --view FILE the page is "
+            "shaped by that view file; its search setting must be text (search: semantic, which "
+            "carries the embedding model, comes later). A missing or refused file, a wrong view "
+            "file or an existing output file is an error naming it (exit status 1), and nothing "
+            "is written. FILE and the view file are only read; the output is never overwritten. "
+            "The viewer must be built first: bun run build."
+        ),
+    )
+    export_cmd.add_argument("file", type=Path, help="the tessera or mosaic to export (only read)")
+    export_cmd.add_argument(
+        "--view", type=Path, metavar="FILE", help="view file (YAML) that shapes the page"
+    )
+    export_cmd.add_argument(
+        "-o", "--output", type=Path, required=True, metavar="FILE", help="the new HTML file"
     )
 
     for name, milestone in PLANNED.items():
@@ -392,6 +420,16 @@ def _view(args: argparse.Namespace) -> int:
     return 0
 
 
+def _export(args: argparse.Namespace) -> int:
+    try:
+        size = exporter.export(args.file, args.output, args.view)
+    except exporter.ExportError as e:
+        _error("export", e)
+        return 1
+    print(f"{args.file}: exported to {args.output} ({size:,} bytes)")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = make_parser()
     args = parser.parse_args(argv)
@@ -401,7 +439,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command in PLANNED:
         _error(args.command, f"not implemented yet (planned for {PLANNED[args.command]})")
         return 2
-    run = {"import": _import, "build": _build, "check": _check, "view": _view}[args.command]
+    run = {
+        "import": _import,
+        "build": _build,
+        "check": _check,
+        "view": _view,
+        "export": _export,
+    }[args.command]
     try:
         return run(args)
     except _Usage as e:
