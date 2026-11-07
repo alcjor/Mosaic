@@ -10,9 +10,11 @@ export * from "./constants.js";
 export {
   FileRefusedError,
   IMPLEMENTED_VERSIONS,
+  NODE_TYPE_LIMIT,
   REFUSAL_RULES,
   openFile,
   type Header,
+  type NodeType,
   type OpenOptions,
   type RefusalRule,
   type SealedFile,

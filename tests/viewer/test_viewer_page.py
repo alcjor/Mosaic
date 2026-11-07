@@ -3,7 +3,8 @@
 M2.9 (docs/design.md, First milestone: Viewer; Specification 0.1, sections 3.8, 8.1 and 8.2).
 ``viewer/scripts/browse.ts`` serves the built viewer and the mosaic as static files, with no
 query server, and drives the page in Chromium: it types a query in the search box, opens a
-result's node page, then the first of its links. The mosaic is the conforming one of
+result's node page, then the first of its links, then a table: sorted both ways, filtered, and
+a row opened (M2.10). The mosaic is the conforming one of
 ``conformance/reading/`` (invented data).
 """
 
@@ -22,7 +23,7 @@ STATIC = re.compile(r"GET /(|assets/[^/]+|mosaic\.mosaic)")
 
 
 @pytest.mark.slow
-def test_the_viewer_searches_and_opens_node_pages_with_the_kit_in_the_page() -> None:
+def test_the_viewer_searches_and_opens_node_pages_and_tables_with_the_kit_in_the_page() -> None:
     bun = shutil.which("bun")
     assert bun, "bun is needed to build the viewer (CLAUDE.md, Commands)"
     build = subprocess.run(
@@ -58,3 +59,16 @@ def test_the_viewer_searches_and_opens_node_pages_with_the_kit_in_the_page() -> 
         assert walk["sources"] and all(s.startswith("first/doc:") for s in walk["sources"])
         assert walk["opened"] == "Group:x"
         assert walk["hash"] == "#q=Item&node=Group%3Ax"
+    # M2.10: tables rebuilt from node types, every view a table call.
+    tables = seen["tables"]
+    assert tables["listed"] == ["Group", "Item"]
+    assert tables["headers"] == ["id", "label", "code", "size"]
+    assert tables["rows"] == ["Item:a", "Item:b"]
+    assert tables["column"] == "size"
+    assert tables["ascending"] == ["Item:a", "Item:b"]
+    # Item:b has no size: no value comes last in both directions (section 8.6).
+    assert tables["descending"] == ["Item:a", "Item:b"]
+    assert tables["filtered"] == ["Item:a"]
+    assert "1 row" in tables["pager"]
+    assert tables["opened"] == "Item:a"
+    assert tables["hash"] == "#q=Item&node=Item%3Aa"

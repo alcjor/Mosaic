@@ -2,7 +2,8 @@
   /**
    * The viewer's shell (brand book, section 6): a header band with the mosaic's name, its short
    * knowledge hash and the search field; then the results, the node's card, and its links and
-   * sources. The kit runs in this page: a mosaic is opened from a file the reader picks, or from
+   * sources; or the tables rebuilt from the mosaic's node types, each page one `table` call. The
+   * kit runs in this page: a mosaic is opened from a file the reader picks, or from
    * the address's `?mosaic=<url>`, and nothing is asked of a server but the file itself.
    */
   import { onMount } from "svelte";
@@ -10,19 +11,32 @@
   import NodeContext from "./components/NodeContext.svelte";
   import ResultList from "./components/ResultList.svelte";
   import SearchField from "./components/SearchField.svelte";
+  import TableView from "./components/TableView.svelte";
+  import TypeList from "./components/TypeList.svelte";
   import { fetchNamedMosaic, shortHash } from "./lib/mosaic.js";
-  import { parseRoute, routeHash } from "./lib/route.js";
+  import { parseRoute, routeHash, type Condition, type TableRoute } from "./lib/route.js";
   import { Viewer } from "./lib/viewer.svelte.js";
 
   let { viewer = new Viewer() }: { viewer?: Viewer } = $props();
 
   const hrefFor = (id: string): string => routeHash({ query: viewer.query, node: id });
+  const tableHref = (table: TableRoute): string => routeHash({ query: viewer.query, node: null, table });
+  const typeHref = (type: string): string => tableHref({ type, page: 1, order: null, where: [] });
 
-  /** Follow the address after `#`: the query and the node it names. */
+  function filtered(condition: Condition): void {
+    const table = viewer.tableRoute;
+    if (table) location.hash = tableHref({ ...table, page: 1, where: [...table.where, condition] });
+  }
+
+  /** Follow the address after `#`: the query, and the node or the table view it names. */
   function follow(): void {
     const route = parseRoute(location.hash);
     if (route.query !== viewer.query || viewer.results === null) void viewer.search(route.query);
     if (route.node !== viewer.nodeId || viewer.page === null) void viewer.show(route.node);
+    const table = route.table ?? null;
+    if (routeHash({ query: "", node: null, table }) !== routeHash({ query: "", node: null, table: viewer.tableRoute }) || viewer.table === null) {
+      void viewer.showTable(table);
+    }
   }
 
   async function opened(bytes: Uint8Array, name: string): Promise<void> {
@@ -91,8 +105,13 @@
       {:else}
         <p class="empty body-screen">Search for a name, an alias or words in the text.</p>
       {/if}
+      <TypeList types={viewer.file.nodeTypes} selected={viewer.tableRoute?.type ?? null} hrefFor={typeHref} />
     </nav>
-    {#if viewer.page && "message" in viewer.page}
+    {#if viewer.tableRoute}
+      <div class="wide">
+        <TableView view={viewer.table} route={viewer.tableRoute} hrefFor={tableHref} nodeHref={hrefFor} onfilter={filtered} />
+      </div>
+    {:else if viewer.page && "message" in viewer.page}
       <section class="entity">
         <p class="banner body-screen" role="alert">{viewer.page.message}</p>
         {#if viewer.page.suggestions.length > 0}
@@ -191,6 +210,10 @@
     border-block-end: 1px solid var(--border);
   }
 
+  .wide {
+    min-inline-size: 0;
+  }
+
   .suggestions {
     margin: 0;
     padding-inline-start: var(--space-4);
@@ -213,6 +236,10 @@
 
     .context {
       border-inline-start: 1px solid var(--border);
+    }
+
+    .wide {
+      grid-column: 2 / span 2;
     }
   }
 </style>

@@ -4,6 +4,8 @@
  */
 import type { SealedFile } from "@mosaic/kit";
 import { nodePage, openMosaic, search, type NodeView, type SearchView, type ToolFailure } from "./mosaic.js";
+import type { TableRoute } from "./route.js";
+import { tableView, type TableView } from "./tables.js";
 
 export type Status = "empty" | "loading" | "ready" | "error";
 
@@ -17,9 +19,13 @@ export class Viewer {
   results = $state.raw<SearchView | ToolFailure | null>(null);
   nodeId = $state<string | null>(null);
   page = $state.raw<NodeView | ToolFailure | null>(null);
+  /** The table view asked for, and its page from `table`. */
+  tableRoute = $state.raw<TableRoute | null>(null);
+  table = $state.raw<TableView | ToolFailure | null>(null);
 
   #searches = 0;
   #pages = 0;
+  #tables = 0;
 
   /** Open `bytes` as the mosaic `name`, closing the one before; a refused file is an error. */
   async open(bytes: Uint8Array, name: string): Promise<void> {
@@ -32,6 +38,7 @@ export class Viewer {
       this.status = "ready";
       this.results = null;
       this.page = null;
+      this.table = null;
     } catch (e) {
       this.status = this.file === null ? "error" : "ready";
       this.error = e instanceof Error ? e.message : String(e);
@@ -60,5 +67,17 @@ export class Viewer {
     }
     const view = await nodePage(this.file, id);
     if (n === this.#pages) this.page = view;
+  }
+
+  /** Show a page of a table view with `table` (null closes it). */
+  async showTable(route: TableRoute | null): Promise<void> {
+    this.tableRoute = route;
+    const n = ++this.#tables;
+    if (this.file === null || route === null) {
+      this.table = null;
+      return;
+    }
+    const view = await tableView(this.file, route);
+    if (n === this.#tables) this.table = view;
   }
 }
